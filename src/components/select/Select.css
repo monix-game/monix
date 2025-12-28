@@ -1,0 +1,65 @@
+.select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.select-wrapper.full-width {
+  width: 100%;
+}
+
+.select-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text);
+  display: block;
+}
+
+.select {
+  padding: 10px 12px;
+  border: 1px solid var(--bg);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: var(--dark-bg);
+  color: var(--text);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 20px;
+  padding-right: 36px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(114, 212, 255, 0.1);
+}
+
+.select:disabled {
+  background-color: var(--light-bg);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.select-error {
+  border-color: var(--error);
+}
+
+.select-error:focus {
+  box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.1);
+}
+
+.select-error-message {
+  font-size: 0.75rem;
+  color: var(--error);
+  font-weight: 500;
+}
+
+.select-helper-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
