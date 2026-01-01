@@ -1,66 +1,114 @@
 #root {
   width: 100%;
   min-height: 100vh;
-  background: var(--dark-bg);
   padding: 0;
   margin: 0;
 }
 
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
 .app-header {
+  padding: 20px;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 40px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--light-bg);
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+  border-bottom: 2px dashed var(--primary-3);
+  position: relative;
+  z-index: 1;
+  background-color: var(--bg);
+  height: 100px;
 }
 
-.app-header h1 {
-  margin: 0;
-  font-size: 2.5rem;
-  color: var(--primary-1);
+.app-header .spacer {
+  flex-grow: 1;
 }
 
-.app-header p {
-  margin: 0;
-  font-size: 1.125rem;
-  color: var(--text-muted);
+.app-logo {
+  height: 65px;
+}
+
+.nav-tabs {
+  margin-top: 10px;
+  display: flex;
+  gap: 15px;
+}
+
+.nav-tabs span {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px 10px 0 0;
+  border-top: 2px solid var(--primary-2);
+  border-left: 2px solid var(--primary-2);
+  border-right: 2px solid var(--primary-2);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs span.active {
+  background-color: var(--dark-bg);
+  font-weight: 600;
+}
+
+.nav-tabs span:hover {
+  background-color: var(--dark-bg);
 }
 
 .app-main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
-  padding: 40px;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
+  padding: 20px;
 }
 
-.bank-account {
-  grid-column: 1 / -1;
-  max-width: 400px;
+.money-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
 }
 
-@media (max-width: 768px) {
-  .app-header {
-    padding: 24px 16px;
+.money-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image:
+    linear-gradient(var(--primary-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--primary-2) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: moveGrid 1s linear infinite;
+  transform: rotate(-15deg);
+}
+
+@keyframes moveGrid {
+  0% {
+    transform: rotate(-15deg) translateY(0);
   }
 
-  .app-header h1 {
-    font-size: 1.75rem;
+  100% {
+    transform: rotate(-15deg) translateY(40px);
   }
+}
 
-  .app-main {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px;
-  }
+.money-tab-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 140px);
+}
+
+.money-tab-content h1 {
+  font-size: 8em;
+  color: var(--text-muted);
+}
+
+.money-buttons {
+  margin-top: 20px;
+  display: flex;
+  gap: 15px;
 }

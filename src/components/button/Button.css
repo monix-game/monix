@@ -1,5 +1,6 @@
 .btn {
-  border: 1px solid transparent;
+  border: 2px solid var(--primary-2);
+  background-color: var(--primary-1);
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
@@ -11,47 +12,11 @@
   gap: 8px;
   padding: 6px 12px;
   font-size: 0.875rem;
+  color: var(--text);
 }
 
-/* Variants */
-.btn-primary {
+.btn:hover:not(:disabled) {
   background-color: transparent;
-  border: 1px solid var(--primary-1);
-  color: white;
-  font-weight: 600;
-}
-
-.btn-primary:hover:not(:disabled) {
-  color: var(--dark-bg);
-  background-color: var(--primary-1);
-}
-
-.btn-secondary {
-  background-color: var(--text-muted);
-  color: var(--dark-bg);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--text);
-}
-
-.btn-danger {
-  background-color: var(--error);
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: var(--error-2);
-}
-
-.btn-success {
-  background-color: var(--primary-3);
-  color: var(--dark-bg);
-  font-weight: 600;
-}
-
-.btn-success:hover:not(:disabled) {
-  background-color: var(--primary-2);
 }
 
 .btn:disabled {

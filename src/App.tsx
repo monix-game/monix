@@ -1,100 +1,55 @@
 import { useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
-import { Button, Card, Input, Modal, Select } from './components'
+import { Button } from './components'
+import { IconUser } from '@tabler/icons-react'
 
 function App() {
-  const [checkingMoney, setCheckingMoney] = useState(0)
-  const [savingsMoney, setSavingsMoney] = useState(0)
-
-  const [transferModalOpen, setTransferModalOpen] = useState(false)
-  const [fromAccount, setFromAccount] = useState<'checking' | 'savings'>('checking')
-  const [toAccount, setToAccount] = useState<'checking' | 'savings'>('savings')
-  const [transferAmount, setTransferAmount] = useState<number>(0)
+  const [money, setMoney] = useState(0)
+  const [tab, setTab] = useState<'money' | 'transactions' | 'settings'>('money')
 
   return (
     <div className="app-container">
       <header className="app-header">
-        <img src={monixLogo} alt="Monix Logo" width={100} />
+        <img src={monixLogo} alt="Monix Logo" className="app-logo" />
         <h1>Monix</h1>
+        <div className="nav-tabs">
+          <span className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Money</span>
+          <span className={tab === 'transactions' ? 'active' : ''} onClick={() => setTab('transactions')}>Transactions</span>
+          <span className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</span>
+        </div>
+        <div className="spacer" />
+        <div className="user-info">
+          <IconUser size={24} />
+          <span>User</span>
+        </div>
       </header>
 
       <main className="app-main">
-        <h1>Accounts</h1>
-
-        <Button variant="primary" onClick={() => setTransferModalOpen(true)}>
-          Transfer Money
-        </Button>
-
-        {/* Bank accounts */}
-        <Card title="Checking" className="bank-account">
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: '16px 0' }}>
-            ${checkingMoney}
-          </p>
-          <Button
-            variant="primary"
-            onClick={() => setCheckingMoney((prev) => prev + 1)}
-          >
-            Earn $1
-          </Button>
-        </Card>
-
-        <Card title="Savings" className="bank-account">
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: '16px 0' }}>
-            ${savingsMoney}
-          </p>
-          <p>Accrues 0.5% interest per IRL week</p>
-        </Card>
-
-        {/* Modals */}
-        <Modal title="Transfer Money" isOpen={transferModalOpen} onClose={() => setTransferModalOpen(false)}>
-          
-          <Select label='From Account' onChange={(e) => setFromAccount(e.target.value as 'checking' | 'savings')} options={[
-            { label: 'Checking', value: 'checking' },
-            { label: 'Savings', value: 'savings' }
-          ]}></Select>
-
-          <Select label='To Account' onChange={(e) => setToAccount(e.target.value as 'checking' | 'savings')} options={[
-            { label: 'Checking', value: 'checking' },
-            { label: 'Savings', value: 'savings' }
-          ]}></Select>
-
-          <Input type='number' label='Amount' placeholder='Enter amount to transfer' onChange={(e) => setTransferAmount(Number(e.target.value))} />
-
-          <Button variant="primary" style={{ marginTop: '10px' }} onClick={() => {
-            setTransferModalOpen(false)
-            
-            // See if the from account has enough money
-            let canTransfer = false
-            if (fromAccount === 'checking' && checkingMoney >= transferAmount) {
-              canTransfer = true
-            }
-            if (fromAccount === 'savings' && savingsMoney >= transferAmount) {
-              canTransfer = true
-            }
-
-            if (canTransfer) {
-              // Perform the transfer
-              if (fromAccount === 'checking') {
-                setCheckingMoney((prev) => prev - transferAmount)
-              } else {
-                setSavingsMoney((prev) => prev - transferAmount)
-              }
-
-              if (toAccount === 'checking') {
-                setCheckingMoney((prev) => prev + transferAmount)
-              } else {
-                setSavingsMoney((prev) => prev + transferAmount)
-              }
-            }
-          }}>
-            Transfer
-          </Button>
-
-          <Button variant="secondary" onClick={() => setTransferModalOpen(false)} style={{ marginTop: '10px' }}>
-            Close
-          </Button>
-        </Modal>
+        {tab === 'money' && (
+          <div>
+            <div className="money-bg" />
+            <div className="money-tab-content">
+              <h1>${money}</h1>
+              <div className="money-buttons">
+                <Button onClick={() => setMoney(money + 100)}>Add $100</Button>
+                <Button onClick={() => setMoney(money - 100)}>Subtract $100</Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {tab === 'transactions' && (
+          <div>
+            <h2>Transactions</h2>
+            <p>No transactions to display.</p>
+          </div>
+        )}
+        {tab === 'settings' && (
+          <div>
+            <h2>Settings</h2>
+            <p>Settings options will go here.</p>
+          </div>
+        )}
       </main>
     </div>
   )
