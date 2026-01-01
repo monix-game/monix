@@ -4,6 +4,7 @@ import monixLogo from './assets/logo.svg'
 import { gold, silver, oil } from './assets/resources'
 import { Button, EmojiText } from './components'
 import { IconUser } from '@tabler/icons-react'
+import { Resource } from './components/resource/Resource'
 
 function App() {
   const [money, setMoney] = useState(0)
@@ -49,42 +50,9 @@ function App() {
           <div className="placeholder-tab">
             <h2>Resources</h2>
             <div className="resource-list">
-              <div className="resource">
-                <img src={gold} alt="Gold" width={50} />
-                <span className="resource-name">Gold</span>
-                <div className="resource-amount">
-                  <span className="resource-quantity">0</span>
-                  <span className="resource-unit">kg</span>
-                </div>
-                <div className="resource-value">
-                  <small>VALUE</small>
-                  <span>$0.00</span>
-                </div>
-              </div>
-              <div className="resource">
-                <img src={silver} alt="Silver" width={50} />
-                <span className="resource-name">Silver</span>
-                <div className="resource-amount">
-                  <span className="resource-quantity">0</span>
-                  <span className="resource-unit">kg</span>
-                </div>
-                <div className="resource-value">
-                  <small>VALUE</small>
-                  <span>$0.00</span>
-                </div>
-              </div>
-              <div className="resource">
-                <img src={oil} alt="Oil" width={40} />
-                <span className="resource-name">Crude Oil</span>
-                <div className="resource-amount">
-                  <span className="resource-quantity">0</span>
-                  <span className="resource-unit">L</span>
-                </div>
-                <div className="resource-value">
-                  <small>VALUE</small>
-                  <span>$0.00</span>
-                </div>
-              </div>
+              <Resource icon={gold} name="Gold" quantity={0} unit="kg" value={0} />
+              <Resource icon={silver} name="Silver" quantity={0} unit="kg" value={0} />
+              <Resource icon={oil} name="Crude Oil" quantity={0} unit="L" value={0} />
             </div>
           </div>
         )}
