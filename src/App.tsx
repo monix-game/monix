@@ -7,7 +7,7 @@ import { IconUser } from '@tabler/icons-react'
 
 function App() {
   const [money, setMoney] = useState(0)
-  const [tab, setTab] = useState<'money' | 'resources' | 'market' | 'docks' | 'pets' | 'leaderboard' | 'settings'>('money')
+  const [tab, setTab] = useState<'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'>('money')
 
   return (
     <div className="app-container">
@@ -18,7 +18,7 @@ function App() {
           <span className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Money</span>
           <span className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}>Resources</span>
           <span className={tab === 'market' ? 'active' : ''} onClick={() => setTab('market')}>Market</span>
-          <span className={tab === 'docks' ? 'active' : ''} onClick={() => setTab('docks')}>Docks</span>
+          <span className={tab === 'fishing' ? 'active' : ''} onClick={() => setTab('fishing')}>Fishing</span>
           <span className={tab === 'pets' ? 'active' : ''} onClick={() => setTab('pets')}>Pets</span>
           <span className={tab === 'leaderboard' ? 'active' : ''} onClick={() => setTab('leaderboard')}>Leaderboard</span>
           <span className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</span>
@@ -94,10 +94,10 @@ function App() {
             <p>Content for Market will go here.</p>
           </div>
         )}
-        {tab === 'docks' && (
+        {tab === 'fishing' && (
           <div className="placeholder-tab">
-            <h2>Docks Tab</h2>
-            <p>Content for Docks will go here.</p>
+            <h2>Fishing Tab</h2>
+            <p>Content for Fishing will go here.</p>
           </div>
         )}
         {tab === 'pets' && (
