@@ -19,3 +19,8 @@ All rights reserved by their respective owners.
 ## License
 
 Monix is licensed under the MIT License. See `LICENSE`.
+
+## Contact
+
+You can contact me with general inquires at <me@proplayer919.dev>
+You can use <legal@proplayer919.dev> for legal inquires.

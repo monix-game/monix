@@ -4,6 +4,7 @@ import monixLogo from './assets/logo.svg'
 import { Button, EmojiText } from './components'
 import { IconUser } from '@tabler/icons-react'
 import { ResourceList } from './components/resourcelist/ResourceList'
+import { Graph } from './components/graph/Graph'
 
 function App() {
   const [money, setMoney] = useState(0)
@@ -46,7 +47,7 @@ function App() {
           </div>
         )}
         {tab === 'resources' && (
-          <div className="placeholder-tab">
+          <div className="tab-content">
             <h2>Resources</h2>
             <ResourceList />
           </div>
@@ -55,28 +56,29 @@ function App() {
           <div className="placeholder-tab">
             <h2>Market Tab</h2>
             <p>Content for Market will go here.</p>
+            <Graph data={[10, 20, 15, 30, 25, 35, 40, 30, 45, 50]} style={{ width: '100%', height: '200px' }} />
           </div>
         )}
         {tab === 'fishing' && (
-          <div className="placeholder-tab">
+          <div className="tab-content">
             <h2>Fishing Tab</h2>
             <p>Content for Fishing will go here.</p>
           </div>
         )}
         {tab === 'pets' && (
-          <div className="placeholder-tab">
+          <div className="tab-content">
             <h2>Pets Tab</h2>
             <p>Content for Pets will go here.</p>
           </div>
         )}
         {tab === 'leaderboard' && (
-          <div className="placeholder-tab">
+          <div className="tab-content">
             <h2>Leaderboard Tab</h2>
             <p>Content for Leaderboard will go here.</p>
           </div>
         )}
         {tab === 'settings' && (
-          <div className="placeholder-tab">
+          <div className="tab-content">
             <h2>Settings Tab</h2>
             <p>Content for Settings will go here.</p>
           </div>
