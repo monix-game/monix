@@ -5,6 +5,14 @@
   margin: 0;
 }
 
+/* Twemoji */
+img.emoji {
+  height: 1em;
+  width: 1em;
+  margin: 0 .05em 0 .1em;
+  vertical-align: -0.1em;
+}
+
 .app-header {
   padding: 20px;
   display: flex;
@@ -35,7 +43,7 @@
   flex-wrap: wrap;
 }
 
-.nav-tabs span {
+.nav-tabs .tab {
   cursor: pointer;
   padding: 8px 12px;
   border-radius: 10px 10px 0 0;
@@ -153,7 +161,7 @@
   font-size: 1rem;
   border-radius: 5px;
   padding: 6px 10px;
-  background-color: var(--dark-bg);
+  background-color: var(--bg);
   border: 2px solid var(--primary-2);
   width: 100%;
   min-width: 0;
@@ -173,7 +181,7 @@
 }
 
 .resource:hover {
-  background-color: var(--bg);
+  background-color: var(--dark-bg);
 }
 
 .resource>* {

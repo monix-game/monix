@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
 import { gold, silver, oil } from './assets/resources'
-import { Button } from './components'
+import { Button, EmojiText } from './components'
 import { IconUser } from '@tabler/icons-react'
 
 function App() {
@@ -15,13 +15,13 @@ function App() {
         <img src={monixLogo} alt="Monix Logo" className="app-logo" />
         <h1>Monix</h1>
         <div className="nav-tabs">
-          <span className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Money</span>
-          <span className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}>Resources</span>
-          <span className={tab === 'market' ? 'active' : ''} onClick={() => setTab('market')}>Market</span>
-          <span className={tab === 'fishing' ? 'active' : ''} onClick={() => setTab('fishing')}>Fishing</span>
-          <span className={tab === 'pets' ? 'active' : ''} onClick={() => setTab('pets')}>Pets</span>
-          <span className={tab === 'leaderboard' ? 'active' : ''} onClick={() => setTab('leaderboard')}>Leaderboard</span>
-          <span className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</span>
+          <span className={tab === 'money' ? 'active tab' : 'tab'} onClick={() => setTab('money')}><EmojiText>💰 Money</EmojiText></span>
+          <span className={tab === 'resources' ? 'active tab' : 'tab'} onClick={() => setTab('resources')}><EmojiText>🪙 Resources</EmojiText></span>
+          <span className={tab === 'market' ? 'active tab' : 'tab'} onClick={() => setTab('market')}><EmojiText>🏪 Market</EmojiText></span>
+          <span className={tab === 'fishing' ? 'active tab' : 'tab'} onClick={() => setTab('fishing')}><EmojiText>🎣 Fishing</EmojiText></span>
+          <span className={tab === 'pets' ? 'active tab' : 'tab'} onClick={() => setTab('pets')}><EmojiText>🐶 Pets</EmojiText></span>
+          <span className={tab === 'leaderboard' ? 'active tab' : 'tab'} onClick={() => setTab('leaderboard')}><EmojiText>🏆 Leaderboard</EmojiText></span>
+          <span className={tab === 'settings' ? 'active tab' : 'tab'} onClick={() => setTab('settings')}><EmojiText>⚙️ Settings</EmojiText></span>
         </div>
         <div className="spacer" />
         <div className="user-info">
