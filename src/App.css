@@ -132,6 +132,7 @@ img.emoji {
   font-size: 8em;
   color: var(--text-muted);
   user-select: none;
+  font-family: var(--font-family-monospace);
 }
 
 .money-tab-content h1>* {
@@ -154,7 +155,10 @@ img.emoji {
   background-color: var(--bg);
   color: var(--text-muted);
   font-size: 0.9rem;
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 1;
 }
 

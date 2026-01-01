@@ -1,5 +1,3 @@
-import { avocado, bacon, bagel, banana, bread, cake, corn, gas, gold, lemon, oil, silver } from './assets/resources'
-
 interface ResourceInfo {
     id: string,
     icon: string,
@@ -10,73 +8,79 @@ interface ResourceInfo {
 const resources: ResourceInfo[] = [
     {
         id: "avocado",
-        icon: avocado,
-        name: "Avocado",
+        icon: "🥑",
+        name: "Avocados",
         unit: "kg"
     },
     {
         id: "bacon",
-        icon: bacon,
+        icon: "🥓",
         name: "Bacon",
         unit: "kg"
     },
     {
         id: "bagel",
-        icon: bagel,
-        name: "Bagel",
+        icon: "🥯",
+        name: "Bagels",
         unit: "kg"
     },
     {
         id: "banana",
-        icon: banana,
-        name: "Banana",
+        icon: "🍌",
+        name: "Bananas",
         unit: "kg"
     },
     {
         id: "bread",
-        icon: bread,
+        icon: "🍞",
         name: "Bread",
         unit: "kg"
     },
     {
         id: "cake",
-        icon: cake,
+        icon: "🍰",
         name: "Cake",
         unit: "kg"
     },
     {
         id: "corn",
-        icon: corn,
+        icon: "🌽",
         name: "Corn",
         unit: "kg"
     },
     {
+        id: "diamond",
+        icon: "💎",
+        name: "Diamond",
+        unit: "carats"
+    },
+    {
         id: "gas",
-        icon: gas,
+        icon: "🔥",
         name: "Natural Gas",
         unit: "m³"
     },
     {
         id: "gold",
-        icon: gold,
+        icon: "🪙",
         name: "Gold",
         unit: "kg"
     },
     {
         id: "lemon",
-        icon: lemon,
-        name: "Lemon",
+        icon: "🍋",
+        name: "Lemons",
         unit: "kg"
     },
     {
         id: "oil",
-        icon: oil,
+        icon: "🛢️",
         name: "Oil",
-        unit: "L"
+        unit: "litres"
     },
     {
         id: "silver",
-        icon: silver,
+        icon: "💍",
         name: "Silver",
         unit: "kg"
     }
