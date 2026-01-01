@@ -52,6 +52,17 @@
   background-color: var(--dark-bg);
 }
 
+.user-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.user-info svg {
+  vertical-align: middle;
+}
+
 .app-main {
   padding: 20px;
 }
@@ -105,6 +116,7 @@
 .money-tab-content h1 {
   font-size: 8em;
   color: var(--text-muted);
+  user-select: none;
 }
 
 .money-buttons {
