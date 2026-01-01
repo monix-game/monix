@@ -15,13 +15,14 @@
   --primary-1: #c1ff72;
   --primary-2: #9ee34a;
   --primary-3: #7cd628;
-  --accent-1: #72d4ff;
-  --accent-2: #4ab9e3;
-  --accent-3: #28a0d6;
   --text: #262626;
   --text-muted: #171717;
-  --error: #ff5252;
-  --error-2: #ff3838;
+  --blue-1: #72d4ff;
+  --blue-2: #4ab9e3;
+  --purple-1: #d272ff;
+  --purple-2: #b94ae3;
+  --red: #ff5252;
+  --red-2: #ff3838;
 
   --font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
@@ -51,9 +52,31 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--bg);
+  overflow-x: hidden;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2em;
+  }
+
+  h2 {
+    font-size: 1.5em;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.5em;
+  }
+
+  h2 {
+    font-size: 1.2em;
+  }
 }

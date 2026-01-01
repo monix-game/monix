@@ -15,7 +15,9 @@
   position: relative;
   z-index: 1;
   background-color: var(--bg);
-  height: 100px;
+  height: auto;
+  min-height: 100px;
+  flex-wrap: wrap;
 }
 
 .app-header .spacer {
@@ -30,6 +32,7 @@
   margin-top: 10px;
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
 .nav-tabs span {
@@ -41,6 +44,7 @@
   border-right: 2px solid var(--primary-2);
   text-decoration: none;
   transition: all 0.3s ease;
+  font-size: 0.95rem;
 }
 
 .nav-tabs span.active {
@@ -65,6 +69,8 @@
 
 .app-main {
   padding: 20px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .money-bg {
@@ -119,8 +125,140 @@
   user-select: none;
 }
 
+.money-tab-content h1>* {
+  vertical-align: middle;
+}
+
 .money-buttons {
   margin-top: 20px;
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 15px;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+    width: 100%;
+    text-align: center;
+    order: 1;
+  }
+
+  .app-logo {
+    height: 45px;
+    order: 0;
+  }
+
+  .nav-tabs {
+    width: 100%;
+    order: 3;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 5px;
+  }
+
+  .nav-tabs span {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+
+  .user-info {
+    order: 2;
+  }
+
+  .app-header .spacer {
+    display: none;
+  }
+
+  .app-main {
+    padding: 15px;
+  }
+
+  .money-tab-content {
+    min-height: calc(100vh - 180px);
+  }
+
+  .money-tab-content h1 {
+    font-size: 3em;
+    text-align: center;
+  }
+
+  .money-tab-content h1 img {
+    width: 60px !important;
+    height: auto;
+  }
+
+  .money-buttons {
+    width: 100%;
+    flex-direction: column;
+    padding: 0 20px;
+  }
+
+  .money-buttons button {
+    width: 100%;
+  }
+
+  .placeholder-tab {
+    text-align: center;
+  }
+}
+
+/* Small Mobile (phones in portrait) */
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .app-logo {
+    height: 35px;
+  }
+
+  .nav-tabs {
+    gap: 5px;
+  }
+
+  .nav-tabs span {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+
+  .money-tab-content h1 {
+    font-size: 2em;
+  }
+
+  .money-tab-content h1 img {
+    width: 40px !important;
+  }
+
+  .app-main {
+    padding: 10px;
+  }
+}
+
+/* Tablet and larger screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-header {
+    padding: 18px;
+  }
+
+  .nav-tabs span {
+    font-size: 0.9rem;
+    padding: 7px 11px;
+  }
+
+  .money-tab-content h1 {
+    font-size: 6em;
+  }
+
+  .money-tab-content h1 img {
+    width: 90px !important;
+  }
 }

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
+import green from './assets/coins/green.svg'
 import { Button } from './components'
 import { IconUser } from '@tabler/icons-react'
 
 function App() {
   const [money, setMoney] = useState(0)
-  const [tab, setTab] = useState<'money' | 'transactions' | 'settings'>('money')
+  const [tab, setTab] = useState < 'money' | 'resources' | 'market' | 'docks' | 'pets' | 'leaderboard' | 'settings'>('money')
 
   return (
     <div className="app-container">
@@ -15,7 +16,11 @@ function App() {
         <h1>Monix</h1>
         <div className="nav-tabs">
           <span className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Money</span>
-          <span className={tab === 'transactions' ? 'active' : ''} onClick={() => setTab('transactions')}>Transactions</span>
+          <span className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}>Resources</span>
+          <span className={tab === 'market' ? 'active' : ''} onClick={() => setTab('market')}>Market</span>
+          <span className={tab === 'docks' ? 'active' : ''} onClick={() => setTab('docks')}>Docks</span>
+          <span className={tab === 'pets' ? 'active' : ''} onClick={() => setTab('pets')}>Pets</span>
+          <span className={tab === 'leaderboard' ? 'active' : ''} onClick={() => setTab('leaderboard')}>Leaderboard</span>
           <span className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')}>Settings</span>
         </div>
         <div className="spacer" />
@@ -30,7 +35,10 @@ function App() {
           <div>
             <div className="money-bg" />
             <div className="money-tab-content">
-              <h1>${money}</h1>
+              <h1>
+                <span>{money}</span>
+                <img src={green} alt="$" width={120} />
+              </h1>
               <div className="money-buttons">
                 <Button onClick={() => setMoney(money + 100)}>Add $100</Button>
                 <Button onClick={() => setMoney(money - 100)}>Subtract $100</Button>
@@ -38,16 +46,40 @@ function App() {
             </div>
           </div>
         )}
-        {tab === 'transactions' && (
-          <div>
-            <h2>Transactions</h2>
-            <p>No transactions to display.</p>
+        {tab === 'resources' && (
+          <div className="placeholder-tab">
+            <h2>Resources Tab</h2>
+            <p>Content for Resources will go here.</p>
+          </div>
+        )}
+        {tab === 'market' && (
+          <div className="placeholder-tab">
+            <h2>Market Tab</h2>
+            <p>Content for Market will go here.</p>
+          </div>
+        )}
+        {tab === 'docks' && (
+          <div className="placeholder-tab">
+            <h2>Docks Tab</h2>
+            <p>Content for Docks will go here.</p>
+          </div>
+        )}
+        {tab === 'pets' && (
+          <div className="placeholder-tab">
+            <h2>Pets Tab</h2>
+            <p>Content for Pets will go here.</p>
+          </div>
+        )}
+        {tab === 'leaderboard' && (
+          <div className="placeholder-tab">
+            <h2>Leaderboard Tab</h2>
+            <p>Content for Leaderboard will go here.</p>
           </div>
         )}
         {tab === 'settings' && (
-          <div>
-            <h2>Settings</h2>
-            <p>Settings options will go here.</p>
+          <div className="placeholder-tab">
+            <h2>Settings Tab</h2>
+            <p>Content for Settings will go here.</p>
           </div>
         )}
       </main>

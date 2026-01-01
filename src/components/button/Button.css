@@ -13,6 +13,23 @@
   padding: 6px 12px;
   font-size: 0.875rem;
   color: var(--text);
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .btn {
+    padding: 12px 16px;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
 }
 
 .btn:hover:not(:disabled) {
