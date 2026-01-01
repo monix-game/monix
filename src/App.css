@@ -50,6 +50,7 @@
 .nav-tabs span.active {
   background-color: var(--dark-bg);
   font-weight: 600;
+  border-bottom: 2px dotted var(--primary-2);
 }
 
 .nav-tabs span:hover {
@@ -137,6 +138,71 @@
   justify-content: center;
 }
 
+
+.resource-list {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.resource {
+  margin-bottom: 8px;
+  font-size: 1rem;
+  border-radius: 5px;
+  padding: 6px 10px;
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  width: 100%;
+  min-width: 0;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  user-select: none;
+  transition: background-color 0.3s ease;
+}
+
+.resource img {
+  width: 52px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.resource:hover {
+  background-color: var(--bg);
+}
+
+.resource>* {
+  vertical-align: middle;
+}
+
+.resource-name {
+  font-weight: 600;
+  font-size: 1.2rem;
+  flex-grow: 1;
+}
+
+.resource-amount {
+  margin-right: 15px;
+}
+
+.resource-quantity {
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin-right: 4px;
+}
+
+.resource-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-weight: 500;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {
@@ -209,6 +275,28 @@
   .placeholder-tab {
     text-align: center;
   }
+
+  .resource-list {
+    grid-template-columns: 1fr;
+  }
+
+  .resource {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .resource img {
+    width: 44px;
+  }
+
+  .resource-name {
+    font-size: 1.05rem;
+  }
+
+  .resource-amount,
+  .resource-value {
+    font-size: 0.95rem;
+  }
 }
 
 /* Small Mobile (phones in portrait) */
@@ -240,6 +328,10 @@
 
   .app-main {
     padding: 10px;
+  }
+
+  .resource-value {
+    align-items: flex-start;
   }
 }
 

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
-import green from './assets/coins/green.svg'
+import { gold, silver, oil } from './assets/resources'
 import { Button } from './components'
 import { IconUser } from '@tabler/icons-react'
 
 function App() {
   const [money, setMoney] = useState(0)
-  const [tab, setTab] = useState < 'money' | 'resources' | 'market' | 'docks' | 'pets' | 'leaderboard' | 'settings'>('money')
+  const [tab, setTab] = useState<'money' | 'resources' | 'market' | 'docks' | 'pets' | 'leaderboard' | 'settings'>('money')
 
   return (
     <div className="app-container">
@@ -36,8 +36,7 @@ function App() {
             <div className="money-bg" />
             <div className="money-tab-content">
               <h1>
-                <span>{money}</span>
-                <img src={green} alt="$" width={120} />
+                <span>${money}</span>
               </h1>
               <div className="money-buttons">
                 <Button onClick={() => setMoney(money + 100)}>Add $100</Button>
@@ -48,8 +47,45 @@ function App() {
         )}
         {tab === 'resources' && (
           <div className="placeholder-tab">
-            <h2>Resources Tab</h2>
-            <p>Content for Resources will go here.</p>
+            <h2>Resources</h2>
+            <div className="resource-list">
+              <div className="resource">
+                <img src={gold} alt="Gold" width={50} />
+                <span className="resource-name">Gold</span>
+                <div className="resource-amount">
+                  <span className="resource-quantity">0</span>
+                  <span className="resource-unit">kg</span>
+                </div>
+                <div className="resource-value">
+                  <small>VALUE</small>
+                  <span>$0.00</span>
+                </div>
+              </div>
+              <div className="resource">
+                <img src={silver} alt="Silver" width={50} />
+                <span className="resource-name">Silver</span>
+                <div className="resource-amount">
+                  <span className="resource-quantity">0</span>
+                  <span className="resource-unit">kg</span>
+                </div>
+                <div className="resource-value">
+                  <small>VALUE</small>
+                  <span>$0.00</span>
+                </div>
+              </div>
+              <div className="resource">
+                <img src={oil} alt="Oil" width={40} />
+                <span className="resource-name">Crude Oil</span>
+                <div className="resource-amount">
+                  <span className="resource-quantity">0</span>
+                  <span className="resource-unit">L</span>
+                </div>
+                <div className="resource-value">
+                  <small>VALUE</small>
+                  <span>$0.00</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {tab === 'market' && (
