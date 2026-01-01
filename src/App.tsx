@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
-import { gold, silver, oil } from './assets/resources'
 import { Button, EmojiText } from './components'
 import { IconUser } from '@tabler/icons-react'
-import { Resource } from './components/resource/Resource'
+import { ResourceList } from './components/resourcelist/ResourceList'
 
 function App() {
   const [money, setMoney] = useState(0)
@@ -49,11 +48,7 @@ function App() {
         {tab === 'resources' && (
           <div className="placeholder-tab">
             <h2>Resources</h2>
-            <div className="resource-list">
-              <Resource icon={gold} name="Gold" quantity={0} unit="kg" value={0} />
-              <Resource icon={silver} name="Silver" quantity={0} unit="kg" value={0} />
-              <Resource icon={oil} name="Crude Oil" quantity={0} unit="L" value={0} />
-            </div>
+            <ResourceList />
           </div>
         )}
         {tab === 'market' && (
@@ -87,6 +82,10 @@ function App() {
           </div>
         )}
       </main>
+
+      <footer className="app-footer">
+        <span>© 2026 Monix. All rights reserved. This site is <a href="https://github.com/monix-game/monix" target="_blank" rel="noopener noreferrer">open-source</a></span>
+      </footer>
     </div>
   )
 }

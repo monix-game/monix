@@ -1,39 +1,32 @@
 import React from 'react'
 import './Resource.css'
+import type { ResourceInfo } from "../../resources";
+import { getPrice, getQuantity } from '../../helpers/resource';
 
 interface ResourceProps {
-  icon: string,
-  name: string,
-  quantity: number,
-  unit: string,
-  value: number,
-  iconWidth?: number
+  info: ResourceInfo
 }
 
 export const Resource: React.FC<ResourceProps> = ({
-  icon,
-  name,
-  quantity,
-  unit,
-  value,
-  iconWidth = 50
+  info,
+  ...props
 }) => {
-  let isApproximate = false
-  if (parseFloat(value.toFixed(2)) !== value) {
-    isApproximate = true
-  }
+  const quantity = getQuantity(info)!
+  const value = getPrice(info)! * quantity
 
   return (
-    <div className="resource">
-      <img src={icon} alt={name} width={iconWidth} />
-      <span className="resource-name">{name}</span>
+    <div className="resource" {...props}>
+      <div className="resource-info">
+        <img src={info.icon} alt={info.name} style={{ width: '30px' }} />
+        <span className="resource-name">{info.name}</span>
+      </div>
       <div className="resource-amount">
         <span className="resource-quantity">{quantity}</span>
-        <span className="resource-unit">{unit}</span>
+        <span className="resource-unit">{info.unit}</span>
       </div>
       <div className="resource-value">
         <small>VALUE</small>
-        <span>{isApproximate ? `~${value.toFixed(2)}` : `${value.toFixed(2)}`}</span>
+        <span>${value.toFixed(2)}</span>
       </div>
     </div>
   )

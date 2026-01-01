@@ -39,10 +39,11 @@ a {
   font-weight: 500;
   color: var(--text);
   text-decoration: inherit;
+  transition: color 0.3s ease;
 }
 
 a:hover {
-  color: var(--primary-2);
+  color: var(--text-muted);
 }
 
 body {

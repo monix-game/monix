@@ -146,13 +146,16 @@ img.emoji {
   justify-content: center;
 }
 
-.resource-list {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-  align-items: stretch;
-  width: 100%;
+.app-footer {
+  margin-top: 20px;
+  padding: 15px;
+  border-top: 2px dashed var(--primary-3);
+  text-align: center;
+  background-color: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  position: relative;
+  z-index: 1;
 }
 
 /* Mobile Responsiveness */
@@ -226,10 +229,6 @@ img.emoji {
 
   .placeholder-tab {
     text-align: center;
-  }
-
-  .resource-list {
-    grid-template-columns: 1fr;
   }
 }
 
