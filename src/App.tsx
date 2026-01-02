@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
-import { Button, EmojiText, ResourceGraph, ResourceList } from './components'
+import { Button, EmojiText, ResourceGraph, ResourceList, Checkbox } from './components'
 import { IconUser } from '@tabler/icons-react'
 import { getResourceById } from '../server/common/resources'
 import type { IUser } from '../server/common/models/user'
-import { Checkbox } from './components/checkbox/Checkbox'
 
 function App() {
   const [money, setMoney] = useState(0)
