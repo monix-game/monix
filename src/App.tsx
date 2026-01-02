@@ -1,20 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import monixLogo from './assets/logo.svg'
-import { Button, EmojiText } from './components'
+import { Button, EmojiText, ResourceGraph, ResourceList } from './components'
 import { IconUser } from '@tabler/icons-react'
-import { ResourceList } from './components/resourcelist/ResourceList'
-import { Graph } from './components/graph/Graph'
+import { getResourceById } from '../server/common/resources'
 
 function App() {
   const [money, setMoney] = useState(0)
-  const [tab, setTab] = useState<'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'>('money')
+  const [tab, rawSetTab] = useState<'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'>('money')
+
+  useEffect(() => {
+    document.getElementsByTagName('body')[0].className = `tab-${tab}`
+  }, [tab]);
+
+  const setTab = (newTab: typeof tab) => {
+    document.getElementsByTagName('body')[0].className = `tab-${newTab}`
+    rawSetTab(newTab)
+  }
 
   return (
     <div className="app-container">
       <header className="app-header">
         <img src={monixLogo} alt="Monix Logo" className="app-logo" />
-        <h1>Monix</h1>
+        <h1 className="app-title">Monix</h1>
         <div className="nav-tabs">
           <span className={tab === 'money' ? 'active tab' : 'tab'} onClick={() => setTab('money')}><EmojiText>💰 Money</EmojiText></span>
           <span className={tab === 'resources' ? 'active tab' : 'tab'} onClick={() => setTab('resources')}><EmojiText>🪙 Resources</EmojiText></span>
@@ -53,10 +61,9 @@ function App() {
           </div>
         )}
         {tab === 'market' && (
-          <div className="placeholder-tab">
+          <div className="tab-content">
             <h2>Market Tab</h2>
-            <p>Content for Market will go here.</p>
-            <Graph data={[10, 20, 15, 30, 25, 35, 40, 30, 45, 50]} style={{ width: '100%', height: '200px' }} />
+            <ResourceGraph resource={getResourceById('gold')!} />
           </div>
         )}
         {tab === 'fishing' && (

@@ -1,0 +1,47 @@
+import { Router, Request, Response } from "express";
+import { getUserByUsername, createUser, createSession } from "../db";
+import { IUser } from "../models/user";
+import { ISession, sessionExpiresAt } from "../models/session";
+import crypto from "crypto";
+import { v4 as uuidv4 } from "uuid";
+
+const router = Router();
+
+router.post("/register", async (req: Request, res: Response) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: "Missing username or password" });
+
+  const existing = await getUserByUsername(username);
+  if (existing) return res.status(400).json({ error: "Username already exists" });
+
+  const password_hash = crypto.createHash("sha256").update(String(password)).digest("hex");
+  const user: IUser = {
+    uuid: uuidv4(),
+    username,
+    password_hash,
+    is_admin: false,
+    time_created: Date.now() / 1000,
+  };
+
+  await createUser(user);
+  return res.status(201).json({ message: "User registered successfully" });
+});
+
+router.post("/login", async (req: Request, res: Response) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: "Missing username or password" });
+
+  const user = await getUserByUsername(username);
+  if (!user) return res.status(401).json({ error: "Invalid username or password" });
+
+  const password_hash = crypto.createHash("sha256").update(String(password)).digest("hex");
+  if (user.password_hash !== password_hash) return res.status(401).json({ error: "Invalid username or password" });
+
+  const session_token = uuidv4();
+  const session: ISession = { token: session_token, user_uuid: user.uuid, time_created: Date.now() / 1000 };
+  await createSession(session);
+
+  return res.status(200).json({ message: "Login successful", token: session_token, expires_at: sessionExpiresAt(session) });
+});
+
+export default router;

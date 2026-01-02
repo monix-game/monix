@@ -1,19 +1,20 @@
 import React from 'react'
 import './Resource.css'
-import type { ResourceInfo } from "../../resources";
-import { getPrice, getQuantity } from '../../helpers/resource';
+import type { ResourceInfo } from "../../../server/common/resources";
+import { getQuantity } from '../../helpers/resource';
 import { EmojiText } from '../EmojiText';
 
 interface ResourceProps {
-  info: ResourceInfo
+  info: ResourceInfo,
+  value: number
 }
 
 export const Resource: React.FC<ResourceProps> = ({
   info,
+  value,
   ...props
 }) => {
-  const quantity = getQuantity(info)!
-  const value = getPrice(info)! * quantity
+  const quantity = getQuantity(info.id)!
 
   let unit = info.unit
   if (unit.endsWith('s') && quantity == 1) {

@@ -1,0 +1,51 @@
+.graph-container {
+  margin-top: 20px;
+  width: fit-content;
+  height: 300px;
+  border: 2px solid var(--primary-2);
+  border-radius: 8px;
+  padding: 16px;
+  box-sizing: border-box;
+  background-color: var(--dark-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-under {
+  display: flex;
+  flex-direction: row;
+  margin-left: 20px;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.graph-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+}
+
+.graph-info>span {
+  display: block;
+  width: fit-content;
+  border: 2px solid var(--primary-2);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: var(--bg);    
+}
+
+.graph-mono {
+  font-family: var(--font-family-monospace);
+}
+
+.graph-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.graph-buttons button {
+  height: fit-content;
+}

@@ -17,7 +17,7 @@ img.emoji {
   padding: 20px;
   display: flex;
   flex-direction: row;
-  gap: 20px;
+  gap: 10px;
   align-items: center;
   border-bottom: 2px dashed var(--primary-3);
   position: relative;
@@ -34,6 +34,13 @@ img.emoji {
 
 .app-logo {
   height: 65px;
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 30px;
+  user-select: none;
 }
 
 .nav-tabs {
@@ -162,6 +169,10 @@ img.emoji {
   z-index: 1;
 }
 
+body.tab-resources .app-footer {
+  position: relative;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {
@@ -265,6 +276,10 @@ img.emoji {
 
   .app-main {
     padding: 10px;
+  }
+
+  .app-footer {
+    position: relative;
   }
 }
 

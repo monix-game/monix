@@ -1,3 +1,6 @@
 export { Button } from './button/Button'
 export { EmojiText } from './EmojiText'
+export { Resource } from './resource/Resource'
+export { ResourceList } from './resourcelist/ResourceList'
 export { Graph } from './graph/Graph'
+export { ResourceGraph } from './resourcegraph/ResourceGraph'

@@ -1,0 +1,52 @@
+.graph {
+  display: block;
+}
+
+/* Gradient stops for the area fill */
+.graph .graph-grad-stop0 {
+  stop-color: var(--blue-2);
+  stop-opacity: 0.18;
+}
+
+.graph .graph-grad-stop1 {
+  stop-color: var(--blue-2);
+  stop-opacity: 0.02;
+}
+
+/* Grid lines */
+.graph .graph-grid-h {
+  stroke: #e6eef3;
+  stroke-width: 1;
+}
+
+.graph .graph-grid-v {
+  stroke: #f3f7f9;
+  stroke-width: 1;
+}
+
+/* Axes */
+.graph .graph-axis {
+  stroke: #cfdfe6;
+  stroke-width: 1.5;
+}
+
+/* Area under the line */
+.graph .graph-area {
+  fill: var(--graph-fill);
+}
+
+/* Line */
+.graph .graph-line {
+  fill: none;
+  stroke: var(--blue-2);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Points */
+.graph .graph-point {
+  fill: #fff;
+  stroke: var(--blue-2);
+  stroke-width: 1.5;
+}
