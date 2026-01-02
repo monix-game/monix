@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { getUserByUsername, createUser, createSession } from "../db";
-import { IUser } from "../models/user";
-import { ISession, sessionExpiresAt } from "../models/session";
+import { IUser } from "../../common/models/user";
+import { ISession, sessionExpiresAt } from "../../common/models/session";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 

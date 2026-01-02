@@ -5,18 +5,18 @@ import { Resource } from '../resource/Resource'
 import { getQuantity } from '../../helpers/resource';
 import { getPrices } from '../../helpers/market';
 
-export const ResourceList: React.FC = () => {
+interface ResourceListProps {
+  isStatic?: boolean;
+}
+
+export const ResourceList: React.FC<ResourceListProps> = ({
+  isStatic = false
+}) => {
   const [sortedResources, setSortedResources] = React.useState<typeof resources>(resources);
   const [resourceValues, setResourceValues] = React.useState<{ [key: string]: number }>({});
 
   useEffect(() => {
-    // Precalculate Twemoji emojis for resources
-    const emojis: { [key: string]: string } = {};
-    resources.forEach(resource => {
-      
-    });
-
-    const updateResource = async () => {
+    const updateResource = async (noSort = false) => {
       const resourcesCopy = [...resources];
 
       const allPrices = await getPrices();
@@ -33,7 +33,7 @@ export const ResourceList: React.FC = () => {
       resourcesWithValues.sort((a, b) => b.value - a.value);
 
       // Extract sorted resources
-      setSortedResources(resourcesWithValues.map(item => item.resource));
+      if (!noSort) setSortedResources(resourcesWithValues.map(item => item.resource));
 
       // Update resource values state
       const valuesMap: { [key: string]: number } = {};
@@ -45,9 +45,11 @@ export const ResourceList: React.FC = () => {
 
     updateResource();
 
-    const interval = setInterval(updateResource, 1000);
+    const interval = setInterval(() => {
+      updateResource(isStatic)
+    }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isStatic]);
 
   return (
     <div className="resource-list">

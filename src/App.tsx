@@ -4,10 +4,14 @@ import monixLogo from './assets/logo.svg'
 import { Button, EmojiText, ResourceGraph, ResourceList } from './components'
 import { IconUser } from '@tabler/icons-react'
 import { getResourceById } from '../server/common/resources'
+import type { IUser } from '../server/common/models/user'
+import { Checkbox } from './components/checkbox/Checkbox'
 
 function App() {
   const [money, setMoney] = useState(0)
   const [tab, rawSetTab] = useState<'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'>('money')
+  const [user, setUser] = useState<IUser | null>(null)
+  const [resourceFilterStatic, setResourceFilterStatic] = useState<boolean>(false);
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`
@@ -35,7 +39,7 @@ function App() {
         <div className="spacer" />
         <div className="user-info">
           <IconUser size={24} />
-          <span>User</span>
+          <span>{user ? user.username : "Guest"}</span>
         </div>
       </header>
 
@@ -57,7 +61,8 @@ function App() {
         {tab === 'resources' && (
           <div className="tab-content">
             <h2>Resources</h2>
-            <ResourceList />
+            <Checkbox label="Auto-sort" checked={!resourceFilterStatic} onClick={() => setResourceFilterStatic(!resourceFilterStatic)} />
+            <ResourceList isStatic={resourceFilterStatic} />
           </div>
         )}
         {tab === 'market' && (

@@ -1,6 +1,6 @@
 import { MongoClient, Db, Document } from "mongodb";
-import { IUser, userFromDoc, userToDoc } from "./models/user";
-import { ISession, sessionFromDoc, sessionToDoc } from "./models/session";
+import { IUser, userFromDoc, userToDoc } from "../common/models/user";
+import { ISession, sessionFromDoc, sessionToDoc } from "../common/models/session";
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
