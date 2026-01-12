@@ -1,0 +1,19 @@
+.input {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.input-label {
+  color: var(--text);
+  font-size: 0.8em;
+  user-select: none;
+}
+
+.input-inner {
+  padding: 7px;
+  border-radius: var(--border-radius);
+  border: 2px solid var(--primary-2);
+  background-color: var(--bg);
+  color: var(--text-muted);
+}

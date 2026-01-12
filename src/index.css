@@ -26,6 +26,8 @@
 
   --graph-fill: rgba(74, 185, 227, 0.12);
 
+  --border-radius: 5px;
+
   --font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-family-monospace: 'Fira Code', monospace;
 }

@@ -1,0 +1,146 @@
+.landing-header {
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 2px dashed var(--primary-3);
+  position: relative;
+  z-index: 1;
+  background-color: var(--bg);
+  height: auto;
+  min-height: 100px;
+  flex-wrap: wrap;
+  margin-bottom: 50px;
+}
+
+.landing-header .spacer {
+  flex-grow: 1;
+}
+
+.landing-logo {
+  height: 65px;
+}
+
+.landing-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 30px;
+  user-select: none;
+}
+
+.landing-main {
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 35px;
+  text-align: center;
+}
+
+.hero {
+  border: 2px dashed var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--primary-1);
+}
+
+.hero-title {
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.hero-title-word {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.hero-title-word>* {
+  margin: auto 0;
+}
+
+.hero-title-word svg {
+  width: 40px;
+  height: auto;
+}
+
+.hero-subtitle {
+  font-family: var(--font-family-monospace);
+}
+
+.testamonials-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.testamonial {
+  display: flex;
+  flex-direction: column;
+  border: 2px dashed var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--primary-1);
+}
+
+.testamonial-header {
+  padding-top: 10px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.testamonial-body {
+  padding: 15px;
+  font-style: italic;
+  text-align: center;
+}
+
+.testamonial-img {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  object-fit: cover;
+  align-self: center;
+}
+
+.testamonial-username {
+  font-weight: 600;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  user-select: none;
+}
+
+.title {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.title img {
+  width: 100px;
+  height: 100px;
+}
+
+.title h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  user-select: none;
+}

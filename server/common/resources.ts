@@ -2,7 +2,8 @@ export interface ResourceInfo {
   id: string,
   icon: string,
   name: string,
-  unit: string
+  unit: string,
+  basePrice: number
 }
 
 export const resources: ResourceInfo[] = [
@@ -10,577 +11,673 @@ export const resources: ResourceInfo[] = [
     id: "avocado",
     icon: "🥑",
     name: "Avocados",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 12.0
   },
   {
     id: "bacon",
     icon: "🥓",
     name: "Bacon",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 45.0
   },
   {
     id: "bagel",
     icon: "🥯",
     name: "Bagels",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 18.0
   },
   {
     id: "banana",
     icon: "🍌",
     name: "Bananas",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 5.0
   },
   {
     id: "bread",
     icon: "🍞",
     name: "Bread",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 8.0
   },
   {
     id: "cake",
     icon: "🍰",
     name: "Cake",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 55.0
   },
   {
     id: "corn",
     icon: "🌽",
     name: "Corn",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 7.0
   },
   {
     id: "diamond",
     icon: "💎",
     name: "Diamond",
-    unit: "carats"
+    unit: "carats",
+    basePrice: 6500.0
   },
   {
     id: "gas",
     icon: "🔥",
     name: "Natural Gas",
-    unit: "m³"
+    unit: "m³",
+    basePrice: 1.50
   },
   {
     id: "gold",
     icon: "🪙",
     name: "Gold",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 70.0
   },
   {
     id: "lemon",
     icon: "🍋",
     name: "Lemons",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 8.0
   },
   {
     id: "oil",
     icon: "🛢️",
     name: "Oil",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 2.50
   },
   {
     id: "silver",
     icon: "💍",
     name: "Silver",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 25.0
   },
   {
     id: "apple",
     icon: "🍎",
     name: "Apples",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 6.0
   },
   {
     id: "apricot",
     icon: "🍑",
     name: "Apricots",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 15.0
   },
   {
     id: "asparagus",
     icon: "🥦",
     name: "Asparagus",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 25.0
   },
   {
     id: "barley",
     icon: "🌾",
     name: "Barley",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 10.0
   },
   {
     id: "beef",
     icon: "🥩",
     name: "Beef",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 25.0
   },
   {
     id: "butter",
     icon: "🧈",
     name: "Butter",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 15.0
   },
   {
     id: "cheese",
     icon: "🧀",
     name: "Cheese",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 22.0
   },
   {
     id: "chicken",
     icon: "🍗",
     name: "Chicken",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 18.0
   },
   {
     id: "chocolate",
     icon: "🍫",
     name: "Chocolate",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 35.0
   },
   {
     id: "coffee",
     icon: "☕",
     name: "Coffee Beans",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 30.0
   },
   {
     id: "cocoa",
     icon: "🌰",
     name: "Cocoa",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 40.0
   },
   {
     id: "coconut",
     icon: "🥥",
     name: "Coconuts",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 18.0
   },
   {
     id: "cotton",
     icon: "🧵",
     name: "Cotton",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 12.0
   },
   {
     id: "cucumber",
     icon: "🥒",
     name: "Cucumbers",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 5.0
   },
   {
     id: "diesel",
     icon: "⛽",
     name: "Diesel",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 2.0
   },
   {
     id: "eggs",
     icon: "🥚",
     name: "Eggs",
-    unit: "dozen"
+    unit: "dozen",
+    basePrice: 5.0
   },
   {
     id: "fish",
     icon: "🐟",
     name: "Fish",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 28.0
   },
   {
     id: "honey",
     icon: "🍯",
     name: "Honey",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 15.0
   },
   {
     id: "iron",
     icon: "⛓️",
     name: "Iron Ore",
-    unit: "tonnes"
+    unit: "kg",
+    basePrice: 0.15
   },
   {
     id: "copper",
     icon: "🟠",
     name: "Copper",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 11.0
   },
   {
     id: "coal",
     icon: "🪨",
     name: "Coal",
-    unit: "tonnes"
+    unit: "kg",
+    basePrice: 0.10
   },
   {
     id: "uranium",
     icon: "☢️",
     name: "Uranium",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 1000.0
   },
   {
     id: "lithium",
     icon: "🔋",
     name: "Lithium",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 60.0
   },
   {
     id: "cobalt",
     icon: "🧪",
     name: "Cobalt",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 35.0
   },
   {
     id: "nickel",
     icon: "🟣",
     name: "Nickel",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 22.0
   },
   {
     id: "platinum",
-    icon: "🏅",
+    icon: "⚪",
     name: "Platinum",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 1500.0
   },
   {
     id: "palladium",
     icon: "💠",
     name: "Palladium",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 3200.0
   },
   {
     id: "zinc",
     icon: "⚙️",
     name: "Zinc",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 4.50
   },
   {
     id: "lead",
     icon: "🔩",
     name: "Lead",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 2.20
   },
   {
     id: "rubber",
     icon: "🟩",
     name: "Rubber",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 18.0
   },
   {
     id: "glass",
     icon: "🪟",
     name: "Glass",
-    unit: "m²"
+    unit: "m²",
+    basePrice: 25.0
   },
   {
     id: "plastic",
     icon: "🔘",
     name: "Plastic",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 1.50
   },
   {
     id: "cement",
     icon: "🏗️",
     name: "Cement",
-    unit: "tonnes"
+    unit: "kg",
+    basePrice: 0.10
   },
   {
     id: "sand",
     icon: "🏖️",
     name: "Sand",
-    unit: "m³"
+    unit: "m³",
+    basePrice: 20.0
   },
   {
     id: "gravel",
     icon: "🪨",
     name: "Gravel",
-    unit: "m³"
+    unit: "m³",
+    basePrice: 22.0
   },
   {
     id: "timber",
     icon: "🪵",
     name: "Timber",
-    unit: "m³"
+    unit: "m³",
+    basePrice: 250.0
   },
   {
     id: "plywood",
     icon: "📐",
     name: "Plywood",
-    unit: "sheets"
+    unit: "sheets",
+    basePrice: 15.0
   },
   {
     id: "marble",
     icon: "🪨",
     name: "Marble",
-    unit: "m²"
+    unit: "m²",
+    basePrice: 60.0
   },
   {
     id: "granite",
     icon: "🪨",
     name: "Granite",
-    unit: "m²"
+    unit: "m²",
+    basePrice: 50.0
   },
   {
     id: "brick",
     icon: "🧱",
     name: "Bricks",
-    unit: "pieces"
+    unit: "pieces",
+    basePrice: 0.75
   },
   {
     id: "steel",
     icon: "⚙️",
     name: "Steel",
-    unit: "tonnes"
+    unit: "kg",
+    basePrice: 1.80
   },
   {
-    id: "aluminum",
+    id: "aliminium",
     icon: "🛠️",
-    name: "Aluminum",
-    unit: "kg"
+    name: "Aliminium",
+    unit: "kg",
+    basePrice: 3.50
   },
   {
     id: "battery",
     icon: "🔋",
     name: "Batteries",
-    unit: "units"
+    unit: "units",
+    basePrice: 15.0
   },
   {
     id: "fertilizer",
     icon: "🌱",
     name: "Fertilizer",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 10.0
   },
   {
     id: "pesticide",
     icon: "🧴",
     name: "Pesticide",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 20.0
   },
   {
     id: "sugar",
     icon: "🍬",
     name: "Sugar",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 12.0
   },
   {
     id: "rice",
     icon: "🍚",
     name: "Rice",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 10.0
   },
   {
     id: "wheat",
     icon: "🌾",
     name: "Wheat",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 8.0
   },
   {
     id: "oats",
     icon: "🥣",
     name: "Oats",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 7.0
   },
   {
     id: "pasta",
     icon: "🍝",
     name: "Pasta",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 4.0
   },
   {
     id: "tomato",
     icon: "🍅",
     name: "Tomatoes",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 7.0
   },
   {
     id: "potato",
     icon: "🥔",
     name: "Potatoes",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 4.0
   },
   {
     id: "onion",
     icon: "🧅",
     name: "Onions",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 3.0
   },
   {
     id: "garlic",
     icon: "🧄",
     name: "Garlic",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 12.0
   },
   {
-    id: "pepper",
+    id: "chili",
     icon: "🌶️",
     name: "Chili",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 20.0
   },
   {
     id: "salt",
     icon: "🧂",
     name: "Salt",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 2.0
   },
   {
     id: "water",
     icon: "💧",
     name: "Water",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 0.50
   },
   {
     id: "beer",
     icon: "🍺",
     name: "Beer",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 5.0
   },
   {
     id: "wine",
     icon: "🍷",
     name: "Wine",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 15.0
   },
   {
     id: "whiskey",
     icon: "🥃",
     name: "Whiskey",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 35.0
   },
   {
     id: "tea",
     icon: "🍵",
     name: "Tea",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 25.0
   },
   {
     id: "yogurt",
     icon: "🥛",
     name: "Yogurt",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 10.0
   },
   {
     id: "milk",
     icon: "🥛",
     name: "Milk",
-    unit: "litres"
+    unit: "litres",
+    basePrice: 4.0
   },
   {
     id: "cream",
     icon: "🍦",
     name: "Cream",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 8.0
   },
   {
     id: "sausage",
     icon: "🌭",
     name: "Sausage",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 20.0
   },
   {
     id: "turkey",
     icon: "🦃",
     name: "Turkey",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 17.0
   },
   {
     id: "lamb",
     icon: "🍖",
     name: "Lamb",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 28.0
   },
   {
-    id: "shrimp",
+    id: "prawn",
     icon: "🦐",
-    name: "Shrimp",
-    unit: "kg"
+    name: "Prawn",
+    unit: "kg",
+    basePrice: 35.0
   },
   {
     id: "tuna",
     icon: "🐟",
     name: "Tuna",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 15.0
   },
   {
     id: "salmon",
     icon: "🐠",
     name: "Salmon",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 20.0
   },
   {
     id: "lobster",
     icon: "🦞",
     name: "Lobster",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 45.0
   },
   {
     id: "sesame",
     icon: "🌾",
     name: "Sesame Seeds",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 20.0
   },
   {
     id: "basil",
     icon: "🌿",
     name: "Basil",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 20.0
   },
   {
     id: "oregano",
     icon: "🌿",
     name: "Oregano",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 18.0
   },
   {
     id: "cinnamon",
     icon: "🟤",
     name: "Cinnamon",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 30.0
   },
   {
     id: "silk",
     icon: "🧶",
     name: "Silk",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 50.0
   },
   {
     id: "wool",
     icon: "🐑",
     name: "Wool",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 25.0
   },
   {
     id: "leather",
     icon: "👞",
     name: "Leather",
-    unit: "m²"
+    unit: "m²",
+    basePrice: 30.0
   },
   {
     id: "soap",
     icon: "🧼",
     name: "Soap",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 8.0
   },
   {
     id: "detergent",
     icon: "🧴",
     name: "Detergent",
-    unit: "kg"
+    unit: "kg",
+    basePrice: 10.0
   },
   {
     id: "smartphone",
     icon: "📱",
     name: "Smartphones",
-    unit: "units"
+    unit: "units",
+    basePrice: 500.0
   },
   {
     id: "laptop",
     icon: "💻",
     name: "Laptops",
-    unit: "units"
+    unit: "units",
+    basePrice: 800.0
   },
   {
     id: "camera",
     icon: "📷",
     name: "Cameras",
-    unit: "units"
+    unit: "units",
+    basePrice: 300.0
   }
 ];
 

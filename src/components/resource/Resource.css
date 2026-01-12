@@ -1,7 +1,7 @@
 .resource {
   margin-bottom: 8px;
   font-size: 1rem;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   padding: 6px 10px;
   background-color: var(--bg);
   border: 2px solid var(--primary-2);

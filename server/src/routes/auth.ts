@@ -4,8 +4,13 @@ import { IUser } from "../../common/models/user";
 import { ISession, sessionExpiresAt } from "../../common/models/session";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import { requireAuth } from "../middleware";
 
 const router = Router();
+
+router.use(() => {
+
+});
 
 router.post("/register", async (req: Request, res: Response) => {
   const { username, password } = req.body || {};
@@ -41,7 +46,16 @@ router.post("/login", async (req: Request, res: Response) => {
   const session: ISession = { token: session_token, user_uuid: user.uuid, time_created: Date.now() / 1000 };
   await createSession(session);
 
-  return res.status(200).json({ message: "Login successful", token: session_token, expires_at: sessionExpiresAt(session) });
+  return res.status(200).json({ message: "Login successful", token: session_token, user_uuid: user.uuid, expires_at: sessionExpiresAt(session) });
+});
+
+router.get("/user", requireAuth, async (req: Request, res: Response) => {
+  // @ts-ignore
+  const user: IUser | null = req.authUser;
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  return res.status(200).json({ user: { uuid: user.uuid, username: user.username, is_admin: user.is_admin, time_created: user.time_created } });
 });
 
 export default router;
