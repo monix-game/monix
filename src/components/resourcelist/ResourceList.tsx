@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import './ResourceList.css';
-import { resources } from '../../../server/common/resources';
+import { resources, type ResourceInfo } from '../../../server/common/resources';
 import { Resource } from '../resource/Resource';
 import { getResourceQuantity } from '../../helpers/resource';
 import { getPrices } from '../../helpers/market';
@@ -10,10 +10,14 @@ interface ResourceListProps {
 }
 
 export const ResourceList: React.FC<ResourceListProps> = ({ isStatic = false }) => {
-  const [sortedResources, setSortedResources] = React.useState<typeof resources>(resources);
+  const [hydrated, setHydrated] = React.useState(false);
+  const [sortedResources, setSortedResources] = React.useState<ResourceInfo[]>([]);
   const [resourceValues, setResourceValues] = React.useState<{ [key: string]: number }>({});
 
   useEffect(() => {
+    let mounted = true;
+    let intervalId: number | undefined;
+
     const updateResource = async (noSort = false) => {
       const resourcesCopy = [...resources];
 
@@ -49,12 +53,21 @@ export const ResourceList: React.FC<ResourceListProps> = ({ isStatic = false }) 
       setResourceValues(valuesMap);
     };
 
-    void updateResource();
+    const init = async () => {
+      await updateResource();
+      if (mounted) setHydrated(true);
 
-    const interval = setInterval(async () => {
-      await updateResource(isStatic);
-    }, 1000);
-    return () => clearInterval(interval);
+      intervalId = window.setInterval(async () => {
+        await updateResource(isStatic);
+      }, 1000);
+    };
+
+    void init();
+
+    return () => {
+      mounted = false;
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
   }, [isStatic]);
 
   return (
@@ -64,7 +77,9 @@ export const ResourceList: React.FC<ResourceListProps> = ({ isStatic = false }) 
         <Resource key={index} info={resource} value={resourceValues[resource.id] || 0} />
       ))}
 
-      {sortedResources.length === 0 && (
+      {!hydrated && <div className="no-resources">Loading...</div>}
+
+      {hydrated && sortedResources.length === 0 && (
         <div className="no-resources">No resources available. Try buying or gathering some!</div>
       )}
     </div>

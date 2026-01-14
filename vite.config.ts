@@ -10,4 +10,14 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      // Proxy /api to the local backend during development
+      '/api': {
+        target: 'http://localhost:6200',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })

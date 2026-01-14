@@ -70,7 +70,7 @@ class ApiHandler {
 
         clearTimeout(timeoutId);
 
-        const data = await response.json().catch(() => null) as T | null;
+        const data = (await response.json().catch(() => null)) as T | null;
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -135,4 +135,8 @@ class ApiHandler {
   }
 }
 
-export const api = new ApiHandler('http://localhost:6200/api');
+const API_BASE = import.meta.env.DEV
+  ? '/api'
+  : ('https://monix-api.proplayer919.dev/api');
+
+export const api = new ApiHandler(API_BASE);
