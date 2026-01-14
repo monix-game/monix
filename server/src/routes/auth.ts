@@ -1,16 +1,13 @@
 import { Router, Request, Response } from "express";
 import { getUserByUsername, createUser, createSession } from "../db";
-import { IUser } from "../../common/models/user";
-import { ISession, sessionExpiresAt } from "../../common/models/session";
+import { IUser, userToDoc } from "../../common/models/user";
+import { ISession, sessionToDoc } from "../../common/models/session";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { requireAuth } from "../middleware";
+import { SESSION_EXPIRES_IN } from "../config";
 
 const router = Router();
-
-router.use(() => {
-
-});
 
 router.post("/register", async (req: Request, res: Response) => {
   const { username, password } = req.body || {};
@@ -25,6 +22,9 @@ router.post("/register", async (req: Request, res: Response) => {
     username,
     password_hash,
     is_admin: false,
+    is_game_mod: false,
+    is_social_mod: false,
+    is_helper: false,
     time_created: Date.now() / 1000,
   };
 
@@ -43,10 +43,11 @@ router.post("/login", async (req: Request, res: Response) => {
   if (user.password_hash !== password_hash) return res.status(401).json({ error: "Invalid username or password" });
 
   const session_token = uuidv4();
-  const session: ISession = { token: session_token, user_uuid: user.uuid, time_created: Date.now() / 1000 };
+  const time_now = Date.now() / 1000;
+  const session: ISession = { token: session_token, user_uuid: user.uuid, time_created: time_now, expires_at: time_now + SESSION_EXPIRES_IN };
   await createSession(session);
 
-  return res.status(200).json({ message: "Login successful", token: session_token, user_uuid: user.uuid, expires_at: sessionExpiresAt(session) });
+  return res.status(200).json({ message: "Login successful", ...sessionToDoc(session) });
 });
 
 router.get("/user", requireAuth, async (req: Request, res: Response) => {
@@ -55,7 +56,7 @@ router.get("/user", requireAuth, async (req: Request, res: Response) => {
 
   if (!user) return res.status(404).json({ error: "User not found" });
 
-  return res.status(200).json({ user: { uuid: user.uuid, username: user.username, is_admin: user.is_admin, time_created: user.time_created } });
+  return res.status(200).json({ user: userToDoc(user) });
 });
 
 export default router;

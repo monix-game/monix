@@ -5,11 +5,14 @@ import { Button, EmojiText, ResourceGraph, ResourceList, Checkbox, AnimatedBackg
 import { IconUser } from '@tabler/icons-react'
 import { getResourceById } from '../../../server/common/resources'
 import type { IUser } from '../../../server/common/models/user'
+import { fetchUser } from '../../helpers/auth'
 
 export default function Game() {
-  const [money, setMoney] = useState(0)
+  const [money, setMoney] = useState<number>(0)
   const [tab, rawSetTab] = useState<'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'>('money')
   const [user, setUser] = useState<IUser | null>(null)
+  const [userRole, setUserRole] = useState<string>('guest')
+  const [userRoleFormatted, setUserRoleFormatted] = useState<string>('Guest');
   const [resourceFilterStatic, setResourceFilterStatic] = useState<boolean>(false);
 
   useEffect(() => {
@@ -20,6 +23,35 @@ export default function Game() {
     document.getElementsByTagName('body')[0].className = `tab-${newTab}`
     rawSetTab(newTab)
   }
+
+  useEffect(() => {
+    fetchUser().then(userData => {
+      setUser(userData)
+    });
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setUserRole(user
+        ? user.is_admin
+          ? 'admin'
+          : user.is_game_mod
+            ? 'game-mod'
+            : user.is_social_mod
+              ? 'social-mod'
+              : user.is_helper
+                ? 'helper'
+                : 'user'
+        : 'guest')
+
+      let formatted = userRole.replace('_', ' ').trim();
+
+      // Title case the formatted role
+      formatted = formatted.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+      setUserRoleFormatted(formatted);
+    }
+  }, [user]);
 
   return (
     <div className="app-container">
@@ -38,7 +70,10 @@ export default function Game() {
         <div className="spacer" />
         <div className="user-info">
           <IconUser size={24} />
-          <span>{user ? user.username : "Guest"}</span>
+          <span className="username">{user ? user.username : "Guest"}</span>
+          {userRole !== 'guest' && (
+            <span className={`badge ${userRole}`}>{userRoleFormatted}</span>
+          )}
         </div>
       </header>
 

@@ -42,4 +42,5 @@ function saveToken(session: ISession) {
   localStorage.setItem(localStorageKey('session_token'), session.token)
   localStorage.setItem(localStorageKey('session_user_uuid'), session.user_uuid)
   localStorage.setItem(localStorageKey('session_time_created'), session.time_created.toString())
+  localStorage.setItem(localStorageKey('session_expires_at'), session.expires_at.toString())
 }

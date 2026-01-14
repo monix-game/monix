@@ -1,3 +1,5 @@
+import { localStorageKey } from "./constants";
+
 interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
@@ -34,6 +36,26 @@ class ApiHandler {
       retries = this.defaultRetries,
     } = options;
 
+    // Read token from localStorage (safe for environments without localStorage)
+    const token =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem(localStorageKey('session_token'))
+        : null;
+
+    // Detect if an Authorization header was already provided (case-insensitive)
+    const hasAuthHeader = Object.keys(headers).some(
+      (k) => k.toLowerCase() === 'authorization'
+    );
+
+    // Merge headers and attach Authorization if token exists and caller didn't provide one
+    const mergedHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...headers,
+    };
+    if (token && !hasAuthHeader) {
+      mergedHeaders['authorization'] = `Bearer ${token}`;
+    }
+
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -43,10 +65,7 @@ class ApiHandler {
 
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
+          headers: mergedHeaders,
           body: body ? JSON.stringify(body) : undefined,
           signal: controller.signal,
         });

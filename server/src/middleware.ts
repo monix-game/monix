@@ -24,26 +24,32 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   next();
 }
 
-export async function requireAuthedAdmin(req: Request, res: Response, next: NextFunction) {
-  const fail = () => {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
-  };
+export function requireRole(role: 'admin' | 'game_mod' | 'social_mod' | 'helper') {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    const fail = () => {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    };
 
-  if (!req.headers["authorization"]) fail();
-  if (!req.headers["authorization"]!.startsWith('Bearer ')) fail();
+    if (!req.headers["authorization"]) fail();
+    if (!req.headers["authorization"]!.startsWith('Bearer ')) fail();
+    
+    const token = req.headers["authorization"]!.substring(7).trim();
+    const session = await getSessionByToken(token);
 
-  const token = req.headers["authorization"]!.substring(7).trim();
-  const session = await getSessionByToken(token);
+    if (session === null) fail();
 
-  if (session === null) fail();
+    const user = await getUserByUUID(session!.user_uuid);
 
-  const user = await getUserByUUID(session!.user_uuid);
+    if (user === null) fail();
 
-  if (user === null) fail();
-  if (!user?.is_admin) fail();
+    if (role === 'admin' && !user!.is_admin) fail();
+    if (role === 'game_mod' && !user!.is_game_mod) fail();
+    if (role === 'social_mod' && !user!.is_social_mod) fail();
+    if (role === 'helper' && !user!.is_helper) fail();
 
-  // @ts-ignore
-  req.authUser = user!;
-  next();
+    // @ts-ignore
+    req.authUser = user!;
+    next();
+  }
 }

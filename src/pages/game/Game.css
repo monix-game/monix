@@ -68,6 +68,36 @@
   vertical-align: middle;
 }
 
+.user-info .username {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.user-info .badge {
+  background-color: var(--primary-1);
+  color: var(--text);
+  padding: 1px 3px;
+  border-radius: var(--border-radius);
+  border: 2px solid var(--primary-2);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.badge.social-mod {
+  background-color: var(--blue-1);
+  border: 2px solid var(--blue-2);
+}
+
+.badge.game-mod {
+  background-color: var(--purple-1);
+  border: 2px solid var(--purple-2);
+}
+
+.badge.admin {
+  background-color: var(--red-1);
+  border: 2px solid var(--red-2);
+}
+
 .app-main {
   padding: 20px;
   max-width: 100%;

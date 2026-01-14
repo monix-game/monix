@@ -3,14 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRouter from "./routes/auth";
 import marketRouter from "./routes/market";
+import { CORS_ORIGINS, MONGO_URI, PORT } from "./config";
 import { connectDB } from "./db";
 
 dotenv.config();
 
-const PORT = Number(process.env.PORT || 6200);
-const rawOrigins = process.env.CORS_ORIGINS || "*";
-const CORS_ORIGINS = rawOrigins.split(",").map((s) => s.trim()).filter(Boolean);
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/monix";
 const app = express();
 app.use(express.json());
 
