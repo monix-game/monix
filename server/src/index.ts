@@ -6,7 +6,7 @@ import marketRouter from './routes/market';
 import resourcesRouter from './routes/resources';
 import { connectDB } from './db';
 
-dotenv.config({ debug: true });
+dotenv.config();
 
 export const PORT = Number(process.env.PORT || 6200);
 
