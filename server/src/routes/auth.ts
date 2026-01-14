@@ -5,7 +5,7 @@ import { ISession, sessionToDoc } from '../../common/models/session';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { requireAuth } from '../middleware';
-import { SESSION_EXPIRES_IN } from '../config';
+import { SESSION_EXPIRES_IN } from '../index';
 
 const router = Router();
 
