@@ -137,6 +137,6 @@ class ApiHandler {
 
 const API_BASE = import.meta.env.DEV
   ? '/api'
-  : ('https://monix-api.proplayer919.dev/api');
+  : ('https://monix-api.proplayer919.dev:6200/api');
 
 export const api = new ApiHandler(API_BASE);
