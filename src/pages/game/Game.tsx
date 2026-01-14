@@ -15,16 +15,13 @@ import { getResourceById } from '../../../server/common/resources';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { currentTheme } from '../../helpers/theme';
+import { getTotalResourceValue } from '../../helpers/resource';
 
 export default function Game() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [money, setMoney] = useState<number>(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [money] = useState<number>(0);
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [aquariumTotal, setAquariumTotal] = useState<number>(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [petsTotal, setPetsTotal] = useState<number>(0);
+  const [aquariumTotal] = useState<number>(0);
+  const [petsTotal] = useState<number>(0);
   const [tab, rawSetTab] = useState<
     'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'
   >('money');
@@ -41,6 +38,21 @@ export default function Game() {
     document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
     rawSetTab(newTab);
   };
+
+  const updateTotalResourcesValue = async () => {
+    const totalValue = await getTotalResourceValue();
+    setResourcesTotal(totalValue);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void updateTotalResourcesValue();
+
+    const interval = setInterval(async () => {
+      await updateTotalResourcesValue();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const updateFormattedUserRole = (role: string) => {
