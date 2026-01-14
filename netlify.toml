@@ -6,4 +6,4 @@
 from = "/*"
 to = "/index.html"
 status = 200
-force = true
+# do not force the redirect — allow Netlify to serve existing static files (assets) first
