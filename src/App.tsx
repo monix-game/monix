@@ -1,38 +1,26 @@
 import './App.css';
-import { useState } from 'react';
 import Landing from './pages/landing/Landing';
 import Login from './pages/auth/login/Login';
 import Register from './pages/auth/register/Register';
 import Game from './pages/game/Game';
 import { applyTheme, initThemeListener } from './helpers/theme';
 import { loadSettings } from './helpers/settings';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
 function App() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [currentPage, setCurrentPage] = useState(location.pathname);
-
-  let content;
-  switch (currentPage) {
-    case '/':
-      content = <Landing />;
-      break;
-    case '/auth/login':
-      content = <Login />;
-      break;
-    case '/auth/register':
-      content = <Register />;
-      break;
-    case '/game':
-      content = <Game />;
-      break;
-    default:
-      content = <Landing />;
-  }
-
   initThemeListener();
   applyTheme(loadSettings().theme);
 
-  return <div>{content}</div>;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth/login" element={<Login />} />
+        <Route path="/auth/register" element={<Register />} />
+        <Route path="/game" element={<Game />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

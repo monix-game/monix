@@ -5,7 +5,7 @@ export interface ISettings {
 }
 
 export const defaultSettings: ISettings = {
-  theme: 'system',
+  theme: 'light',
 };
 
 export function loadSettings(): ISettings {
