@@ -21,7 +21,7 @@ export default function Landing() {
         </div>
 
         <div className="section hero">
-          <span className="hero-subtitle">Explore fishing events today!</span>
+          <span className="hero-subtitle mono">Explore fishing events today!</span>
           <h1 className="hero-title">
             <span className="hero-title-word">
               <IconCoin />

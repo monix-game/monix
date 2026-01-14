@@ -15,18 +15,18 @@
 
 /* Grid lines */
 .graph .graph-grid-h {
-  stroke: #e6eef3;
+  stroke: var(--graph-grid-stroke);
   stroke-width: 1;
 }
 
 .graph .graph-grid-v {
-  stroke: #f3f7f9;
+  stroke: var(--graph-grid-stroke);
   stroke-width: 1;
 }
 
 /* Axes */
 .graph .graph-axis {
-  stroke: #cfdfe6;
+  stroke: var(--graph-grid-stroke);
   stroke-width: 1.5;
 }
 
@@ -46,7 +46,7 @@
 
 /* Points */
 .graph .graph-point {
-  fill: #fff;
+  fill: var(--bg);
   stroke: var(--blue-2);
   stroke-width: 1.5;
 }

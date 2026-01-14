@@ -36,10 +36,6 @@
   background-color: var(--bg);    
 }
 
-.graph-mono {
-  font-family: var(--font-family-monospace);
-}
-
 .graph-buttons {
   display: flex;
   flex-direction: row;

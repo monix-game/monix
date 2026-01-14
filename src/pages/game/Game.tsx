@@ -1,11 +1,12 @@
 import './Game.css'
 import { useEffect, useState } from 'react'
 import monixLogo from '../../assets/logo.svg'
-import { Button, EmojiText, ResourceGraph, ResourceList, Checkbox, AnimatedBackground, Footer } from '../../components'
+import { EmojiText, ResourceGraph, ResourceList, Checkbox, AnimatedBackground, Footer } from '../../components'
 import { IconUser } from '@tabler/icons-react'
 import { getResourceById } from '../../../server/common/resources'
 import type { IUser } from '../../../server/common/models/user'
 import { fetchUser } from '../../helpers/auth'
+import { initThemeListener } from '../../helpers/theme'
 
 export default function Game() {
   const [money, setMoney] = useState<number>(0)
@@ -82,12 +83,16 @@ export default function Game() {
           <div>
             <AnimatedBackground />
             <div className="money-tab-content">
-              <h1>
+              <h1 className="mono">
                 <span>${money}</span>
               </h1>
-              <div className="money-buttons">
-                <Button onClick={() => setMoney(money + 100)}>Add $100</Button>
-                <Button onClick={() => setMoney(money - 100)}>Subtract $100</Button>
+              <div className="money-info">
+                <span className="money-info-line">
+                  <EmojiText>📈 Resources:</EmojiText> <span className="mono">$1000</span>
+                </span>
+                <span className="money-info-line">
+                  <EmojiText>🎣 Fish in Aquarium:</EmojiText> <span className="mono">$1000</span>
+                </span>
               </div>
             </div>
           </div>

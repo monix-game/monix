@@ -33,7 +33,7 @@ export const Resource: React.FC<ResourceProps> = ({
       </div>
       <div className="resource-value">
         <small>VALUE</small>
-        <span>${value.toFixed(2)}</span>
+        <span className="mono">${value.toFixed(2)}</span>
       </div>
     </div>
   )

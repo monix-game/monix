@@ -118,19 +118,32 @@
   font-size: 8em;
   color: var(--text-muted);
   user-select: none;
-  font-family: var(--font-family-monospace);
 }
 
 .money-tab-content h1>* {
   vertical-align: middle;
 }
 
-.money-buttons {
+.money-info {
   margin-top: 20px;
   display: flex;
   gap: 15px;
   flex-wrap: wrap;
+  flex-direction: column;
   justify-content: center;
+}
+
+.money-info-line {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  font-size: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--dark-bg);
+  padding: 10px 15px;
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
 }
 
 body.tab-resources .app-footer {
@@ -196,13 +209,13 @@ body.tab-resources .app-footer {
     height: auto;
   }
 
-  .money-buttons {
+  .money-info {
     width: 100%;
     flex-direction: column;
     padding: 0 20px;
   }
 
-  .money-buttons button {
+  .money-info-line {
     width: 100%;
   }
 

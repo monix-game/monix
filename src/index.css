@@ -25,6 +25,7 @@
   --red-2: #ff3838;
 
   --graph-fill: rgba(74, 185, 227, 0.12);
+  --graph-grid-stroke: rgba(0, 0, 0, 0.1);
 
   --border-radius: 5px;
 
@@ -32,11 +33,34 @@
   --font-family-monospace: 'Fira Code', monospace;
 }
 
+html[data-theme='dark'] {
+  /* Colours */
+  --bg: #1a1a1a;
+  --dark-bg: #121212;
+  --primary-1: #3e008d;
+  --primary-2: #611cb5;
+  --primary-3: #8329d7;
+  --text: #fdfdfd;
+  --text-muted: #f0f0f0;
+  --blue-1: #00718d;
+  --blue-2: #008fb3;
+  --purple-1: #67008d;
+  --purple-2: #8a00bd;
+  --red-1: #ad1700;
+  --red-2: #d61c00;
+
+  --graph-grid-stroke: rgba(255, 255, 255, 0.1);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   color: var(--text);
+}
+
+.mono {
+  font-family: var(--font-family-monospace);
 }
 
 a {

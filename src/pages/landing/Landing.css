@@ -46,9 +46,9 @@
 }
 
 .hero {
-  border: 2px dashed var(--primary-2);
+  border: 2px dashed var(--primary-1);
   border-radius: var(--border-radius);
-  background-color: var(--primary-1);
+  background-color: var(--dark-bg);
 }
 
 .hero-title {
@@ -71,10 +71,6 @@
 .hero-title-word svg {
   width: 40px;
   height: auto;
-}
-
-.hero-subtitle {
-  font-family: var(--font-family-monospace);
 }
 
 .testamonials-container {

@@ -43,7 +43,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
       <div className="graph-under">
         <div className="graph-info">
           <span>Resource: {resource.name}</span>
-          <span>Current Price: <span className="graph-mono">${data.length > 0 ? data[data.length - 1].toFixed(2) : 'N/A'}</span></span>
+          <span>Current Price: <span className="mono">${data.length > 0 ? data[data.length - 1].toFixed(2) : 'N/A'}</span></span>
         </div>
         <div className="graph-buttons">
           <Button>Buy</Button>
