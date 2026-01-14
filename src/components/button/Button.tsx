@@ -1,10 +1,10 @@
-import React from 'react'
-import './Button.css'
+import React from 'react';
+import './Button.css';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  secondary?: boolean
-  isLoading?: boolean
-  children: React.ReactNode
+  secondary?: boolean;
+  isLoading?: boolean;
+  children: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -23,5 +23,5 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {isLoading ? <span className="spinner"></span> : children}
     </button>
-  )
-}
+  );
+};

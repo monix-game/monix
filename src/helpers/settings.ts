@@ -1,18 +1,18 @@
-import { localStorageKey } from "./constants";
+import { localStorageKey } from './constants';
 
 export interface ISettings {
   theme: 'light' | 'dark' | 'system';
 }
 
 export const defaultSettings: ISettings = {
-  theme: 'light',
+  theme: 'system',
 };
 
 export function loadSettings(): ISettings {
   const settingsStr = localStorage.getItem(localStorageKey('settings'));
   if (settingsStr) {
     try {
-      const settings = JSON.parse(settingsStr);
+      const settings: ISettings = JSON.parse(settingsStr) as ISettings;
       return { ...defaultSettings, ...settings };
     } catch {
       return defaultSettings;

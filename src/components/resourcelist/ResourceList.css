@@ -7,6 +7,14 @@
   width: 100%;
 }
 
+.no-resources {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text);
+  font-size: 1.2em;
+  padding: 20px;
+}
+
 @media (max-width: 768px) {
   .resource-list {
     grid-template-columns: 1fr;

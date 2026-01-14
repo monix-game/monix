@@ -1,17 +1,15 @@
-import React, { useEffect } from 'react'
-import './ResourceList.css'
-import { resources } from '../../../server/common/resources'
-import { Resource } from '../resource/Resource'
-import { getQuantity } from '../../helpers/resource';
+import React, { useEffect } from 'react';
+import './ResourceList.css';
+import { resources } from '../../../server/common/resources';
+import { Resource } from '../resource/Resource';
+import { getResourceQuantity } from '../../helpers/resource';
 import { getPrices } from '../../helpers/market';
 
 interface ResourceListProps {
   isStatic?: boolean;
 }
 
-export const ResourceList: React.FC<ResourceListProps> = ({
-  isStatic = false
-}) => {
+export const ResourceList: React.FC<ResourceListProps> = ({ isStatic = false }) => {
   const [sortedResources, setSortedResources] = React.useState<typeof resources>(resources);
   const [resourceValues, setResourceValues] = React.useState<{ [key: string]: number }>({});
 
@@ -19,13 +17,21 @@ export const ResourceList: React.FC<ResourceListProps> = ({
     const updateResource = async (noSort = false) => {
       const resourcesCopy = [...resources];
 
+      // Remove resources with zero quantity
+      for (let i = resourcesCopy.length - 1; i >= 0; i--) {
+        const qty = await getResourceQuantity(resourcesCopy[i].id);
+        if (!qty || qty <= 0) {
+          resourcesCopy.splice(i, 1);
+        }
+      }
+
       const allPrices = await getPrices();
 
       // Calculate values for each resource
       const resourcesWithValues = await Promise.all(
-        resourcesCopy.map(async (resource) => ({
+        resourcesCopy.map(async resource => ({
           resource,
-          value: allPrices[resource.id] * getQuantity(resource.id)!
+          value: allPrices[resource.id] * ((await getResourceQuantity(resource.id)) || 0),
         }))
       );
 
@@ -43,10 +49,10 @@ export const ResourceList: React.FC<ResourceListProps> = ({
       setResourceValues(valuesMap);
     };
 
-    updateResource();
+    void updateResource();
 
-    const interval = setInterval(() => {
-      updateResource(isStatic)
+    const interval = setInterval(async () => {
+      await updateResource(isStatic);
     }, 1000);
     return () => clearInterval(interval);
   }, [isStatic]);
@@ -54,8 +60,13 @@ export const ResourceList: React.FC<ResourceListProps> = ({
   return (
     <div className="resource-list">
       {sortedResources.map((resource, index) => (
+        // eslint-disable-next-line react-x/no-array-index-key
         <Resource key={index} info={resource} value={resourceValues[resource.id] || 0} />
       ))}
+
+      {sortedResources.length === 0 && (
+        <div className="no-resources">No resources available. Try buying or gathering some!</div>
+      )}
     </div>
-  )
-}
+  );
+};

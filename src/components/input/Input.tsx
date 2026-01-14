@@ -1,12 +1,14 @@
-import React from 'react'
-import './Input.css'
+import React from 'react';
+import './Input.css';
+import { IconX } from '@tabler/icons-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   disabled?: boolean;
+  onValueChange?: (value: string) => void;
   predicate?: (text: string) => boolean;
-  errorText?: string;
+  predicateText?: string;
   isPassword?: boolean;
   className?: string;
 }
@@ -15,19 +17,44 @@ export const Input: React.FC<InputProps> = ({
   label,
   error,
   disabled = false,
+  onValueChange,
   predicate = () => true,
-  errorText = "Input does not satisfy the requirements",
+  predicateText = 'Input does not satisfy the requirements',
   isPassword,
   className,
   ...props
 }) => {
+  const [value, setValue] = React.useState<string>('');
+  const [errorText, setErrorText] = React.useState<string>(error || '');
+
   return (
-    <div
-      className={`input ${className || ''}`}
-    >
+    <div className={`input ${className || ''}`}>
       {label && <span className="input-label">{label}</span>}
-      <input type={isPassword ? "password" : "text"} {...props} className="input-inner" disabled={disabled} ></input>
-      {error && <span className="input-label">{error}</span>}
+      <input
+        type={isPassword ? 'password' : 'text'}
+        {...props}
+        className="input-inner"
+        disabled={disabled}
+        value={value}
+        onChange={e => {
+          const newValue = e.target.value;
+          setValue(newValue);
+
+          if (onValueChange) onValueChange(newValue);
+
+          if (!predicate(newValue)) {
+            setErrorText(predicateText);
+          } else {
+            setErrorText(error || '');
+          }
+        }}
+      ></input>
+      {errorText && (
+        <span className="input-label">
+          <IconX size={15} className="icon" />
+          <span>{errorText}</span>
+        </span>
+      )}
     </div>
-  )
-}
+  );
+};

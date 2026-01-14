@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from "express";
-import { getSessionByToken, getUserByUUID } from "./db";
+import { NextFunction, Request, Response } from 'express';
+import { getSessionByToken, getUserByUUID } from './db';
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const fail = () => {
@@ -7,10 +7,10 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   };
 
-  if (!req.headers["authorization"]) fail();
-  if (!req.headers["authorization"]!.startsWith('Bearer ')) fail();
+  if (!req.headers['authorization']) fail();
+  if (!req.headers['authorization']!.startsWith('Bearer ')) fail();
 
-  const token = req.headers["authorization"]!.substring(7).trim();
+  const token = req.headers['authorization']!.substring(7).trim();
   const session = await getSessionByToken(token);
 
   if (session === null) fail();
@@ -19,8 +19,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   if (user === null) fail();
 
-  // @ts-ignore
+  // @ts-expect-error We are adding authUser to req
   req.authUser = user!;
+
   next();
 }
 
@@ -31,10 +32,10 @@ export function requireRole(role: 'admin' | 'game_mod' | 'social_mod' | 'helper'
       return;
     };
 
-    if (!req.headers["authorization"]) fail();
-    if (!req.headers["authorization"]!.startsWith('Bearer ')) fail();
-    
-    const token = req.headers["authorization"]!.substring(7).trim();
+    if (!req.headers['authorization']) fail();
+    if (!req.headers['authorization']!.startsWith('Bearer ')) fail();
+
+    const token = req.headers['authorization']!.substring(7).trim();
     const session = await getSessionByToken(token);
 
     if (session === null) fail();
@@ -48,8 +49,9 @@ export function requireRole(role: 'admin' | 'game_mod' | 'social_mod' | 'helper'
     if (role === 'social_mod' && !user!.is_social_mod) fail();
     if (role === 'helper' && !user!.is_helper) fail();
 
-    // @ts-ignore
+    // @ts-expect-error We are adding authUser to req
     req.authUser = user!;
+
     next();
-  }
+  };
 }

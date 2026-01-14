@@ -1,9 +1,9 @@
-import { localStorageKey } from "./constants";
+import { localStorageKey } from './constants';
 
 interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   timeout?: number;
   retries?: number;
 }
@@ -24,7 +24,7 @@ class ApiHandler {
     this.baseUrl = baseUrl;
   }
 
-  async request<T = any>(
+  async request<T = unknown>(
     endpoint: string,
     options: ApiRequestOptions = {}
   ): Promise<ApiResponse<T>> {
@@ -43,9 +43,7 @@ class ApiHandler {
         : null;
 
     // Detect if an Authorization header was already provided (case-insensitive)
-    const hasAuthHeader = Object.keys(headers).some(
-      (k) => k.toLowerCase() === 'authorization'
-    );
+    const hasAuthHeader = Object.keys(headers).some(k => k.toLowerCase() === 'authorization');
 
     // Merge headers and attach Authorization if token exists and caller didn't provide one
     const mergedHeaders: Record<string, string> = {
@@ -72,7 +70,7 @@ class ApiHandler {
 
         clearTimeout(timeoutId);
 
-        const data = await response.json().catch(() => null);
+        const data = await response.json().catch(() => null) as T | null;
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -101,30 +99,30 @@ class ApiHandler {
     };
   }
 
-  async get<T = any>(
+  async get<T = unknown>(
     endpoint: string,
     options?: Omit<ApiRequestOptions, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
-  async post<T = any>(
+  async post<T = unknown>(
     endpoint: string,
-    body?: any,
+    body?: unknown,
     options?: Omit<ApiRequestOptions, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
 
-  async put<T = any>(
+  async put<T = unknown>(
     endpoint: string,
-    body?: any,
+    body?: unknown,
     options?: Omit<ApiRequestOptions, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'PUT', body });
   }
 
-  async delete<T = any>(
+  async delete<T = unknown>(
     endpoint: string,
     options?: Omit<ApiRequestOptions, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
@@ -133,7 +131,7 @@ class ApiHandler {
 
   private async exponentialBackoff(attempt: number): Promise<void> {
     const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-    return new Promise((resolve) => setTimeout(resolve, delay));
+    return new Promise(resolve => setTimeout(resolve, delay));
   }
 }
 

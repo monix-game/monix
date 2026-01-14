@@ -1,5 +1,5 @@
-import React from 'react'
-import './Checkbox.css'
+import React from 'react';
+import './Checkbox.css';
 
 interface CheckboxProps {
   checked?: boolean;
@@ -18,15 +18,15 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   ...props
 }) => {
   return (
-    <div
-      className={`checkbox ${className || ''}`}
-      {...props}
-    >
-      <div className={`checkbox-inner ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}`} onClick={() => {
-        if (disabled) return;
-        onClick && onClick();
-      }} />
+    <div className={`checkbox ${className || ''}`} {...props}>
+      <div
+        className={`checkbox-inner ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}`}
+        onClick={() => {
+          if (disabled) return;
+          if (onClick) onClick();
+        }}
+      />
       {label && <span className="checkbox-label">{label}</span>}
     </div>
-  )
-}
+  );
+};

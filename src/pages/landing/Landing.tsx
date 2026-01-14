@@ -1,22 +1,41 @@
-import './Landing.css'
-import monixLogo from '../../assets/logo.svg'
-import { Button, Footer } from '../../components'
-import { IconCoin, IconDeviceGamepad, IconMoneybagPlus } from '@tabler/icons-react'
+import './Landing.css';
+import monixLogoLight from '../../assets/logo.svg';
+import monixLogoDark from '../../assets/logo-dark.svg';
+import { Button, Footer } from '../../components';
+import { IconCoin, IconDeviceGamepad, IconMoneybagPlus } from '@tabler/icons-react';
+import { currentTheme } from '../../helpers/theme';
 
 export default function Landing() {
   return (
     <div className="landing-container">
       <header className="landing-header">
-        <img src={monixLogo} alt="Monix Logo" className="landing-logo" />
+        <img
+          src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
+          alt="Monix Logo"
+          className="landing-logo"
+        />
         <h1 className="landing-title">Monix</h1>
         <div className="spacer"></div>
-        <Button onClick={() => { location.href = '/auth/register' }}>Register</Button>
-        <Button onClick={() => { location.href = '/auth/login' }} secondary>Login</Button>
+        <Button
+          onClick={() => {
+            location.href = '/auth/register';
+          }}
+        >
+          Register
+        </Button>
+        <Button
+          onClick={() => {
+            location.href = '/auth/login';
+          }}
+          secondary
+        >
+          Login
+        </Button>
       </header>
 
       <main className="landing-main">
         <div className="title">
-          <img src={monixLogo} alt="Monix Logo" />
+          <img src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight} alt="Monix Logo" />
           <h1>Monix</h1>
         </div>
 
@@ -45,30 +64,24 @@ export default function Landing() {
           <div className="testamonials-container">
             <div className="testamonial">
               <div className="testamonial-header">
-                <img src={monixLogo} alt="Testamonial Avatar" className="testamonial-img" />
+                <img src={monixLogoLight} alt="Testamonial Avatar" className="testamonial-img" />
                 <span className="testamonial-username">person</span>
               </div>
-              <div className="testamonial-body">
-                lorem ipsum dolor sit amet.
-              </div>
+              <div className="testamonial-body">lorem ipsum dolor sit amet.</div>
             </div>
             <div className="testamonial">
               <div className="testamonial-header">
-                <img src={monixLogo} alt="Testamonial Avatar" className="testamonial-img" />
+                <img src={monixLogoLight} alt="Testamonial Avatar" className="testamonial-img" />
                 <span className="testamonial-username">person</span>
               </div>
-              <div className="testamonial-body">
-                lorem ipsum dolor sit amet.
-              </div>
+              <div className="testamonial-body">lorem ipsum dolor sit amet.</div>
             </div>
             <div className="testamonial">
               <div className="testamonial-header">
-                <img src={monixLogo} alt="Testamonial Avatar" className="testamonial-img" />
+                <img src={monixLogoLight} alt="Testamonial Avatar" className="testamonial-img" />
                 <span className="testamonial-username">person</span>
               </div>
-              <div className="testamonial-body">
-                lorem ipsum dolor sit amet.
-              </div>
+              <div className="testamonial-body">lorem ipsum dolor sit amet.</div>
             </div>
           </div>
         </div>
@@ -76,5 +89,5 @@ export default function Landing() {
 
       <Footer />
     </div>
-  )
+  );
 }

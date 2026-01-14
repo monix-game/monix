@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 export interface IUser {
   uuid: string;
   username: string;
@@ -11,7 +14,7 @@ export interface IUser {
   resources?: { [key: string]: number };
 }
 
-export function userToDoc(u: IUser): any {
+export function userToDoc(u: IUser): IUser {
   return {
     uuid: u.uuid,
     username: u.username,
@@ -26,17 +29,18 @@ export function userToDoc(u: IUser): any {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function userFromDoc(doc: any): IUser {
   return {
-    uuid: doc.uuid || "",
-    username: doc.username || "",
-    password_hash: doc.password_hash || "",
+    uuid: doc.uuid || '',
+    username: doc.username || '',
+    password_hash: doc.password_hash || '',
     is_admin: doc.is_admin || false,
     is_game_mod: doc.is_game_mod || false,
     is_social_mod: doc.is_social_mod || false,
     is_helper: doc.is_helper || false,
     time_created: doc.time_created || 0,
     money: doc.money || 0,
-    resources: doc.resources || {}
+    resources: doc.resources || {},
   };
 }

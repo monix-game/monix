@@ -5,9 +5,16 @@
 }
 
 .input-label {
-  color: var(--text);
   font-size: 0.8em;
   user-select: none;
+}
+
+.input-label>* {
+  vertical-align: middle;
+}
+
+.input-label .icon {
+  margin-right: 5px;
 }
 
 .input-inner {

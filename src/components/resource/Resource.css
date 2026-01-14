@@ -31,7 +31,7 @@
   background-color: var(--dark-bg);
 }
 
-.resource>* {
+.resource > * {
   vertical-align: middle;
 }
 
