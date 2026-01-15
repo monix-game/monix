@@ -40,7 +40,7 @@ export default function Landing() {
         </div>
 
         <div className="section hero">
-          <span className="hero-subtitle mono">Explore fishing events today!</span>
+          <span className="hero-subtitle mono">Explore hours of content!</span>
           <h1 className="hero-title">
             <span className="hero-title-word">
               <IconCoin />
@@ -57,31 +57,40 @@ export default function Landing() {
               Profit.
             </span>
           </h1>
+          <div className="hero-cta">
+            <Button
+              onClick={() => {
+                location.href = '/auth/register';
+              }}
+            >
+              Get Started
+            </Button>
+          </div>
         </div>
 
-        <div className="section testamonials">
+        <div className="section testimonials">
           <h1 className="section-title">What our users say</h1>
-          <div className="testamonials-container">
-            <div className="testamonial">
-              <div className="testamonial-header">
-                <img src={monixLogoLight} alt="Testamonial Avatar" className="testamonial-img" />
-                <span className="testamonial-username">person</span>
+          <div className="testimonials-container">
+            <div className="testimonial">
+              <div className="testimonial-header">
+                <img src={monixLogoLight} alt="testimonial Avatar" className="testimonial-img" />
+                <span className="testimonial-username">person</span>
               </div>
-              <div className="testamonial-body">lorem ipsum dolor sit amet.</div>
+              <div className="testimonial-body">lorem ipsum dolor sit amet.</div>
             </div>
-            <div className="testamonial">
-              <div className="testamonial-header">
-                <img src={monixLogoLight} alt="Testamonial Avatar" className="testamonial-img" />
-                <span className="testamonial-username">person</span>
+            <div className="testimonial">
+              <div className="testimonial-header">
+                <img src={monixLogoLight} alt="testimonial Avatar" className="testimonial-img" />
+                <span className="testimonial-username">person</span>
               </div>
-              <div className="testamonial-body">lorem ipsum dolor sit amet.</div>
+              <div className="testimonial-body">lorem ipsum dolor sit amet.</div>
             </div>
-            <div className="testamonial">
-              <div className="testamonial-header">
-                <img src={monixLogoLight} alt="Testamonial Avatar" className="testamonial-img" />
-                <span className="testamonial-username">person</span>
+            <div className="testimonial">
+              <div className="testimonial-header">
+                <img src={monixLogoLight} alt="testimonial Avatar" className="testimonial-img" />
+                <span className="testimonial-username">person</span>
               </div>
-              <div className="testamonial-body">lorem ipsum dolor sit amet.</div>
+              <div className="testimonial-body">lorem ipsum dolor sit amet.</div>
             </div>
           </div>
         </div>
