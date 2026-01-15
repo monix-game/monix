@@ -31,8 +31,16 @@
 .nav-tabs {
   margin-top: 10px;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-row {
+  display: flex;
   gap: 15px;
-  flex-wrap: wrap;
+  align-items: center;
+  /* let tabs size to their content */
+  white-space: nowrap;
 }
 
 .nav-tabs .tab {
@@ -42,9 +50,11 @@
   border-top: 2px solid var(--primary-2);
   border-left: 2px solid var(--primary-2);
   border-right: 2px solid var(--primary-2);
+  border-bottom: 0px dotted var(--primary-2);
   text-decoration: none;
   transition: all 0.3s ease;
   font-size: 0.95rem;
+  user-select: none;
 }
 
 .nav-tabs span.active {
@@ -120,7 +130,7 @@
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 
@@ -273,5 +283,40 @@ body.tab-resources .app-footer {
 
   .money-tab-content h1 img {
     width: 90px !important;
+  }
+}
+
+/* Desktop: force two-row tabs and center user-info between the rows */
+@media (min-width: 1025px) {
+  .app-header {
+    /* keep header items vertically centered to align title */
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-tabs {
+    /* ensure the two nav rows remain stacked and take available space */
+    flex: 1 1 auto;
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .nav-row {
+    justify-content: flex-start;
+  }
+
+  .nav-row .tab {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  /* center the user info vertically between the two tab rows */
+  .user-info {
+    align-self: center;
+  }
+
+  /* keep the spacer to push user-info to the far right */
+  .app-header .spacer {
+    flex-grow: 1;
   }
 }

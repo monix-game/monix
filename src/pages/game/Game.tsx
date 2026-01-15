@@ -23,7 +23,15 @@ export default function Game() {
   const [aquariumTotal] = useState<number>(0);
   const [petsTotal] = useState<number>(0);
   const [tab, rawSetTab] = useState<
-    'money' | 'resources' | 'market' | 'fishing' | 'pets' | 'leaderboard' | 'settings'
+    | 'money'
+    | 'resources'
+    | 'market'
+    | 'fishing'
+    | 'pets'
+    | 'relics'
+    | 'council'
+    | 'leaderboard'
+    | 'settings'
   >('money');
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string>('guest');
@@ -98,42 +106,41 @@ export default function Game() {
         />
         <h1 className="app-title">Monix</h1>
         <div className="nav-tabs">
-          <span className={tab === 'money' ? 'active tab' : 'tab'} onClick={() => setTab('money')}>
-            <EmojiText>💰 Money</EmojiText>
-          </span>
-          <span
-            className={tab === 'resources' ? 'active tab' : 'tab'}
-            onClick={() => setTab('resources')}
-          >
-            <EmojiText>🪙 Resources</EmojiText>
-          </span>
-          <span
-            className={tab === 'market' ? 'active tab' : 'tab'}
-            onClick={() => setTab('market')}
-          >
-            <EmojiText>🏪 Market</EmojiText>
-          </span>
-          <span
-            className={tab === 'fishing' ? 'active tab' : 'tab'}
-            onClick={() => setTab('fishing')}
-          >
-            <EmojiText>🎣 Fishing</EmojiText>
-          </span>
-          <span className={tab === 'pets' ? 'active tab' : 'tab'} onClick={() => setTab('pets')}>
-            <EmojiText>🐶 Pets</EmojiText>
-          </span>
-          <span
-            className={tab === 'leaderboard' ? 'active tab' : 'tab'}
-            onClick={() => setTab('leaderboard')}
-          >
-            <EmojiText>🏆 Leaderboard</EmojiText>
-          </span>
-          <span
-            className={tab === 'settings' ? 'active tab' : 'tab'}
-            onClick={() => setTab('settings')}
-          >
-            <EmojiText>⚙️ Settings</EmojiText>
-          </span>
+          {/* Render tabs in two visual rows so each tab can size to its content */}
+          {(() => {
+            const tabs = [
+              { key: 'money', label: '💰 Money' },
+              { key: 'resources', label: '🪙 Resources' },
+              { key: 'market', label: '🏪 Market' },
+              { key: 'fishing', label: '🎣 Fishing' },
+              { key: 'pets', label: '🐶 Pets' },
+              { key: 'relics', label: '🦴 Relics' },
+              { key: 'council', label: '🏛️ Council' },
+              { key: 'leaderboard', label: '🏆 Leaderboard' },
+              { key: 'settings', label: '⚙️ Settings' },
+            ] as const;
+
+            const half = Math.ceil(tabs.length / 2);
+            const row1 = tabs.slice(0, half);
+            const row2 = tabs.slice(half);
+
+            const renderTab = (t: { key: typeof tab; label: string }) => (
+              <span
+                key={t.key}
+                className={tab === t.key ? 'active tab' : 'tab'}
+                onClick={() => setTab(t.key)}
+              >
+                <EmojiText>{t.label}</EmojiText>
+              </span>
+            );
+
+            return (
+              <>
+                <div className="nav-row">{row1.map(renderTab)}</div>
+                <div className="nav-row">{row2.map(renderTab)}</div>
+              </>
+            );
+          })()}
         </div>
         <div className="spacer" />
         <div className="user-info">
@@ -193,6 +200,18 @@ export default function Game() {
           <div className="tab-content">
             <h2>Pets Tab</h2>
             <p>Content for Pets will go here.</p>
+          </div>
+        )}
+        {tab === 'relics' && (
+          <div className="tab-content">
+            <h2>Relics Tab</h2>
+            <p>Content for Relics will go here.</p>
+          </div>
+        )}
+        {tab === 'council' && (
+          <div className="tab-content">
+            <h2>Council Tab</h2>
+            <p>Content for Council will go here.</p>
           </div>
         )}
         {tab === 'leaderboard' && (
