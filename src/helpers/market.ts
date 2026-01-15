@@ -50,7 +50,9 @@ export async function getCurrentPrice(resourceId: string): Promise<number> {
 
 export async function getPrices(): Promise<{ [resourceId: string]: number }> {
   try {
-    const resp = await api.get<{ data: Array<{ resource_id: string; price: number }> }>(`/market/prices`);
+    const resp = await api.get<{ data: Array<{ resource_id: string; price: number }> }>(
+      `/market/prices`
+    );
     if (resp && resp.success) {
       const payload = resp.data;
       const prices: { [key: string]: number } = {};
@@ -91,15 +93,18 @@ export async function getPriceHistory(
 
   // Request new price history data from API
   try {
-    const resp = await api.get<{ data: Array<{ time?: number; timestamp?: number; price?: number; value?: number }> }>(`/market/history/${resourceId}?hoursBack=${hoursBack}`);
+    const resp = await api.get<{
+      data: Array<{ time?: number; timestamp?: number; price?: number; value?: number }>;
+    }>(`/market/history/${resourceId}?hoursBack=${hoursBack}`);
     if (resp && resp.success) {
       const payload = resp.data;
 
-      let entries: Array<{ time?: number; timestamp?: number; price?: number; value?: number }> = [];
+      let entries: Array<{ time?: number; timestamp?: number; price?: number; value?: number }> =
+        [];
       if (payload && Array.isArray(payload.data)) entries = payload.data;
 
       if (entries.length > 0) {
-        const history = entries.map((entry) => ({
+        const history = entries.map(entry => ({
           time: entry.time ?? entry.timestamp ?? Date.now(),
           price: entry.price ?? entry.value ?? 0,
         }));
