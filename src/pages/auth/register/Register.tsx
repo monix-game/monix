@@ -113,7 +113,7 @@ export default function Register() {
         )}
       </div>
 
-      <Footer />
+      <Footer fixed />
     </div>
   );
 }

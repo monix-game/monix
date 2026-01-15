@@ -104,7 +104,7 @@ export default function Login() {
         )}
       </div>
 
-      <Footer />
+      <Footer fixed />
     </div>
   );
 }

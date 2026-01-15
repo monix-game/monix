@@ -156,10 +156,6 @@
   border-radius: var(--border-radius);
 }
 
-body.tab-resources .app-footer {
-  position: relative;
-}
-
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {

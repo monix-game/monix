@@ -228,7 +228,7 @@ export default function Game() {
         )}
       </main>
 
-      <Footer />
+      <Footer fixed/>
     </div>
   );
 }
