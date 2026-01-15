@@ -10,9 +10,17 @@ import { Button } from '../button/Button';
 interface ResourceProps {
   info: ResourceInfo;
   value: number;
+  money: number;
+  resourcePrice: number;
 }
 
-export const Resource: React.FC<ResourceProps> = ({ info, value, ...props }) => {
+export const Resource: React.FC<ResourceProps> = ({
+  info,
+  value,
+  money,
+  resourcePrice,
+  ...props
+}) => {
   const [quantity, setQuantity] = React.useState<number>(0);
   const [marketModalOpen, setMarketModalOpen] = React.useState<boolean>(false);
   const [marketMode, setMarketMode] = React.useState<'buy' | 'sell'>('buy');
@@ -85,7 +93,7 @@ export const Resource: React.FC<ResourceProps> = ({ info, value, ...props }) => 
                 <div className="market-resource-info">
                   <span className="market-resource-name">{info.name}</span>
                   <span className="market-resource-value mono">
-                    ${value.toFixed(2)} per {unit.endsWith('s') ? unit.slice(0, -1) : unit}
+                    ${resourcePrice.toFixed(2)} per {unit.endsWith('s') ? unit.slice(0, -1) : unit}
                   </span>
                 </div>
                 <Input
@@ -96,11 +104,14 @@ export const Resource: React.FC<ResourceProps> = ({ info, value, ...props }) => 
                   onValueChange={value => setMarketQuantity(Number(value))}
                 />
                 <p className="market-total-cost">
-                  Total Cost: <span className="mono">${(value * marketQuantity).toFixed(2)}</span>{' '}
-                  for {marketQuantity}{' '}
+                  Total Cost:{' '}
+                  <span className="mono">${(resourcePrice * marketQuantity).toFixed(2)}</span> for{' '}
+                  {marketQuantity}{' '}
                   {unit.endsWith('s') && marketQuantity == 1 ? unit.slice(0, -1) : unit}
                 </p>
-                <Button className="market-button">Confirm Purchase</Button>
+                <Button className="market-button" disabled={resourcePrice * marketQuantity > money}>
+                  Confirm Purchase
+                </Button>
               </div>
             ) : (
               <div className="sell-section">
@@ -114,7 +125,8 @@ export const Resource: React.FC<ResourceProps> = ({ info, value, ...props }) => 
                     <div className="market-resource-info">
                       <span className="market-resource-name">{info.name}</span>
                       <span className="market-resource-value mono">
-                        ${value.toFixed(2)} per {unit.endsWith('s') ? unit.slice(0, -1) : unit}
+                        ${resourcePrice.toFixed(2)} per{' '}
+                        {unit.endsWith('s') ? unit.slice(0, -1) : unit}
                       </span>
                     </div>
 
@@ -128,11 +140,13 @@ export const Resource: React.FC<ResourceProps> = ({ info, value, ...props }) => 
                     />
                     <p className="market-total-cost">
                       Total Value:{' '}
-                      <span className="mono">${(value * marketQuantity).toFixed(2)}</span> for{' '}
-                      {marketQuantity}{' '}
+                      <span className="mono">${(resourcePrice * marketQuantity).toFixed(2)}</span>{' '}
+                      for {marketQuantity}{' '}
                       {unit.endsWith('s') && marketQuantity == 1 ? unit.slice(0, -1) : unit}
                     </p>
-                    <Button className="market-button">Confirm Sale</Button>
+                    <Button className="market-button" disabled={marketQuantity > quantity}>
+                      Confirm Sale
+                    </Button>
                   </div>
                 )}
               </div>

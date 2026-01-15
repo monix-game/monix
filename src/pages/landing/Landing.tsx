@@ -4,8 +4,17 @@ import monixLogoDark from '../../assets/logo-dark.svg';
 import { Button, Footer } from '../../components';
 import { IconCoin, IconDeviceGamepad, IconMoneybagPlus } from '@tabler/icons-react';
 import { currentTheme } from '../../helpers/theme';
+import { isSignedIn } from '../../helpers/auth';
+import { useEffect, useState } from 'react';
 
 export default function Landing() {
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSignedIn(isSignedIn());
+  }, []);
+
   return (
     <div className="landing-container">
       <header className="landing-header">
@@ -16,21 +25,35 @@ export default function Landing() {
         />
         <h1 className="landing-title">Monix</h1>
         <div className="spacer"></div>
-        <Button
-          onClick={() => {
-            location.href = '/auth/register';
-          }}
-        >
-          Register
-        </Button>
-        <Button
-          onClick={() => {
-            location.href = '/auth/login';
-          }}
-          secondary
-        >
-          Login
-        </Button>
+
+        {!signedIn && (
+          <>
+            <Button
+              onClick={() => {
+                location.href = '/auth/register';
+              }}
+            >
+              Register
+            </Button>
+            <Button
+              onClick={() => {
+                location.href = '/auth/login';
+              }}
+              secondary
+            >
+              Login
+            </Button>
+          </>
+        )}
+        {signedIn && (
+          <Button
+            onClick={() => {
+              location.href = '/game';
+            }}
+          >
+            Go to Game
+          </Button>
+        )}
       </header>
 
       <main className="landing-main">
@@ -58,13 +81,24 @@ export default function Landing() {
             </span>
           </h1>
           <div className="hero-cta">
-            <Button
-              onClick={() => {
-                location.href = '/auth/register';
-              }}
-            >
-              Get Started
-            </Button>
+            {!signedIn && (
+              <Button
+                onClick={() => {
+                  location.href = '/auth/register';
+                }}
+              >
+                Get Started
+              </Button>
+            )}
+            {signedIn && (
+              <Button
+                onClick={() => {
+                  location.href = '/game';
+                }}
+              >
+                Go to Game
+              </Button>
+            )}
           </div>
         </div>
 

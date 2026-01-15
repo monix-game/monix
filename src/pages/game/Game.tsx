@@ -209,9 +209,9 @@ export default function Game() {
               checked={!resourceFilterStatic}
               onClick={() => setResourceFilterStatic(!resourceFilterStatic)}
             />
-            <ResourceList isStatic={resourceFilterStatic} />
+            <ResourceList isStatic={resourceFilterStatic} money={user ? (user.money || 0) : 0} />
           </div>
-        )}
+        )} 
         {tab === 'market' && (
           <div className="tab-content">
             <h2>Market</h2>
