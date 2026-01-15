@@ -22,6 +22,7 @@ router.post('/register', async (req: Request, res: Response) => {
     uuid: uuidv4(),
     username,
     password_hash,
+    money: 1000,
     is_admin: false,
     is_game_mod: false,
     is_social_mod: false,

@@ -3,7 +3,7 @@ import './ResourceGraph.css';
 import { getPriceHistory } from '../../helpers/market';
 import { Graph } from '../graph/Graph';
 import type { ResourceInfo } from '../../../server/common/resources';
-import { Button } from '../button/Button';
+import { EmojiText } from '../EmojiText';
 
 interface ResourceGraphProps {
   resource: ResourceInfo;
@@ -49,17 +49,14 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
       <div className="graph-spacer"></div>
       <div className="graph-under">
         <div className="graph-info">
-          <span>Resource: {resource.name}</span>
+          <span>Resource: <EmojiText>{resource.icon}</EmojiText> {resource.name}</span>
           <span>
             Current Price:{' '}
             <span className="mono">
               ${data.length > 0 ? data[data.length - 1].toFixed(2) : 'N/A'}
             </span>
+            {' '}per {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
           </span>
-        </div>
-        <div className="graph-buttons">
-          <Button>Buy</Button>
-          <Button>Sell</Button>
         </div>
       </div>
     </div>

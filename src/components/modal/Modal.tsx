@@ -22,18 +22,18 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, ariaLab
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="monix-modal-overlay" onMouseDown={onClose}>
+    <div className="modal-overlay" onMouseDown={onClose}>
       <div
-        className="monix-modal"
+        className="modal"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         onMouseDown={e => e.stopPropagation()}
       >
-        <button className="monix-modal-close" aria-label="Close" onClick={onClose}>
-          <IconX size={20} />
+        <button className="modal-close" aria-label="Close" onClick={onClose}>
+          <IconX size={15} />
         </button>
-        <div className="monix-modal-body">{children}</div>
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   );

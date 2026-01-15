@@ -2,20 +2,36 @@ import './Game.css';
 import { useEffect, useState } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
-import { EmojiText, ResourceList, Checkbox, AnimatedBackground, Footer } from '../../components';
+import {
+  EmojiText,
+  ResourceList,
+  Checkbox,
+  AnimatedBackground,
+  Footer,
+  ResourceGraph,
+} from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { currentTheme } from '../../helpers/theme';
 import { getTotalResourceValue } from '../../helpers/resource';
+import { getResourceById } from '../../../server/common/resources';
 
 export default function Game() {
-  const [money] = useState<number>(0);
+  const [moneyShort, setMoneyShort] = useState<string>('0.00');
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
   const [aquariumTotal] = useState<number>(0);
   const [petsTotal] = useState<number>(0);
   const [tab, rawSetTab] = useState<
-    'money' | 'resources' | 'fishing' | 'pets' | 'relics' | 'council' | 'leaderboard' | 'settings'
+    | 'money'
+    | 'resources'
+    | 'market'
+    | 'fishing'
+    | 'pets'
+    | 'relics'
+    | 'council'
+    | 'leaderboard'
+    | 'settings'
   >('money');
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string>('guest');
@@ -36,12 +52,41 @@ export default function Game() {
     setResourcesTotal(totalValue);
   };
 
+  const updateUser = async () => {
+    const userData = await fetchUser();
+    setUser(userData);
+
+    // Update money short display
+    // Format money to two decimal places for under 100k
+    // Use K for thousands, M for millions, B for billions, T for trillions, etc
+    if (userData) {
+      const money = userData.money || 0;
+      let formatted = '';
+      if (money < 100000) {
+        formatted = money.toFixed(2);
+      } else if (money < 1000000) {
+        formatted = (money / 1000).toFixed(2) + 'K';
+      } else if (money < 1000000000) {
+        formatted = (money / 1000000).toFixed(2) + 'M';
+      } else if (money < 1000000000000) {
+        formatted = (money / 1000000000).toFixed(2) + 'B';
+      } else {
+        formatted = (money / 1000000000000).toFixed(2) + 'T';
+      }
+      setMoneyShort(formatted);
+    } else {
+      setMoneyShort('0.00');
+    }
+  };
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateTotalResourcesValue();
+    void updateUser();
 
     const interval = setInterval(async () => {
       await updateTotalResourcesValue();
+      await updateUser();
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -94,6 +139,7 @@ export default function Game() {
             const tabs = [
               { key: 'money', label: '💰 Money' },
               { key: 'resources', label: '🪙 Resources' },
+              { key: 'market', label: '🏪 Market' },
               { key: 'fishing', label: '🎣 Fishing' },
               { key: 'pets', label: '🐶 Pets' },
               { key: 'relics', label: '🦴 Relics' },
@@ -138,7 +184,7 @@ export default function Game() {
             <AnimatedBackground />
             <div className="money-tab-content">
               <h1 className="mono">
-                <span>${money}</span>
+                <span>${moneyShort}</span>
               </h1>
               <div className="money-info">
                 <span className="money-info-line">
@@ -164,6 +210,12 @@ export default function Game() {
               onClick={() => setResourceFilterStatic(!resourceFilterStatic)}
             />
             <ResourceList isStatic={resourceFilterStatic} />
+          </div>
+        )}
+        {tab === 'market' && (
+          <div className="tab-content">
+            <h2>Market</h2>
+            <ResourceGraph resource={getResourceById('diamond')!} />
           </div>
         )}
         {tab === 'fishing' && (
@@ -204,7 +256,7 @@ export default function Game() {
         )}
       </main>
 
-      <Footer fixed />
+      <Footer fixed={tab !== 'resources'} />
     </div>
   );
 }

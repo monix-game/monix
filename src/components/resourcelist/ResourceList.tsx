@@ -21,14 +21,6 @@ export const ResourceList: React.FC<ResourceListProps> = ({ isStatic = false }) 
     const updateResource = async (noSort = false) => {
       const resourcesCopy = [...resources];
 
-      // Remove resources with zero quantity
-      for (let i = resourcesCopy.length - 1; i >= 0; i--) {
-        const qty = await getResourceQuantity(resourcesCopy[i].id);
-        if (!qty || qty <= 0) {
-          resourcesCopy.splice(i, 1);
-        }
-      }
-
       const allPrices = await getPrices();
 
       // Calculate values for each resource

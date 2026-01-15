@@ -35,13 +35,3 @@
   border-radius: var(--border-radius);
   background-color: var(--bg);
 }
-
-.graph-buttons {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-}
-
-.graph-buttons button {
-  height: fit-content;
-}

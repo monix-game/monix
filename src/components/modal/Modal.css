@@ -1,4 +1,4 @@
-.monix-modal-overlay {
+.modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -8,20 +8,20 @@
   z-index: 1000;
 }
 
-.monix-modal {
+.modal {
   position: relative;
   background: var(--bg, #fff);
   color: var(--text, #000);
   border-radius: 8px;
   max-width: 90%;
   max-height: 90%;
-  width: 640px;
+  width: 440px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   overflow: auto;
   padding: 1rem 1rem 1.25rem 1rem;
 }
 
-.monix-modal-close {
+.modal-close {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -33,6 +33,6 @@
   color: inherit;
 }
 
-.monix-modal-body {
+.modal-body {
   margin-top: 1.25rem;
 }
