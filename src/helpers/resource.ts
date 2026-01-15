@@ -11,26 +11,30 @@ interface CachedResourceData {
 
 let resourceCache: CachedResourceData = {};
 
-export function clearResourceCache() {
-  resourceCache = {};
+const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+export function clearResourceCache(resource_id?: string): void {
+  if (resource_id) {
+    delete resourceCache[resource_id];
+  } else {
+    resourceCache = {};
+  }
 }
 
 export async function fetchAndCacheResources(): Promise<void> {
   try {
-    const resp = await api.get<{ resources: Array<{ resource_id: string; quantity: number }> }>(
+    const resp = await api.get<{ resources: { [key: string]: number } }>(
       `/resources/all`
     );
     const time = Date.now();
     if (resp && resp.success) {
       const payload = resp.data;
-      if (payload && Array.isArray(payload.resources)) {
-        for (const entry of payload.resources) {
-          if (entry.resource_id && typeof entry.quantity === 'number') {
-            resourceCache[entry.resource_id] = {
-              quantity: entry.quantity,
-              time: time,
-            };
-          }
+      if (payload && payload.resources) {
+        for (const resourceId of Object.keys(payload.resources)) {
+          resourceCache[resourceId] = {
+            quantity: payload.resources[resourceId],
+            time,
+          };
         }
       }
     }
@@ -40,15 +44,21 @@ export async function fetchAndCacheResources(): Promise<void> {
 }
 
 export async function getResourceQuantity(resourceId: string): Promise<number | null> {
-  const entry = resourceCache[resourceId];
-  if (entry) {
-    return entry.quantity;
+  const cacheEntry = resourceCache[resourceId];
+  const now = Date.now();
+  if (cacheEntry && now - cacheEntry.time < CACHE_EXPIRY_MS) {
+    return cacheEntry.quantity;
   }
 
-  // Fetch the latest data from the API
+  // Request new resource data from API
   await fetchAndCacheResources();
+
   const updatedEntry = resourceCache[resourceId];
-  return updatedEntry ? updatedEntry.quantity : null;
+  if (updatedEntry) {
+    return updatedEntry.quantity;
+  } else {
+    return null;
+  }
 }
 
 export async function getTotalResourceValue(): Promise<number> {
@@ -64,4 +74,52 @@ export async function getTotalResourceValue(): Promise<number> {
   }
 
   return Number(totalValue.toFixed(2));
+}
+
+export async function buyResource(
+  resourceId: string,
+  quantity: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const resp = await api.post<{
+      message: string;
+      resourceId: string;
+      quantity: number;
+      money: number;
+    }>(`/resources/${resourceId}/buy`, {
+      quantity,
+    });
+    if (resp && resp.success) {
+      clearResourceCache(resourceId);
+      return { success: true, message: resp.data?.message || 'Purchase successful' };
+    } else {
+      return { success: false, message: 'Purchase failed' };
+    }
+  } catch {
+    return { success: false, message: 'Purchase failed' };
+  }
+}
+
+export async function sellResource(
+  resourceId: string,
+  quantity: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const resp = await api.post<{
+      message: string;
+      resourceId: string;
+      quantity: number;
+      money: number;
+    }>(`/resources/${resourceId}/sell`, {
+      quantity,
+    });
+    if (resp && resp.success) {
+      clearResourceCache(resourceId);
+      return { success: true, message: resp.data?.message || 'Sale successful' };
+    } else {
+      return { success: false, message: 'Sale failed' };
+    }
+  } catch {
+    return { success: false, message: 'Sale failed' };
+  }
 }

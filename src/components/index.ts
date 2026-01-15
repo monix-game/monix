@@ -8,3 +8,4 @@ export { Checkbox } from './checkbox/Checkbox';
 export { Input } from './input/Input';
 export { AnimatedBackground } from './animatedbackground/AnimatedBackground';
 export { Footer } from './footer/Footer';
+export { Modal } from './modal/Modal';

@@ -2,16 +2,8 @@ import './Game.css';
 import { useEffect, useState } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
-import {
-  EmojiText,
-  ResourceGraph,
-  ResourceList,
-  Checkbox,
-  AnimatedBackground,
-  Footer,
-} from '../../components';
+import { EmojiText, ResourceList, Checkbox, AnimatedBackground, Footer } from '../../components';
 import { IconUser } from '@tabler/icons-react';
-import { getResourceById } from '../../../server/common/resources';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { currentTheme } from '../../helpers/theme';
@@ -23,15 +15,7 @@ export default function Game() {
   const [aquariumTotal] = useState<number>(0);
   const [petsTotal] = useState<number>(0);
   const [tab, rawSetTab] = useState<
-    | 'money'
-    | 'resources'
-    | 'market'
-    | 'fishing'
-    | 'pets'
-    | 'relics'
-    | 'council'
-    | 'leaderboard'
-    | 'settings'
+    'money' | 'resources' | 'fishing' | 'pets' | 'relics' | 'council' | 'leaderboard' | 'settings'
   >('money');
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string>('guest');
@@ -106,12 +90,10 @@ export default function Game() {
         />
         <h1 className="app-title">Monix</h1>
         <div className="nav-tabs">
-          {/* Render tabs in two visual rows so each tab can size to its content */}
           {(() => {
             const tabs = [
               { key: 'money', label: '💰 Money' },
               { key: 'resources', label: '🪙 Resources' },
-              { key: 'market', label: '🏪 Market' },
               { key: 'fishing', label: '🎣 Fishing' },
               { key: 'pets', label: '🐶 Pets' },
               { key: 'relics', label: '🦴 Relics' },
@@ -182,12 +164,6 @@ export default function Game() {
               onClick={() => setResourceFilterStatic(!resourceFilterStatic)}
             />
             <ResourceList isStatic={resourceFilterStatic} />
-          </div>
-        )}
-        {tab === 'market' && (
-          <div className="tab-content">
-            <h2>Market Tab</h2>
-            <ResourceGraph resource={getResourceById('gold')!} />
           </div>
         )}
         {tab === 'fishing' && (
