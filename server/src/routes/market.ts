@@ -46,9 +46,9 @@ router.get('/history/:resourceId', requireAuth, (req: Request, res: Response) =>
   const currentTime = Math.floor(Date.now() / 1000);
   const history: Array<{ time: number; price: number }> = [];
 
-  const totalPoints = Math.max(0, Math.floor(hoursBack) * 3600);
+  const totalPoints = Math.max(0, Math.floor(hoursBack) * 1800);
   for (let i = 0; i < totalPoints; i++) {
-    const timestamp = currentTime - i * 1;
+    const timestamp = currentTime - i * 2;
     history.push({ time: timestamp, price: generatePrice(resourceId, timestamp) });
   }
   history.reverse();
