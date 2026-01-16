@@ -166,7 +166,7 @@ export default function Game() {
               : userData.is_helper
                 ? 'helper'
                 : 'user'
-        : 'guest';
+        : 'user';
 
       setUserRole(role);
 
@@ -223,7 +223,7 @@ export default function Game() {
         <div className="user-info">
           <IconUser size={24} />
           <span className="username">{user ? user.username : 'Guest'}</span>
-          {userRole !== 'guest' && <span className={`badge ${userRole}`}>{userRoleFormatted}</span>}
+          {userRole !== 'user' && <span className={`badge ${userRole}`}>{userRoleFormatted}</span>}
         </div>
       </header>
 
