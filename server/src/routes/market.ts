@@ -7,14 +7,34 @@ const router = Router();
 
 router.get('/price/:resourceId', requireAuth, (req: Request, res: Response) => {
   const { resourceId } = req.params;
-  const price = generatePrice(resourceId, Math.floor(Date.now() / 1000));
+  const { timestamp } = req.query;
+
+  let time = Math.floor(Date.now() / 1000);
+  if (timestamp) {
+    const tsNum = Number(timestamp);
+    if (!isNaN(tsNum)) {
+      time = tsNum;
+    }
+  }
+
+  const price = Number(generatePrice(resourceId, time).toFixed(2));
   const price_data = { resource_id: resourceId, price };
   return res.status(200).json({ success: true, data: price_data });
 });
 
 router.get('/prices', requireAuth, (req: Request, res: Response) => {
+  const { timestamp } = req.query;
+
+  let time = Math.floor(Date.now() / 1000);
+  if (timestamp) {
+    const tsNum = Number(timestamp);
+    if (!isNaN(tsNum)) {
+      time = tsNum;
+    }
+  }
+
   const prices = resources.map(r => {
-    const price = generatePrice(r.id, Math.floor(Date.now() / 1000));
+    const price = Number(generatePrice(r.id, time).toFixed(2));
     return { resource_id: r.id, price };
   });
   return res.status(200).json({ success: true, data: prices });

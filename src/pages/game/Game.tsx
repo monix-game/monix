@@ -9,13 +9,15 @@ import {
   AnimatedBackground,
   Footer,
   ResourceGraph,
+  Button,
+  ResourceModal,
 } from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { currentTheme } from '../../helpers/theme';
 import { getTotalResourceValue } from '../../helpers/resource';
-import { getResourceById } from '../../../server/common/resources';
+import { getResourceById, type ResourceInfo } from '../../../server/common/resources';
 
 export default function Game() {
   const [moneyShort, setMoneyShort] = useState<string>('0.00');
@@ -37,6 +39,9 @@ export default function Game() {
   const [userRole, setUserRole] = useState<string>('guest');
   const [userRoleFormatted, setUserRoleFormatted] = useState<string>('Guest');
   const [resourceFilterStatic, setResourceFilterStatic] = useState<boolean>(false);
+  const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
+  const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
+  const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -209,13 +214,21 @@ export default function Game() {
               checked={!resourceFilterStatic}
               onClick={() => setResourceFilterStatic(!resourceFilterStatic)}
             />
-            <ResourceList isStatic={resourceFilterStatic} money={user ? (user.money || 0) : 0} />
+            <ResourceList
+              isStatic={resourceFilterStatic}
+              setMarketModalResource={setMarketModalResource}
+              setMarketModalOpen={setMarketModalOpen}
+            />
           </div>
-        )} 
+        )}
         {tab === 'market' && (
           <div className="tab-content">
             <h2>Market</h2>
-            <ResourceGraph resource={getResourceById('diamond')!} />
+            <Button onClick={() => setTab('resources')}>Choose Resource</Button>
+            <ResourceGraph resource={getResourceById(marketResourceDetails)!} onBuySellClick={() => {
+              setMarketModalOpen(true);
+              setMarketModalResource(getResourceById(marketResourceDetails)!);
+            }} />
           </div>
         )}
         {tab === 'fishing' && (
@@ -257,6 +270,22 @@ export default function Game() {
       </main>
 
       <Footer fixed={tab !== 'resources'} />
+
+      {marketModalResource && (
+        <ResourceModal
+          resource={marketModalResource}
+          quantity={0}
+          resourcePrice={0}
+          money={user ? user.money || 0 : 0}
+          isOpen={marketModalOpen}
+          onClose={() => setMarketModalOpen(false)}
+          onSeeMore={() => {
+            setTab('market');
+            setMarketResourceDetails(marketModalResource.id);
+            setMarketModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

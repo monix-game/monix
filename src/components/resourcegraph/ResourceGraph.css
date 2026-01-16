@@ -1,6 +1,7 @@
 .graph-container {
   margin-top: 20px;
   width: fit-content;
+  min-width: 650px;
   height: 300px;
   border: 2px solid var(--primary-2);
   border-radius: var(--border-radius);
@@ -9,6 +10,15 @@
   background-color: var(--dark-bg);
   display: flex;
   flex-direction: column;
+}
+
+.graph-loading {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
 }
 
 .graph-under {
@@ -20,18 +30,33 @@
   font-size: 0.9rem;
 }
 
-.graph-info {
+.graph-under .spacer {
+  flex-grow: 1;
+}
+
+.graph-under .graph-button {
+  margin-right: 13px;
+}
+
+.graph-info-lines {
   display: flex;
   flex-direction: column;
   gap: 6px;
   flex-grow: 1;
 }
 
-.graph-info > span {
+.graph-info>span {
   display: block;
   width: fit-content;
   border: 2px solid var(--primary-2);
   padding: 4px 8px;
   border-radius: var(--border-radius);
   background-color: var(--bg);
+}
+
+@media (max-width: 600px) {
+  .graph-container {
+    width: 100%;
+    height: auto;
+  }
 }

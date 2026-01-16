@@ -1,0 +1,86 @@
+.market-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.market-title>* {
+  vertical-align: middle;
+}
+
+.market-switches {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.market-switches .switch {
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.3s ease;
+}
+
+.market-switches .switch:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.market-switches .switch:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.market-switches .switch.active,
+.market-switches .switch:hover {
+  background-color: var(--primary-1);
+}
+
+.market-resource-info {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.market-resource-name {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.market-resource-value {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.market-input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.market-total-cost {
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.market-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.market-button {
+  flex-grow: 1;
+}
+
+.market-no-quantity {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+}

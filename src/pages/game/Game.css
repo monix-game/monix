@@ -156,6 +156,12 @@
   border-radius: var(--border-radius);
 }
 
+.tab-content h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  user-select: none;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {

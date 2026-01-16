@@ -1,5 +1,6 @@
 import React from 'react';
 import './Button.css';
+import { Spinner } from '../spinner/Spinner';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   secondary?: boolean;
@@ -21,7 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || isLoading}
       {...props}
     >
-      {isLoading ? <span className="spinner"></span> : children}
+      {isLoading ? <Spinner size={16} /> : children}
     </button>
   );
 };

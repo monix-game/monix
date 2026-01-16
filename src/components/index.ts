@@ -9,3 +9,5 @@ export { Input } from './input/Input';
 export { AnimatedBackground } from './animatedbackground/AnimatedBackground';
 export { Footer } from './footer/Footer';
 export { Modal } from './modal/Modal';
+export { Spinner } from './spinner/Spinner';
+export { ResourceModal } from './resourcemodal/ResourceModal';

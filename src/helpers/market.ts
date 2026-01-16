@@ -1,3 +1,4 @@
+import { resources } from '../../server/common/resources';
 import { api } from './api';
 
 interface CachedPriceData {
@@ -6,66 +7,98 @@ interface CachedPriceData {
 
 const priceHistory: CachedPriceData = {};
 
-export async function getCurrentPrice(resourceId: string): Promise<number> {
-  // Check if we have cached price data recently
-  if (priceHistory[resourceId] && priceHistory[resourceId].length > 0) {
-    const latestEntry = priceHistory[resourceId][priceHistory[resourceId].length - 1];
-    const age = Date.now() - latestEntry.time;
-
-    // If the latest entry is less than 5 seconds old, return it
-    if (age < 5000) {
-      return latestEntry.price;
+export async function getCurrentPrice(resourceId: string, timestamp?: number): Promise<number> {
+  let time = Math.floor(Date.now() / 1000);
+  if (timestamp) {
+    const tsNum = Number(timestamp);
+    if (!isNaN(tsNum)) {
+      time = tsNum;
     }
   }
 
-  // Request new price data from API
+  // Check if we have a price cached for the time
+  if (priceHistory[resourceId]) {
+    const cachedEntry = priceHistory[resourceId].find(
+      entry => Math.round(entry.time) === Math.round(time)
+    );
+    if (cachedEntry) {
+      return cachedEntry.price;
+    }
+  }
+
+  // Request price from API
   try {
-    const resp = await api.get<{ data: { price: number } }>(`/market/price/${resourceId}`);
+    const resp = await api.get<{ resource_id: string; price: number }>(
+      `/market/price/${resourceId}?timestamp=${time}`
+    );
     if (resp && resp.success) {
       const payload = resp.data;
-
-      let price: number | undefined;
-      if (payload && payload.data && typeof payload.data.price === 'number')
-        price = payload.data.price;
-
-      if (typeof price === 'number') {
+      if (payload && typeof payload.price === 'number') {
+        // Cache the price
         if (!priceHistory[resourceId]) {
           priceHistory[resourceId] = [];
         }
-        priceHistory[resourceId].push({ time: Date.now(), price });
-        return price;
+        priceHistory[resourceId].push({ time, price: payload.price });
+        return payload.price;
       }
     }
   } catch (err) {
     console.error('Error fetching current price for', resourceId, err);
   }
 
-  // Fallback
-  if (priceHistory[resourceId] && priceHistory[resourceId].length > 0) {
-    return priceHistory[resourceId][priceHistory[resourceId].length - 1].price;
-  } else {
-    throw new Error('Failed to fetch current price and no cached data available.');
-  }
+  throw new Error(`Failed to fetch current price for resource ${resourceId}`);
 }
 
-export async function getPrices(): Promise<{ [resourceId: string]: number }> {
+export async function getPrices(timestamp?: number): Promise<{ [resourceId: string]: number }> {
+  let time = Math.floor(Date.now() / 1000);
+  if (timestamp) {
+    const tsNum = Number(timestamp);
+    if (!isNaN(tsNum)) {
+      time = tsNum;
+    }
+  }
+
+  // Check if we have all of the prices cached for the time
+  let prices: { [resourceId: string]: number } = {};
+  let allCached = true;
+  for (const resource of resources) {
+    if (!priceHistory[resource.id]) {
+      allCached = false;
+      break;
+    }
+
+    const cachedEntry = priceHistory[resource.id].find(
+      entry => Math.round(entry.time) === Math.round(time)
+    );
+    if (cachedEntry) {
+      prices[resource.id] = cachedEntry.price;
+    } else {
+      allCached = false;
+    }
+  }
+  if (allCached) {
+    console.log('Returning all prices from cache: ', prices);
+    return prices;
+  }
+
+  prices = {};
+
+  // Request prices from API
   try {
     const resp = await api.get<{ data: Array<{ resource_id: string; price: number }> }>(
-      `/market/prices`
+      `/market/prices?timestamp=${time}`
     );
     if (resp && resp.success) {
       const payload = resp.data;
-      const prices: { [key: string]: number } = {};
       if (payload && Array.isArray(payload.data)) {
         for (const entry of payload.data) {
-          if (entry.resource_id && typeof entry.price === 'number') {
-            prices[entry.resource_id] = entry.price;
-            // Update cache
-            if (!priceHistory[entry.resource_id]) {
-              priceHistory[entry.resource_id] = [];
-            }
-            priceHistory[entry.resource_id].push({ time: Date.now(), price: entry.price });
+          prices[entry.resource_id] = entry.price;
+
+          // Cache the price
+          if (!priceHistory[entry.resource_id]) {
+            priceHistory[entry.resource_id] = [];
           }
+          priceHistory[entry.resource_id].push({ time, price: entry.price });
         }
         return prices;
       }
@@ -73,7 +106,8 @@ export async function getPrices(): Promise<{ [resourceId: string]: number }> {
   } catch (err) {
     console.error('Error fetching prices', err);
   }
-  throw new Error('Failed to fetch prices.');
+
+  throw new Error('Failed to fetch prices from market API');
 }
 
 export async function getPriceHistory(

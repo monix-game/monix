@@ -6,15 +6,15 @@ import { getResourceQuantity } from '../../helpers/resource';
 import { getPrices } from '../../helpers/market';
 
 interface ResourceListProps {
-  money: number;
+  setMarketModalResource: (resource: ResourceInfo) => void;
+  setMarketModalOpen: (open: boolean) => void;
   isStatic?: boolean;
 }
 
-export const ResourceList: React.FC<ResourceListProps> = ({ money, isStatic = false }) => {
+export const ResourceList: React.FC<ResourceListProps> = ({ setMarketModalResource, setMarketModalOpen, isStatic = false }) => {
   const [hydrated, setHydrated] = React.useState(false);
   const [sortedResources, setSortedResources] = React.useState<ResourceInfo[]>([]);
   const [resourceValues, setResourceValues] = React.useState<{ [key: string]: number }>({});
-  const [allPrices, setAllPrices] = React.useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     let mounted = true;
@@ -23,13 +23,13 @@ export const ResourceList: React.FC<ResourceListProps> = ({ money, isStatic = fa
     const updateResource = async (noSort = false) => {
       const resourcesCopy = [...resources];
 
-      setAllPrices(await getPrices());
+      const fetchedPrices = await getPrices();
 
       // Calculate values for each resource
       const resourcesWithValues = await Promise.all(
         resourcesCopy.map(async resource => ({
           resource,
-          value: allPrices[resource.id] * ((await getResourceQuantity(resource.id)) || 0),
+          value: fetchedPrices[resource.id] * ((await getResourceQuantity(resource.id)) || 0),
         }))
       );
 
@@ -53,7 +53,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({ money, isStatic = fa
 
       intervalId = window.setInterval(async () => {
         await updateResource(isStatic);
-      }, 1000);
+      }, 2000);
     };
 
     void init();
@@ -62,13 +62,13 @@ export const ResourceList: React.FC<ResourceListProps> = ({ money, isStatic = fa
       mounted = false;
       if (intervalId !== undefined) clearInterval(intervalId);
     };
-  }, [allPrices, isStatic]);
+  }, [isStatic]);
 
   return (
     <div className="resource-list">
       {sortedResources.map((resource, index) => (
         // eslint-disable-next-line react-x/no-array-index-key
-        <Resource key={index} info={resource} value={resourceValues[resource.id] || 0} resourcePrice={allPrices[resource.id] || 0} money={money} />
+        <Resource key={index} info={resource} value={resourceValues[resource.id] || 0} setMarketModalResource={setMarketModalResource} setMarketModalOpen={setMarketModalOpen} />
       ))}
 
       {!hydrated && <div className="no-resources">Loading...</div>}

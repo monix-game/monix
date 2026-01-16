@@ -386,9 +386,9 @@ export const resources: ResourceInfo[] = [
     basePrice: 1.8,
   },
   {
-    id: 'aliminium',
+    id: 'aluminium',
     icon: '🛠️',
-    name: 'Aliminium',
+    name: 'Aluminium',
     unit: 'kg',
     basePrice: 3.5,
   },
