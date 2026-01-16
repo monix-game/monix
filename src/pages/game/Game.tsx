@@ -5,7 +5,6 @@ import monixLogoDark from '../../assets/logo-dark.svg';
 import {
   EmojiText,
   ResourceList,
-  Checkbox,
   AnimatedBackground,
   Footer,
   ResourceGraph,
@@ -40,7 +39,6 @@ export default function Game() {
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string>('guest');
   const [userRoleFormatted, setUserRoleFormatted] = useState<string>('Guest');
-  const [resourceFilterStatic, setResourceFilterStatic] = useState<boolean>(false);
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
   const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
@@ -53,7 +51,7 @@ export default function Game() {
     let mounted = true;
     let intervalId: number | undefined;
 
-    const updateResource = async (noSort = false) => {
+    const updateResource = async () => {
       const resourcesCopy = [...resources];
 
       const fetchedPrices = await getPrices();
@@ -78,7 +76,7 @@ export default function Game() {
       resourcesWithValues.sort((a, b) => b.value - a.value);
 
       // Extract sorted resources
-      if (!noSort) setSortedResources(resourcesWithValues.map(item => item.resource));
+      setSortedResources(resourcesWithValues.map(item => item.resource));
 
       // Update resource values state
       const pricesMap: { [key: string]: number } = {};
@@ -93,7 +91,7 @@ export default function Game() {
       if (mounted) setResourceListHydrated(true);
 
       intervalId = window.setInterval(async () => {
-        await updateResource(resourceFilterStatic);
+        await updateResource();
       }, 2000);
     };
 
@@ -103,7 +101,7 @@ export default function Game() {
       mounted = false;
       if (intervalId !== undefined) clearInterval(intervalId);
     };
-  }, [resourceFilterStatic]);
+  }, []);
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -240,13 +238,15 @@ export default function Game() {
               <div className="money-info">
                 <span className="money-info-line">
                   <EmojiText>📈 Resources:</EmojiText>{' '}
-                  <span className="mono">${resourcesTotal}</span>
+                  <span className="mono">{smartFormatNumber(resourcesTotal)}</span>
                 </span>
                 <span className="money-info-line">
-                  <EmojiText>🎣 Aquarium:</EmojiText> <span className="mono">${aquariumTotal}</span>
+                  <EmojiText>🎣 Aquarium:</EmojiText>{' '}
+                  <span className="mono">{smartFormatNumber(aquariumTotal)}</span>
                 </span>
                 <span className="money-info-line">
-                  <EmojiText>🐶 Pets:</EmojiText> <span className="mono">${petsTotal}</span>
+                  <EmojiText>🐶 Pets:</EmojiText>{' '}
+                  <span className="mono">{smartFormatNumber(petsTotal)}</span>
                 </span>
               </div>
             </div>
@@ -255,13 +255,7 @@ export default function Game() {
         {tab === 'resources' && (
           <div className="tab-content">
             <h2>Resources</h2>
-            <Checkbox
-              label="Auto-sort"
-              checked={!resourceFilterStatic}
-              onClick={() => setResourceFilterStatic(!resourceFilterStatic)}
-            />
             <ResourceList
-              isStatic={resourceFilterStatic}
               setMarketModalResource={setMarketModalResource}
               setMarketModalOpen={setMarketModalOpen}
               resourceListHydrated={resourceListHydrated}

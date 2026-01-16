@@ -1,8 +1,6 @@
 import crypto from 'crypto';
 import { resources } from '../../common/resources';
 
-let prevPrices: { id: string; price: number }[] = [];
-
 function pseudoRandomFraction(seed: string): number {
   const hash = crypto.createHash('sha256').update(seed).digest('hex');
   // take first 8 hex chars -> 32-bit int
@@ -18,21 +16,19 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   if (resource === undefined) return 0.0;
 
   const resourceBase = resource.basePrice;
-  const volatility = resourceBase > 750 ? Math.min(4, Math.floor((resourceBase - 500) / 2000)) : 0;
 
-  const frac = pseudoRandomFraction(`${resourceId}-${timestamp}`);
+  let frac = pseudoRandomFraction(`${resourceId}-${timestamp}`);
+  frac = Number(frac.toFixed(4));
 
-  const price = resourceBase + Math.round((90 + frac * 20) * 100) / 100;
-  let priceWithVolatility = price;
+  let randomness = Math.round((90 + frac * 20) * 100) / 2000 - 5; // Centered around 0, range -4.5 to +4.5
 
-  const prevPrice = prevPrices.find(v => v.id === resourceId);
-  if (volatility > 0 && prevPrice !== undefined) {
-    const difference = price - prevPrice.price;
-    priceWithVolatility = Number((prevPrice.price + difference * volatility).toFixed(2));
-  }
+  const multiplier = Math.round(resourceBase / 20);
+  randomness *= multiplier >= 1 ? multiplier : 1;
+  randomness = Number(randomness.toFixed(2));
 
-  prevPrices = prevPrices.filter(value => value.id !== resourceId);
-  prevPrices.push({ id: resourceId, price: price });
+  let price = resourceBase + randomness;
+  price = Number(price.toFixed(2));
+  price = Math.max(price, 0.01); // Minimum price of 0.01
 
-  return priceWithVolatility;
+  return price;
 }

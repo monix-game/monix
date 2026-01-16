@@ -38,7 +38,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
     void fetchData();
 
     // Update the history every second
-    const interval = setInterval(fetchData, 1000);
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, [resource.id]);
 

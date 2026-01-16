@@ -10,7 +10,6 @@ interface ResourceListProps {
   resourceListHydrated?: boolean;
   sortedResources?: ResourceInfo[];
   resourcePrices?: { [key: string]: number };
-  isStatic?: boolean;
 }
 
 export const ResourceList: React.FC<ResourceListProps> = ({
