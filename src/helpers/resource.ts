@@ -97,7 +97,7 @@ export async function buyResource(
     if (resp && resp.success) {
       clearResourceCache(resourceId);
       resourceCache[resourceId] = {
-        quantity: (resourceCache[resourceId]?.quantity || 0) + quantity,
+        quantity: resp.data?.quantity || 0,
         time: Date.now(),
       };
       return { success: true, message: resp.data?.message || 'Purchase successful' };
@@ -125,7 +125,7 @@ export async function sellResource(
     if (resp && resp.success) {
       clearResourceCache(resourceId);
       resourceCache[resourceId] = {
-        quantity: Math.max(0, (resourceCache[resourceId]?.quantity || 0) - quantity),
+        quantity: resp.data?.quantity || 0,
         time: Date.now(),
       };
       return { success: true, message: resp.data?.message || 'Sale successful' };
