@@ -2,6 +2,7 @@ import React from 'react';
 import './ResourceList.css';
 import { type ResourceInfo } from '../../../server/common/resources';
 import { Resource } from '../resource/Resource';
+import { Spinner } from '../spinner/Spinner';
 
 interface ResourceListProps {
   setMarketModalResource: (resource: ResourceInfo) => void;
@@ -32,7 +33,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
         />
       ))}
 
-      {!resourceListHydrated && <div className="no-resources">Loading...</div>}
+      {!resourceListHydrated && <div className="no-resources"><Spinner size={30}></Spinner></div>}
 
       {resourceListHydrated && sortedResources.length === 0 && (
         <div className="no-resources">No resources available. Try buying or gathering some!</div>
