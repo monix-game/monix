@@ -37,8 +37,8 @@ export default function Game() {
     | 'settings'
   >('money');
   const [user, setUser] = useState<IUser | null>(null);
-  const [userRole, setUserRole] = useState<string>('guest');
-  const [userRoleFormatted, setUserRoleFormatted] = useState<string>('Guest');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRoleFormatted, setUserRoleFormatted] = useState<string | null>(null);
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
   const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
@@ -156,20 +156,9 @@ export default function Game() {
     void fetchUser().then(userData => {
       setUser(userData);
 
-      const role = userData
-        ? userData.is_admin
-          ? 'admin'
-          : userData.is_game_mod
-            ? 'game-mod'
-            : userData.is_social_mod
-              ? 'social-mod'
-              : userData.is_helper
-                ? 'helper'
-                : 'user'
-        : 'user';
+      const role = userData ? userData.role : 'user';
 
       setUserRole(role);
-
       updateFormattedUserRole(role);
     });
   }, []);
@@ -222,8 +211,8 @@ export default function Game() {
         <div className="spacer" />
         <div className="user-info">
           <IconUser size={24} />
-          <span className="username">{user ? user.username : 'Guest'}</span>
-          {userRole !== 'user' && <span className={`badge ${userRole}`}>{userRoleFormatted}</span>}
+          <span className="username">{user ? user.username : 'User'}</span>
+          {(userRole !== null && userRole !== 'user') && <span className={`badge ${userRole}`}>{userRoleFormatted}</span>}
         </div>
       </header>
 

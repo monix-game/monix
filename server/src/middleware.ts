@@ -1,56 +1,61 @@
 import { NextFunction, Request, Response } from 'express';
 import { getSessionByToken, getUserByUUID } from './db';
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const fail = () => {
+const HIERARCHY = ['admin', 'game_mod', 'social_mod', 'helper'];
+
+async function authenticateRequest(req: Request, res: Response) {
+  const unauthorized = () => {
     res.status(401).json({ message: 'Unauthorized' });
-    return;
   };
 
-  if (!req.headers['authorization']) fail();
-  if (!req.headers['authorization']!.startsWith('Bearer ')) fail();
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+    unauthorized();
+    return null;
+  }
 
-  const token = req.headers['authorization']!.substring(7).trim();
+  const token = authHeader.substring(7).trim();
   const session = await getSessionByToken(token);
+  if (!session) {
+    unauthorized();
+    return null;
+  }
 
-  if (session === null) fail();
+  const user = await getUserByUUID(session.user_uuid);
+  if (!user) {
+    unauthorized();
+    return null;
+  }
 
-  const user = await getUserByUUID(session!.user_uuid);
+  // @ts-expect-error We are adding a custom property to the Request object
+  req.authUser = user;
+  return user;
+}
 
-  if (user === null) fail();
-
-  // @ts-expect-error We are adding authUser to req
-  req.authUser = user!;
-
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const user = await authenticateRequest(req, res);
+  if (!user) return;
   next();
 }
 
 export function requireRole(role: 'admin' | 'game_mod' | 'social_mod' | 'helper') {
   return async function (req: Request, res: Response, next: NextFunction) {
-    const fail = () => {
+    const user = await authenticateRequest(req, res);
+    if (!user) return;
+
+    if (!HIERARCHY.includes(role)) {
+      // Not staff role, automatically unauthorized
       res.status(401).json({ message: 'Unauthorized' });
       return;
-    };
+    }
 
-    if (!req.headers['authorization']) fail();
-    if (!req.headers['authorization']!.startsWith('Bearer ')) fail();
+    const userRoleIndex = HIERARCHY.indexOf(user.role);
+    const requiredRoleIndex = HIERARCHY.indexOf(role);
 
-    const token = req.headers['authorization']!.substring(7).trim();
-    const session = await getSessionByToken(token);
-
-    if (session === null) fail();
-
-    const user = await getUserByUUID(session!.user_uuid);
-
-    if (user === null) fail();
-
-    if (role === 'admin' && !user!.is_admin) fail();
-    if (role === 'game_mod' && !user!.is_game_mod) fail();
-    if (role === 'social_mod' && !user!.is_social_mod) fail();
-    if (role === 'helper' && !user!.is_helper) fail();
-
-    // @ts-expect-error We are adding authUser to req
-    req.authUser = user!;
+    if (userRoleIndex > requiredRoleIndex) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
 
     next();
   };
