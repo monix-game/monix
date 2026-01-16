@@ -47,7 +47,7 @@
   flex-grow: 1;
 }
 
-.graph-info-lines>span {
+.graph-info-lines > span {
   display: block;
   width: fit-content;
   border: 2px solid var(--primary-2);

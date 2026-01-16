@@ -23,10 +23,7 @@ router.post('/register', async (req: Request, res: Response) => {
     username,
     password_hash,
     money: 1000,
-    is_admin: false,
-    is_game_mod: false,
-    is_social_mod: false,
-    is_helper: false,
+    role: 'user',
     time_created: Date.now() / 1000,
   };
 

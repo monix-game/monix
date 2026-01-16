@@ -71,7 +71,9 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
               </div>
             </div>
             <div className="spacer"></div>
-            <Button onClick={onBuySellClick} className="graph-button">Buy/Sell</Button>
+            <Button onClick={onBuySellClick} className="graph-button">
+              Buy/Sell
+            </Button>
           </div>
         </>
       )}

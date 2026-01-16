@@ -15,7 +15,13 @@ const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 export function clearResourceCache(resource_id?: string): void {
   if (resource_id) {
-    console.log('Clearing cache for resource', resource_id, '. Totalling: ', Object.keys(resourceCache).filter(key => key === resource_id).length, 'entries.');
+    console.log(
+      'Clearing cache for resource',
+      resource_id,
+      '. Totalling: ',
+      Object.keys(resourceCache).filter(key => key === resource_id).length,
+      'entries.'
+    );
     delete resourceCache[resource_id];
   } else {
     resourceCache = {};

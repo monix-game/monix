@@ -212,7 +212,9 @@ export default function Game() {
         <div className="user-info">
           <IconUser size={24} />
           <span className="username">{user ? user.username : 'User'}</span>
-          {(userRole !== null && userRole !== 'user') && <span className={`badge ${userRole}`}>{userRoleFormatted}</span>}
+          {userRole !== null && userRole !== 'user' && (
+            <span className={`badge ${userRole}`}>{userRoleFormatted}</span>
+          )}
         </div>
       </header>
 

@@ -32,7 +32,11 @@ export const ResourceList: React.FC<ResourceListProps> = ({
         />
       ))}
 
-      {!resourceListHydrated && <div className="no-resources"><Spinner size={30}></Spinner></div>}
+      {!resourceListHydrated && (
+        <div className="no-resources">
+          <Spinner size={30}></Spinner>
+        </div>
+      )}
 
       {resourceListHydrated && sortedResources.length === 0 && (
         <div className="no-resources">No resources available. Try buying or gathering some!</div>
