@@ -16,8 +16,9 @@ import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { currentTheme } from '../../helpers/theme';
-import { getTotalResourceValue } from '../../helpers/resource';
-import { getResourceById, type ResourceInfo } from '../../../server/common/resources';
+import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
+import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
+import { getPrices } from '../../helpers/market';
 
 export default function Game() {
   const [moneyShort, setMoneyShort] = useState<string>('0.00');
@@ -42,6 +43,76 @@ export default function Game() {
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
   const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
+  const [resourceListHydrated, setResourceListHydrated] = useState(false);
+  const [sortedResources, setSortedResources] = useState<ResourceInfo[]>([]);
+  const [resourceValues, setResourceValues] = useState<{ [key: string]: number }>({});
+  const [resourcePrices, setResourcePrices] = useState<{ [key: string]: number }>({});
+  const [resourceQuantities, setResourceQuantities] = useState<{ [key: string]: number }>({});
+
+  useEffect(() => {
+    let mounted = true;
+    let intervalId: number | undefined;
+
+    const updateResource = async (noSort = false) => {
+      const resourcesCopy = [...resources];
+
+      const fetchedPrices = await getPrices();
+
+      // Get the quantities for all resources
+      const quantitiesMap: { [key: string]: number } = {};
+      await Promise.all(
+        resourcesCopy.map(async resource => {
+          const qty = await getResourceQuantity(resource.id);
+          quantitiesMap[resource.id] = qty || 0;
+        })
+      );
+      setResourceQuantities(quantitiesMap);
+
+      // Calculate values for each resource
+      const resourcesWithValues = resourcesCopy.map(resource => ({
+        resource,
+        value: fetchedPrices[resource.id] * (quantitiesMap[resource.id] || 0),
+      }));
+
+      // Sort by value descending
+      resourcesWithValues.sort((a, b) => b.value - a.value);
+
+      // Extract sorted resources
+      if (!noSort) setSortedResources(resourcesWithValues.map(item => item.resource));
+
+      // Update resource values state
+      const pricesMap: { [key: string]: number } = {};
+      resourcesWithValues.forEach(item => {
+        pricesMap[item.resource.id] = fetchedPrices[item.resource.id];
+      });
+      setResourcePrices(pricesMap);
+      setResourceValues(
+        resourcesWithValues.reduce(
+          (acc, item) => {
+            acc[item.resource.id] = item.value;
+            return acc;
+          },
+          {} as { [key: string]: number }
+        )
+      );
+    };
+
+    const init = async () => {
+      await updateResource();
+      if (mounted) setResourceListHydrated(true);
+
+      intervalId = window.setInterval(async () => {
+        await updateResource(resourceFilterStatic);
+      }, 2000);
+    };
+
+    void init();
+
+    return () => {
+      mounted = false;
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
+  }, [resourceFilterStatic]);
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -218,6 +289,9 @@ export default function Game() {
               isStatic={resourceFilterStatic}
               setMarketModalResource={setMarketModalResource}
               setMarketModalOpen={setMarketModalOpen}
+              resourceListHydrated={resourceListHydrated}
+              sortedResources={sortedResources}
+              resourceValues={resourceValues}
             />
           </div>
         )}
@@ -225,10 +299,13 @@ export default function Game() {
           <div className="tab-content">
             <h2>Market</h2>
             <Button onClick={() => setTab('resources')}>Choose Resource</Button>
-            <ResourceGraph resource={getResourceById(marketResourceDetails)!} onBuySellClick={() => {
-              setMarketModalOpen(true);
-              setMarketModalResource(getResourceById(marketResourceDetails)!);
-            }} />
+            <ResourceGraph
+              resource={getResourceById(marketResourceDetails)!}
+              onBuySellClick={() => {
+                setMarketModalOpen(true);
+                setMarketModalResource(getResourceById(marketResourceDetails)!);
+              }}
+            />
           </div>
         )}
         {tab === 'fishing' && (
@@ -274,15 +351,35 @@ export default function Game() {
       {marketModalResource && (
         <ResourceModal
           resource={marketModalResource}
-          quantity={0}
-          resourcePrice={0}
+          quantity={resourceQuantities[marketModalResource.id] || 0}
+          resourcePrice={resourcePrices[marketModalResource.id] || 0}
           money={user ? user.money || 0 : 0}
           isOpen={marketModalOpen}
-          onClose={() => setMarketModalOpen(false)}
+          onClose={() => {
+            setMarketModalOpen(false);
+            setMarketModalResource(null);
+          }}
           onSeeMore={() => {
             setTab('market');
             setMarketResourceDetails(marketModalResource.id);
             setMarketModalOpen(false);
+          }}
+          onBuySell={() => {
+            // Refresh the resource's value and quantity
+            void updateTotalResourcesValue();
+            const fetchQuantity = async () => {
+              const qty = await getResourceQuantity(marketModalResource.id);
+              setResourceQuantities(prev => ({
+                ...prev,
+                [marketModalResource.id]: qty || 0,
+              }));
+              setResourceValues(prev => ({
+                ...prev,
+                [marketModalResource.id]:
+                  (resourcePrices[marketModalResource.id] || 0) * (qty || 0),
+              }));
+            };
+            void fetchQuantity();
           }}
         />
       )}

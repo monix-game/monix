@@ -36,6 +36,8 @@
 
 .graph-under .graph-button {
   margin-right: 13px;
+  height: 28px;
+  align-self: center;
 }
 
 .graph-info-lines {
@@ -45,7 +47,7 @@
   flex-grow: 1;
 }
 
-.graph-info>span {
+.graph-info-lines>span {
   display: block;
   width: fit-content;
   border: 2px solid var(--primary-2);

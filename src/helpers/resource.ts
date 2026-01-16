@@ -15,6 +15,7 @@ const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 export function clearResourceCache(resource_id?: string): void {
   if (resource_id) {
+    console.log('Clearing cache for resource', resource_id, '. Totalling: ', Object.keys(resourceCache).filter(key => key === resource_id).length, 'entries.');
     delete resourceCache[resource_id];
   } else {
     resourceCache = {};
@@ -23,9 +24,7 @@ export function clearResourceCache(resource_id?: string): void {
 
 export async function fetchAndCacheResources(): Promise<void> {
   try {
-    const resp = await api.get<{ resources: { [key: string]: number } }>(
-      `/resources/all`
-    );
+    const resp = await api.get<{ resources: { [key: string]: number } }>(`/resources/all`);
     const time = Date.now();
     if (resp && resp.success) {
       const payload = resp.data;
@@ -91,6 +90,10 @@ export async function buyResource(
     });
     if (resp && resp.success) {
       clearResourceCache(resourceId);
+      resourceCache[resourceId] = {
+        quantity: (resourceCache[resourceId]?.quantity || 0) + quantity,
+        time: Date.now(),
+      };
       return { success: true, message: resp.data?.message || 'Purchase successful' };
     } else {
       return { success: false, message: 'Purchase failed' };
@@ -115,6 +118,10 @@ export async function sellResource(
     });
     if (resp && resp.success) {
       clearResourceCache(resourceId);
+      resourceCache[resourceId] = {
+        quantity: Math.max(0, (resourceCache[resourceId]?.quantity || 0) - quantity),
+        time: Date.now(),
+      };
       return { success: true, message: resp.data?.message || 'Sale successful' };
     } else {
       return { success: false, message: 'Sale failed' };

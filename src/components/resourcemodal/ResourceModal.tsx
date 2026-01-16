@@ -2,6 +2,7 @@ import React from 'react';
 import './ResourceModal.css';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { Button, EmojiText, Input, Modal } from '..';
+import { buyResource, sellResource } from '../../helpers/resource';
 
 interface ResourceModalProps {
   resource: ResourceInfo;
@@ -11,6 +12,7 @@ interface ResourceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSeeMore: () => void;
+  onBuySell: () => void;
 }
 
 export const ResourceModal: React.FC<ResourceModalProps> = ({
@@ -21,10 +23,27 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
   isOpen,
   onClose,
   onSeeMore,
+  onBuySell,
   ...props
 }) => {
   const [marketMode, setMarketMode] = React.useState<'buy' | 'sell'>('buy');
   const [marketQuantity, setMarketQuantity] = React.useState<number>(0);
+
+  const onBuyButtonClick = async () => {
+    await buyResource(resource.id, marketQuantity);
+    setMarketMode('buy');
+    setMarketQuantity(0);
+    onBuySell();
+    onClose();
+  }
+
+  const onSellButtonClick = async () => {
+    await sellResource(resource.id, marketQuantity);
+    setMarketMode('buy');
+    setMarketQuantity(0);
+    onBuySell();
+    onClose();
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...props}>
@@ -61,6 +80,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               <Input
                 type="number"
                 min="1"
+                value={marketQuantity === 0 ? '' : marketQuantity}
                 placeholder="Quantity to buy"
                 className="market-input"
                 onValueChange={value => setMarketQuantity(Number(value))}
@@ -78,7 +98,8 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               <div className="market-buttons">
                 <Button
                   className="market-button"
-                  disabled={resourcePrice * marketQuantity > money && marketQuantity > 0}
+                  disabled={resourcePrice * marketQuantity > money || marketQuantity === 0}
+                  onClickAsync={onBuyButtonClick}
                 >
                   Confirm Purchase
                 </Button>
@@ -113,6 +134,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   <Input
                     type="number"
                     min="1"
+                    value={marketQuantity === 0 ? '' : marketQuantity}
                     max={quantity}
                     placeholder="Quantity to sell"
                     className="market-input"
@@ -129,7 +151,11 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     </p>
                   )}
                   <div className="market-buttons">
-                    <Button className="market-button" disabled={marketQuantity > quantity}>
+                    <Button
+                      className="market-button"
+                      disabled={marketQuantity > quantity || marketQuantity === 0}
+                      onClickAsync={onSellButtonClick}
+                    >
                       Confirm Sale
                     </Button>
                     <Button

@@ -77,7 +77,6 @@ export async function getPrices(timestamp?: number): Promise<{ [resourceId: stri
     }
   }
   if (allCached) {
-    console.log('Returning all prices from cache: ', prices);
     return prices;
   }
 
