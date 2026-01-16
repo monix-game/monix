@@ -330,6 +330,7 @@ export default function Game() {
           resourcePrice={resourcePrices[marketModalResource.id] || 0}
           money={user ? user.money || 0 : 0}
           isOpen={marketModalOpen}
+          disableSeeMore={tab === 'market'}
           onClose={() => {
             setMarketModalOpen(false);
             setMarketModalResource(null);

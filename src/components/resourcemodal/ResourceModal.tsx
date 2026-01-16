@@ -11,6 +11,7 @@ interface ResourceModalProps {
   resourcePrice: number;
   money: number;
   isOpen: boolean;
+  disableSeeMore?: boolean;
   onClose: () => void;
   onSeeMore: () => void;
   onBuySell: () => void;
@@ -22,6 +23,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
   resourcePrice,
   money,
   isOpen,
+  disableSeeMore = false,
   onClose,
   onSeeMore,
   onBuySell,
@@ -104,15 +106,17 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                 >
                   Confirm Purchase
                 </Button>
-                <Button
-                  className="market-button"
-                  onClick={() => {
-                    onClose();
-                    onSeeMore();
-                  }}
-                >
-                  See More
-                </Button>
+                {!disableSeeMore && (
+                  <Button
+                    className="market-button"
+                    onClick={() => {
+                      onClose();
+                      onSeeMore();
+                    }}
+                  >
+                    See More
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -144,7 +148,9 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   {marketQuantity > 0 && (
                     <p className="market-total-cost">
                       Total Value:{' '}
-                      <span className="mono">{smartFormatNumber(resourcePrice * marketQuantity)}</span>{' '}
+                      <span className="mono">
+                        {smartFormatNumber(resourcePrice * marketQuantity)}
+                      </span>{' '}
                       for {smartFormatNumber(marketQuantity, false)}{' '}
                       {resource.unit.endsWith('s') && marketQuantity == 1
                         ? resource.unit.slice(0, -1)
@@ -159,15 +165,17 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     >
                       Confirm Sale
                     </Button>
-                    <Button
-                      className="market-button"
-                      onClick={() => {
-                        onClose();
-                        onSeeMore();
-                      }}
-                    >
-                      See More
-                    </Button>
+                    {!disableSeeMore && (
+                      <Button
+                        className="market-button"
+                        onClick={() => {
+                          onClose();
+                          onSeeMore();
+                        }}
+                      >
+                        See More
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
