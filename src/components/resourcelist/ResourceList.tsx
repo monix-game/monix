@@ -8,7 +8,7 @@ interface ResourceListProps {
   setMarketModalOpen: (open: boolean) => void;
   resourceListHydrated?: boolean;
   sortedResources?: ResourceInfo[];
-  resourceValues?: { [key: string]: number };
+  resourcePrices?: { [key: string]: number };
   isStatic?: boolean;
 }
 
@@ -17,7 +17,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
   setMarketModalOpen,
   resourceListHydrated = false,
   sortedResources = [],
-  resourceValues = {},
+  resourcePrices = {},
 }) => {
   return (
     <div className="resource-list">
@@ -26,7 +26,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
           // eslint-disable-next-line react-x/no-array-index-key
           key={index}
           info={resource}
-          value={resourceValues[resource.id] || 0}
+          price={resourcePrices[resource.id] || 0}
           setMarketModalResource={setMarketModalResource}
           setMarketModalOpen={setMarketModalOpen}
         />

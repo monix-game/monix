@@ -3,31 +3,36 @@ import './Resource.css';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { getResourceQuantity } from '../../helpers/resource';
 import { EmojiText } from '../EmojiText';
+import { smartFormatNumber } from '../../helpers/numbers';
 
 interface ResourceProps {
   info: ResourceInfo;
-  value: number;
+  price: number;
   setMarketModalResource: (resource: ResourceInfo) => void;
   setMarketModalOpen: (open: boolean) => void;
 }
 
 export const Resource: React.FC<ResourceProps> = ({
   info,
-  value,
+  price,
   setMarketModalResource,
   setMarketModalOpen,
   ...props
 }) => {
   const [quantity, setQuantity] = React.useState<number>(0);
+  const [quantityShort, setQuantityShort] = React.useState<string>('0');
+  const [valueShort, setValueShort] = React.useState<string>('0');
 
   useEffect(() => {
     const fetchQuantity = async () => {
       await getResourceQuantity(info.id).then(qty => {
         setQuantity(qty || 0);
+        setQuantityShort(smartFormatNumber(qty || 0));
+        setValueShort(smartFormatNumber((qty || 0) * price));
       });
     };
     void fetchQuantity();
-  }, [info.id]);
+  }, [info.id, price]);
 
   let unit = info.unit;
   if (unit.endsWith('s') && quantity == 1) {
@@ -51,12 +56,12 @@ export const Resource: React.FC<ResourceProps> = ({
           <span className="resource-name">{info.name}</span>
         </div>
         <div className="resource-amount">
-          <span className="resource-quantity">{quantity}</span>
+          <span className="resource-quantity">{quantityShort}</span>
           <span className="resource-unit">{unit}</span>
         </div>
         <div className="resource-value">
           <small>VALUE</small>
-          <span className="mono">${value.toFixed(2)}</span>
+          <span className="mono">{valueShort}</span>
         </div>
       </div>
     </>

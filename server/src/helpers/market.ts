@@ -18,7 +18,7 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   if (resource === undefined) return 0.0;
 
   const resourceBase = resource.basePrice;
-  const volatility = resourceBase > 1500 ? Math.min(4, Math.floor((resourceBase - 500) / 2000)) : 0;
+  const volatility = resourceBase > 750 ? Math.min(4, Math.floor((resourceBase - 500) / 2000)) : 0;
 
   const frac = pseudoRandomFraction(`${resourceId}-${timestamp}`);
 

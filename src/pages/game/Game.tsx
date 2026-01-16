@@ -19,6 +19,7 @@ import { currentTheme } from '../../helpers/theme';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
+import { smartFormatNumber } from '../../helpers/numbers';
 
 export default function Game() {
   const [moneyShort, setMoneyShort] = useState<string>('0.00');
@@ -45,7 +46,6 @@ export default function Game() {
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
   const [resourceListHydrated, setResourceListHydrated] = useState(false);
   const [sortedResources, setSortedResources] = useState<ResourceInfo[]>([]);
-  const [resourceValues, setResourceValues] = useState<{ [key: string]: number }>({});
   const [resourcePrices, setResourcePrices] = useState<{ [key: string]: number }>({});
   const [resourceQuantities, setResourceQuantities] = useState<{ [key: string]: number }>({});
 
@@ -86,15 +86,6 @@ export default function Game() {
         pricesMap[item.resource.id] = fetchedPrices[item.resource.id];
       });
       setResourcePrices(pricesMap);
-      setResourceValues(
-        resourcesWithValues.reduce(
-          (acc, item) => {
-            acc[item.resource.id] = item.value;
-            return acc;
-          },
-          {} as { [key: string]: number }
-        )
-      );
     };
 
     const init = async () => {
@@ -132,24 +123,8 @@ export default function Game() {
     const userData = await fetchUser();
     setUser(userData);
 
-    // Update money short display
-    // Format money to two decimal places for under 100k
-    // Use K for thousands, M for millions, B for billions, T for trillions, etc
     if (userData) {
-      const money = userData.money || 0;
-      let formatted = '';
-      if (money < 100000) {
-        formatted = money.toFixed(2);
-      } else if (money < 1000000) {
-        formatted = (money / 1000).toFixed(2) + 'K';
-      } else if (money < 1000000000) {
-        formatted = (money / 1000000).toFixed(2) + 'M';
-      } else if (money < 1000000000000) {
-        formatted = (money / 1000000000).toFixed(2) + 'B';
-      } else {
-        formatted = (money / 1000000000000).toFixed(2) + 'T';
-      }
-      setMoneyShort(formatted);
+      setMoneyShort(smartFormatNumber(userData.money || 0));
     } else {
       setMoneyShort('0.00');
     }
@@ -291,7 +266,7 @@ export default function Game() {
               setMarketModalOpen={setMarketModalOpen}
               resourceListHydrated={resourceListHydrated}
               sortedResources={sortedResources}
-              resourceValues={resourceValues}
+              resourcePrices={resourcePrices}
             />
           </div>
         )}
@@ -372,11 +347,6 @@ export default function Game() {
               setResourceQuantities(prev => ({
                 ...prev,
                 [marketModalResource.id]: qty || 0,
-              }));
-              setResourceValues(prev => ({
-                ...prev,
-                [marketModalResource.id]:
-                  (resourcePrices[marketModalResource.id] || 0) * (qty || 0),
               }));
             };
             void fetchQuantity();
