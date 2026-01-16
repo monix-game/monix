@@ -27,7 +27,7 @@ export const Resource: React.FC<ResourceProps> = ({
     const fetchQuantity = async () => {
       await getResourceQuantity(info.id).then(qty => {
         setQuantity(qty || 0);
-        setQuantityShort(smartFormatNumber(qty || 0));
+        setQuantityShort(smartFormatNumber(qty || 0, false));
         setValueShort(smartFormatNumber((qty || 0) * price));
       });
     };

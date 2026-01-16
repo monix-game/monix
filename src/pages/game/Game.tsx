@@ -235,7 +235,7 @@ export default function Game() {
             <AnimatedBackground />
             <div className="money-tab-content">
               <h1 className="mono">
-                <span>${moneyShort}</span>
+                <span>{moneyShort}</span>
               </h1>
               <div className="money-info">
                 <span className="money-info-line">

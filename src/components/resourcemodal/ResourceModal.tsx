@@ -3,6 +3,7 @@ import './ResourceModal.css';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { Button, EmojiText, Input, Modal } from '..';
 import { buyResource, sellResource } from '../../helpers/resource';
+import { smartFormatNumber } from '../../helpers/numbers';
 
 interface ResourceModalProps {
   resource: ResourceInfo;
@@ -35,7 +36,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
     setMarketQuantity(0);
     onBuySell();
     onClose();
-  }
+  };
 
   const onSellButtonClick = async () => {
     await sellResource(resource.id, marketQuantity);
@@ -43,7 +44,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
     setMarketQuantity(0);
     onBuySell();
     onClose();
-  }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...props}>
@@ -73,7 +74,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               <div className="market-resource-info">
                 <span className="market-resource-name">{resource.name}</span>
                 <span className="market-resource-value mono">
-                  ${resourcePrice.toFixed(2)} per{' '}
+                  {smartFormatNumber(resourcePrice)} per{' '}
                   {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                 </span>
               </div>
@@ -88,8 +89,8 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               {marketQuantity > 0 && (
                 <p className="market-total-cost">
                   Total Cost:{' '}
-                  <span className="mono">${(resourcePrice * marketQuantity).toFixed(2)}</span> for{' '}
-                  {marketQuantity}{' '}
+                  <span className="mono">{smartFormatNumber(resourcePrice * marketQuantity)}</span>{' '}
+                  for {smartFormatNumber(marketQuantity, false)}{' '}
                   {resource.unit.endsWith('s') && marketQuantity == 1
                     ? resource.unit.slice(0, -1)
                     : resource.unit}
@@ -126,7 +127,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   <div className="market-resource-info">
                     <span className="market-resource-name">{resource.name}</span>
                     <span className="market-resource-value mono">
-                      ${resourcePrice.toFixed(2)} per{' '}
+                      {smartFormatNumber(resourcePrice)} per{' '}
                       {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                     </span>
                   </div>
@@ -143,8 +144,8 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   {marketQuantity > 0 && (
                     <p className="market-total-cost">
                       Total Value:{' '}
-                      <span className="mono">${(resourcePrice * marketQuantity).toFixed(2)}</span>{' '}
-                      for {marketQuantity}{' '}
+                      <span className="mono">{smartFormatNumber(resourcePrice * marketQuantity)}</span>{' '}
+                      for {smartFormatNumber(marketQuantity, false)}{' '}
                       {resource.unit.endsWith('s') && marketQuantity == 1
                         ? resource.unit.slice(0, -1)
                         : resource.unit}

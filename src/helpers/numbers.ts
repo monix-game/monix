@@ -1,4 +1,4 @@
-export function smartFormatNumber(num: number): string {
+export function smartFormatNumber(num: number, includeDollarSign = true): string {
   const isNegative = num < 0;
   const absNum = Math.abs(num);
   let formatted = '';
@@ -21,5 +21,5 @@ export function smartFormatNumber(num: number): string {
     formatted = absNum.toExponential(2);
   }
 
-  return isNegative ? `-$${formatted}` : `$${formatted}`;
+  return isNegative ? `-${includeDollarSign ? '$' : ''}${formatted}` : `${includeDollarSign ? '$' : ''}${formatted}`;
 }
