@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { getSessionByToken, getUserByUUID } from './db';
+import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
 
 const HIERARCHY = ['admin', 'game_mod', 'social_mod', 'helper'];
 
@@ -24,6 +24,13 @@ async function authenticateRequest(req: Request, res: Response) {
   const user = await getUserByUUID(session.user_uuid);
   if (!user) {
     unauthorized();
+    return null;
+  }
+
+  const currentTime = Date.now() / 1000;
+  if (session.expires_at < currentTime) {
+    unauthorized();
+    await deleteSessionByToken(token);
     return null;
   }
 

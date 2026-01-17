@@ -11,3 +11,5 @@ export { Modal } from './modal/Modal';
 export { Spinner } from './spinner/Spinner';
 export { ResourceModal } from './resourcemodal/ResourceModal';
 export { PetsList } from './petslist/PetsList';
+export { Select } from './select/Select';
+export { Settings } from './settings/Settings';

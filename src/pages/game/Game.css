@@ -21,6 +21,14 @@
   height: 65px;
 }
 
+html[data-theme='light'] .app-logo-dark {
+  display: none;
+}
+
+html[data-theme='dark'] .app-logo-light {
+  display: none;
+}
+
 .app-title {
   font-size: 2rem;
   font-weight: 700;
@@ -147,7 +155,7 @@
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 

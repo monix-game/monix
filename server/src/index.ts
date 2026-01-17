@@ -18,7 +18,7 @@ export const CORS_ORIGINS = rawOrigins
   .filter(Boolean);
 
 export const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/monix';
-export const SESSION_EXPIRES_IN = Number(process.env.SESSION_EXPIRES_IN || 21600); // default 6 hours
+export const SESSION_EXPIRES_IN = Number(process.env.SESSION_EXPIRES_IN || 172800); // default 2 days
 
 const app = express();
 app.use(express.json());

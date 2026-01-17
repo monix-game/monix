@@ -61,6 +61,16 @@ export async function createSession(session: ISession): Promise<void> {
   await database.collection('sessions').insertOne(sessionToDoc(session));
 }
 
+export async function deleteSessionByToken(token: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('sessions').deleteOne({ token });
+}
+
+export async function deleteSessionsByUserUUID(user_uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('sessions').deleteMany({ user_uuid });
+}
+
 export async function createPet(pet: IPet): Promise<void> {
   const database = ensureDB();
   await database.collection('pets').insertOne(petToDoc(pet));

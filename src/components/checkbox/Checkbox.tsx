@@ -6,7 +6,7 @@ interface CheckboxProps {
   label?: string;
   disabled?: boolean;
   className?: string;
-  onClick?: () => void;
+  onClick?: (value: boolean) => void;
 }
 
 export const Checkbox: React.FC<CheckboxProps> = ({
@@ -23,7 +23,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         className={`checkbox-inner ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={() => {
           if (disabled) return;
-          if (onClick) onClick();
+          if (onClick) onClick(!checked);
         }}
       />
       {label && <span className="checkbox-label">{label}</span>}

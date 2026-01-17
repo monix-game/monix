@@ -1,0 +1,28 @@
+.select {
+  border: 2px solid var(--primary-2);
+  background-color: var(--primary-1);
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  color: var(--text);
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.select:hover:not(:disabled) {
+  background-color: transparent;
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -10,18 +10,17 @@ import {
   Button,
   ResourceModal,
   PetsList,
+  Settings,
 } from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
-import { currentTheme } from '../../helpers/theme';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
 import { smartFormatNumber } from '../../helpers/numbers';
 
 export default function Game() {
-  const [moneyShort, setMoneyShort] = useState<string>('0.00');
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
   const [aquariumTotal] = useState<number>(0);
   const [petsTotal] = useState<number>(0);
@@ -120,12 +119,6 @@ export default function Game() {
   const updateUser = async () => {
     const userData = await fetchUser();
     setUser(userData);
-
-    if (userData) {
-      setMoneyShort(smartFormatNumber(userData.money || 0));
-    } else {
-      setMoneyShort('0.00');
-    }
   };
 
   useEffect(() => {
@@ -166,11 +159,8 @@ export default function Game() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <img
-          src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
-          alt="Monix Logo"
-          className="app-logo"
-        />
+        <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
+        <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />
         <h1 className="app-title">Monix</h1>
         <div className="nav-tabs">
           {(() => {
@@ -218,7 +208,8 @@ export default function Game() {
             )}
           </div>
           <div className="user-money">
-            <EmojiText>💰</EmojiText> <span className="money-amount mono">{moneyShort}</span>
+            <EmojiText>💰</EmojiText>{' '}
+            <span className="money-amount mono">{smartFormatNumber(user?.money || 0)}</span>
           </div>
         </div>
       </header>
@@ -229,7 +220,7 @@ export default function Game() {
             <AnimatedBackground />
             <div className="money-tab-content">
               <h1 className="mono">
-                <span>{moneyShort}</span>
+                <span>{smartFormatNumber(user?.money || 0)}</span>
               </h1>
               <div className="money-info">
                 <span className="money-info-line">
@@ -305,8 +296,7 @@ export default function Game() {
         )}
         {tab === 'settings' && (
           <div className="tab-content">
-            <h2>Settings Tab</h2>
-            <p>Content for Settings will go here.</p>
+            <Settings user={user!} />
           </div>
         )}
       </main>

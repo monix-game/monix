@@ -1,0 +1,53 @@
+.settings-option {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+  padding: 10px 30px;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s;
+}
+
+.settings-option-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+}
+
+.settings-icon-container {
+  display: flex;
+  align-items: center;
+}
+
+.settings-icon {
+  margin-right: 10px;
+}
+
+.settings-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.settings-info-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-label {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.settings-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.settings-control-container {
+  display: flex;
+  align-items: center;
+}
