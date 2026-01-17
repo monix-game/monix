@@ -3,7 +3,6 @@ import './PetShopModal.css';
 import { Button, EmojiText, Modal } from '../..';
 import { petTypes } from '../../../../server/common/petTypes';
 import { buyPet } from '../../../helpers/pets';
-import { smartFormatNumber } from '../../../helpers/numbers';
 
 interface PetShopModalProps {
   isOpen: boolean;
@@ -42,7 +41,6 @@ export const PetShopModal: React.FC<PetShopModalProps> = ({
                     <EmojiText>{type.icon}</EmojiText>
                     {' '}{type.name}
                   </h3>
-                  <p>{smartFormatNumber(type.cost)}</p>
                 </div>
                 <Button
                   cost={type.cost}
