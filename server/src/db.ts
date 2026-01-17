@@ -1,7 +1,7 @@
 import { MongoClient, Db } from 'mongodb';
-import { IUser, userFromDoc, userToDoc } from '../common/models/user';
+import { type IUser, userFromDoc, userToDoc } from '../common/models/user';
 import { ISession, sessionFromDoc, sessionToDoc } from '../common/models/session';
-import { IPet, petFromDoc, petToDoc } from '../common/models/pet';
+import { type IPet, petFromDoc, petToDoc } from '../common/models/pet';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;

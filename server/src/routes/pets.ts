@@ -8,8 +8,8 @@ import {
   updatePet,
   updateUser,
 } from '../db';
-import { IUser } from '../../common/models/user';
-import { IPet, petToDoc } from '../../common/models/pet';
+import { type IUser } from '../../common/models/user';
+import { type IPet, petToDoc } from '../../common/models/pet';
 import { petTypes } from '../../common/petTypes';
 import { v4 } from 'uuid';
 import { canFeedPet, canLevelUpPet, canPlayWithPet } from '../../common/pet';

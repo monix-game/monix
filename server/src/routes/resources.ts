@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware';
 import { getUserByUUID, updateUser } from '../db';
-import { IUser } from '../models/user';
+import { type IUser } from '../models/user';
 import { generatePrice } from '../helpers/market';
 import { resources } from '../../common/resources';
 

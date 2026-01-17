@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getUserByUsername, createUser, createSession } from '../db';
-import { IUser, userToDoc } from '../../common/models/user';
+import { type IUser, userToDoc } from '../../common/models/user';
 import { ISession, sessionToDoc } from '../../common/models/session';
 import crypto from 'crypto';
 import { v4 } from 'uuid';

@@ -37,7 +37,8 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
         <div className="pet-exp-info">
           <span className="pet-level">Level: {pet.level}</span>
           <span className="pet-exp-amount">
-            EXP: {smartFormatNumber(pet.exp, false)} / {smartFormatNumber(expRequiredForLevel(pet.level), false)}
+            EXP: {smartFormatNumber(pet.exp, false)} /{' '}
+            {smartFormatNumber(expRequiredForLevel(pet.level), false)}
           </span>
         </div>
         <div className="pet-exp-bar">

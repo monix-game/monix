@@ -1,4 +1,4 @@
-import { IPet } from './models/pet';
+import type { IPet } from './models/pet';
 
 export function expRequiredForLevel(level: number): number {
   // Exponential level up requirement: 100 * (level ^ 2)
