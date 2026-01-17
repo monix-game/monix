@@ -6,6 +6,7 @@ import { PetModal } from './petmodal/PetModal';
 import { adoptPet, getAllPets } from '../../helpers/pets';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
+import { PetShopModal } from './petshopmodal/PetShopModal';
 
 interface PetsListProps {
   money: number;
@@ -15,6 +16,7 @@ export const PetsList: React.FC<PetsListProps> = ({ money }) => {
   const [hydrated, setHydrated] = useState<boolean>(false);
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
+  const [petShopModalOpen, setPetShopModalOpen] = useState<boolean>(false);
 
   const fetchPets = async () => {
     const fetchedPets = await getAllPets();
@@ -50,13 +52,18 @@ export const PetsList: React.FC<PetsListProps> = ({ money }) => {
 
   return (
     <>
-      <Button
-        cost={2000}
-        onClickAsync={adoptAPet}
-        disabled={money < 2000 || !hydrated || pets.length >= 3}
-      >
-        Adopt a Pet
-      </Button>
+      <div className="pets-list-buttons">
+        <Button
+          cost={2000}
+          onClickAsync={adoptAPet}
+          disabled={money < 2000 || !hydrated || pets.length >= 3}
+        >
+          Adopt a Pet
+        </Button>
+        <Button onClick={() => setPetShopModalOpen(true)} disabled={!hydrated || pets.length >= 3}>
+          Open Pet Shop
+        </Button>
+      </div>
       {pets.length >= 3 && (
         <div className="info-text">You have reached the maximum number of pets (3).</div>
       )}
@@ -93,6 +100,14 @@ export const PetsList: React.FC<PetsListProps> = ({ money }) => {
           money={money}
         />
       ))}
+      <PetShopModal
+        isOpen={petShopModalOpen}
+        onClose={() => setPetShopModalOpen(false)}
+        money={money}
+        updateList={() => {
+          void fetchPets();
+        }}
+      />
     </>
   );
 };

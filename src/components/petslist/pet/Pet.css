@@ -114,3 +114,10 @@
   font-size: 0.9rem;
   font-weight: 500;
 }
+
+.pet-dead-message {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--error);
+  text-align: center;
+}

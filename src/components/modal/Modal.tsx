@@ -8,9 +8,16 @@ interface ModalProps {
   onClose: () => void;
   children?: React.ReactNode;
   ariaLabel?: string;
+  width?: number;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, ariaLabel = 'Modal' }) => {
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  children,
+  ariaLabel = 'Modal',
+  width,
+}) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -29,6 +36,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, ariaLab
         aria-modal="true"
         aria-label={ariaLabel}
         onMouseDown={e => e.stopPropagation()}
+        style={width ? { width: `${width}px` } : {}}
       >
         <button className="modal-close" aria-label="Close" onClick={onClose}>
           <IconX size={15} />

@@ -44,22 +44,20 @@ export function calculateHappiness(timeLastFed: number, timeLastPlayed: number):
   return Math.floor(happiness);
 }
 
-export function calculateEnergy(timeLastPlayed: number, createdAt: number): number {
-  if (timeLastPlayed === createdAt) return calculateHappiness(createdAt, createdAt);
-
+export function calculateHunger(timeLastFed: number): number {
   const now = Date.now();
-  const timeSincePlayed = now - timeLastPlayed;
+  const timeSinceFed = now - timeLastFed;
 
-  const maxEnergy = 100;
-  const recoveryRatePerMinute = 5; // Energy recovers by 5 points per minute
+  const maxHunger = 100;
+  const increaseRatePerHour = 2; // Hunger increases by 2 points per hour
 
-  const energyRecovered = 50 + (timeSincePlayed / (60 * 1000)) * recoveryRatePerMinute;
+  const hungerIncrease = (timeSinceFed / (60 * 60 * 1000)) * increaseRatePerHour;
 
-  let energy = energyRecovered;
-  if (energy < 0) energy = 0;
-  if (energy > maxEnergy) energy = maxEnergy;
+  let hunger = hungerIncrease;
+  if (hunger < 0) hunger = 0;
+  if (hunger > maxHunger) hunger = maxHunger;
 
-  return Math.floor(energy);
+  return Math.floor(hunger);
 }
 
 export function canFeedPet(pet: IPet): boolean {

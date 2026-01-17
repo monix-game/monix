@@ -204,7 +204,7 @@ export default function Game() {
             )}
           </div>
           <div className="user-money">
-            <EmojiText>💰</EmojiText>{' '}
+            <EmojiText>💰 </EmojiText>
             <span className="money-amount mono">{smartFormatNumber(user?.money || 0)}</span>
           </div>
         </div>
@@ -220,19 +220,19 @@ export default function Game() {
               </h1>
               <div className="money-info">
                 <span className="money-info-line">
-                  <EmojiText>💰 Money:</EmojiText>{' '}
+                  <EmojiText>💰 Money: </EmojiText>
                   <span className="mono">{smartFormatNumber(user?.money || 0)}</span>
                 </span>
                 <span className="money-info-line">
-                  <EmojiText>💎 Gems:</EmojiText>{' '}
+                  <EmojiText>💎 Gems: </EmojiText>
                   <span className="mono">{smartFormatNumber(0)}</span>
                 </span>
                 <span className="money-info-line">
-                  <EmojiText>📈 Resources:</EmojiText>{' '}
+                  <EmojiText>📈 Resources: </EmojiText>
                   <span className="mono">{smartFormatNumber(resourcesTotal)}</span>
                 </span>
                 <span className="money-info-line">
-                  <EmojiText>🎣 Aquarium:</EmojiText>{' '}
+                  <EmojiText>🎣 Aquarium: </EmojiText>
                   <span className="mono">{smartFormatNumber(aquariumTotal)}</span>
                 </span>
               </div>

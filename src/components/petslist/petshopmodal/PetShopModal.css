@@ -1,0 +1,62 @@
+.pet-shop-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pet-shop-modal-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.pet-shop-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.pet-shop-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.pet-shop-modal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  width: 100%;
+  justify-items: center;
+}
+
+.pet-shop-modal-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pet-shop-modal-item-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.pet-shop-modal-item-info h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}

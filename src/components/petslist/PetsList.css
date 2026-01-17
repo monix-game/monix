@@ -6,6 +6,12 @@
   gap: 16px;
 }
 
+.pets-list-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .pets-list.no-pets {
   justify-content: center;
 }

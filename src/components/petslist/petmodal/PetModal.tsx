@@ -3,15 +3,22 @@ import './PetModal.css';
 import { Button, EmojiText, Input, Modal } from '../..';
 import type { IPet } from '../../../../server/common/models/pet';
 import {
-  calculateEnergy,
   calculateHappiness,
+  calculateHunger,
   canFeedPet,
   canLevelUpPet,
   canPlayWithPet,
   expRequiredForLevel,
 } from '../../../../server/common/pet';
 import { petTypes } from '../../../../server/common/petTypes';
-import { playWithPet, releasePet, feedPet, namePet, levelUpPet } from '../../../helpers/pets';
+import {
+  playWithPet,
+  releasePet,
+  feedPet,
+  namePet,
+  levelUpPet,
+  revivePet,
+} from '../../../helpers/pets';
 import { smartFormatNumber } from '../../../helpers/numbers';
 
 interface PetModalProps {
@@ -25,26 +32,41 @@ interface PetModalProps {
 export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, updateList, pet }) => {
   const type = petTypes.find(t => t.id === pet.type_id)!;
   const happiness = calculateHappiness(pet.time_last_fed, pet.time_last_played);
-  const energy = calculateEnergy(pet.time_last_played, pet.time_created);
+  const hunger = calculateHunger(pet.time_last_fed);
 
   const [confirmingRelease, setConfirmingRelease] = React.useState<boolean>(false);
   const [namingPet, setNamingPet] = React.useState<boolean>(false);
   const [petNameInput, setPetNameInput] = React.useState<string>(pet.name || '');
+  const [feedingPet, setFeedingPet] = React.useState<boolean>(false);
+  const [confirmingRevive, setConfirmingRevive] = React.useState<boolean>(false);
 
   const playWithPetClick = async () => {
     await playWithPet(pet.uuid);
     updateList();
   };
 
-  const feedPetClick = async () => {
-    await feedPet(pet.uuid);
+  const feedPetStandardClick = async () => {
+    await feedPet(pet.uuid, 'standard');
     updateList();
+    setFeedingPet(false);
+  };
+
+  const feedPetPremiumClick = async () => {
+    await feedPet(pet.uuid, 'premium');
+    updateList();
+    setFeedingPet(false);
   };
 
   const confirmReleasePetClick = async () => {
     await releasePet(pet.uuid);
     updateList();
     onClose();
+  };
+
+  const revivePetClick = async () => {
+    await revivePet(pet.uuid);
+    setConfirmingRevive(false);
+    void updateList();
   };
 
   const confirmNameClick = async () => {
@@ -60,6 +82,7 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
   const levelUpPetClick = async () => {
     await levelUpPet(pet.uuid);
     void updateList();
+    onClose();
   };
 
   return (
@@ -67,6 +90,9 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
       isOpen={isOpen}
       onClose={() => {
         setConfirmingRelease(false);
+        setNamingPet(false);
+        setFeedingPet(false);
+        setConfirmingRevive(false);
         onClose();
       }}
     >
@@ -82,31 +108,35 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
             <span className="pet-modal-type">{type.name}</span>
           </div>
         </div>
-        <div className="pet-modal-exp">
-          <div className="pet-modal-exp-info">
-            <span className="pet-modal-level">Level: {pet.level}</span>
-            <span className="pet-modal-exp-amount">
-              EXP: {smartFormatNumber(pet.exp, false)} /{' '}
-              {smartFormatNumber(expRequiredForLevel(pet.level), false)}
-            </span>
-          </div>
-          <div className="pet-modal-exp-bar">
-            <div
-              className="pet-modal-exp-fill"
-              style={{ width: `${(pet.exp / expRequiredForLevel(pet.level)) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-        <div className="pet-modal-stats">
-          <div className="pet-modal-stat">
-            <span className="pet-modal-stat-label">Happiness:</span>
-            <span className="pet-modal-stat-value">{happiness}%</span>
-          </div>
-          <div className="pet-modal-stat">
-            <span className="pet-modal-stat-label">Energy:</span>
-            <span className="pet-modal-stat-value">{energy}%</span>
-          </div>
-        </div>
+        {!pet.is_dead && (
+          <>
+            <div className="pet-modal-exp">
+              <div className="pet-modal-exp-info">
+                <span className="pet-modal-level">Level: {pet.level}</span>
+                <span className="pet-modal-exp-amount">
+                  EXP: {smartFormatNumber(pet.exp, false)} /{' '}
+                  {smartFormatNumber(expRequiredForLevel(pet.level), false)}
+                </span>
+              </div>
+              <div className="pet-modal-exp-bar">
+                <div
+                  className="pet-modal-exp-fill"
+                  style={{ width: `${(pet.exp / expRequiredForLevel(pet.level)) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+            <div className="pet-modal-stats">
+              <div className="pet-modal-stat">
+                <span className="pet-modal-stat-label">Happiness:</span>
+                <span className="pet-modal-stat-value">{happiness}%</span>
+              </div>
+              <div className="pet-modal-stat">
+                <span className="pet-modal-stat-label">Hunger:</span>
+                <span className="pet-modal-stat-value">{hunger}%</span>
+              </div>
+            </div>
+          </>
+        )}
         {namingPet && (
           <div className="pet-modal-input">
             <Input
@@ -122,7 +152,7 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
           </div>
         )}
         <div className="pet-modal-actions">
-          {pet.name === '' && !confirmingRelease && !namingPet && (
+          {pet.name === '' && !confirmingRelease && !namingPet && !pet.is_dead && (
             <>
               <Button onClick={() => setNamingPet(true)}>Give a Name</Button>
               <Button secondary onClick={() => setConfirmingRelease(true)}>
@@ -146,29 +176,75 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
               <Button onClickAsync={confirmReleasePetClick}>Confirm Release</Button>
             </>
           )}
-          {canLevelUpPet(pet) && <Button onClickAsync={levelUpPetClick}>Level Up</Button>}
+          {canLevelUpPet(pet) && !pet.is_dead && (
+            <Button onClickAsync={levelUpPetClick}>Level Up</Button>
+          )}
           {confirmingRelease && pet.name !== '' && (
             <>
-              <Button onClickAsync={confirmReleasePetClick}>Confirm Release</Button>
+              <Button onClickAsync={confirmReleasePetClick}>Confirm</Button>
               <Button secondary onClick={() => setConfirmingRelease(false)}>
-                Cancel Release
+                Cancel
               </Button>
             </>
           )}
-          {pet.name !== '' && !canLevelUpPet(pet) && !confirmingRelease && !namingPet && (
+          {pet.name !== '' &&
+            !canLevelUpPet(pet) &&
+            !confirmingRelease &&
+            !namingPet &&
+            !feedingPet &&
+            !pet.is_dead && (
+              <>
+                <Button
+                  secondary
+                  onClick={() => setFeedingPet(true)}
+                >
+                  Feed
+                </Button>
+                <Button onClickAsync={playWithPetClick} disabled={!canPlayWithPet(pet)}>
+                  Play
+                </Button>
+                <Button onClick={() => setConfirmingRelease(true)}>Release</Button>
+              </>
+            )}
+          {feedingPet && (
             <>
               <Button
-                secondary
+                cost={20}
+                disabled={money < 20 || !canFeedPet(pet)}
+                onClickAsync={feedPetStandardClick}
+              >
+                Standard
+              </Button>
+              <Button
                 cost={50}
                 disabled={money < 50 || !canFeedPet(pet)}
-                onClickAsync={feedPetClick}
+                onClickAsync={feedPetPremiumClick}
               >
-                Feed
+                Premium
               </Button>
-              <Button onClickAsync={playWithPetClick} disabled={!canPlayWithPet(pet)}>
-                Play
+              <Button secondary onClick={() => setFeedingPet(false)}>
+                Cancel
               </Button>
-              <Button onClick={() => setConfirmingRelease(true)}>Release</Button>
+            </>
+          )}
+          {pet.is_dead && !confirmingRelease && !confirmingRevive && (
+            <>
+              <Button cost={100000} onClick={() => setConfirmingRevive(true)}>
+                Revive
+              </Button>
+              <Button cost={500} secondary onClick={() => setConfirmingRelease(true)}>
+                Bury
+              </Button>
+            </>
+          )}
+          {confirmingRevive && pet.is_dead && (
+            <>
+              <Button onClickAsync={revivePetClick} disabled={money < 100000}>
+                Confirm
+              </Button>
+              <Button secondary onClick={() => setConfirmingRevive(false)}>
+                Cancel
+              </Button>
             </>
           )}
         </div>

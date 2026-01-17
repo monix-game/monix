@@ -12,9 +12,31 @@ import { type IUser } from '../../common/models/user';
 import { type IPet, petToDoc } from '../../common/models/pet';
 import { petTypes } from '../../common/petTypes';
 import { v4 } from 'uuid';
-import { canFeedPet, canLevelUpPet, canPlayWithPet } from '../../common/pet';
+import { calculateHunger, canFeedPet, canLevelUpPet, canPlayWithPet } from '../../common/pet';
 
 const router = Router();
+
+const FEED_COSTS: { [key: string]: number } = {
+  standard: 20,
+  premium: 50,
+};
+
+const FEED_EXP: { [key: string]: number } = {
+  standard: 10,
+  premium: 25,
+};
+
+async function updatePlayersPets(user_uuid: string) {
+  const pets = await getPetsByOwnerUUID(user_uuid);
+  for (const pet of pets) {
+    const hunger = calculateHunger(pet.time_last_fed);
+    if (hunger >= 100) {
+      // Pet is starving, it dies
+      pet.is_dead = true;
+      await updatePet(pet);
+    }
+  }
+}
 
 router.get('/all', requireAuth, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
@@ -25,6 +47,8 @@ router.get('/all', requireAuth, async (req, res) => {
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
+
+  await updatePlayersPets(user_uuid);
 
   const pets = (await getPetsByOwnerUUID(user_uuid)).map(petToDoc);
 
@@ -64,12 +88,69 @@ router.post('/adopt', requireAuth, async (req, res) => {
     time_last_played: Date.now(),
     time_created: Date.now(),
     exp: 0,
+    is_dead: false,
   };
 
   await createPet(pet);
 
   return res.status(200).json({
     message: 'Pet adopted successfully',
+    pet: petToDoc(pet),
+  });
+});
+
+router.post('/shop', requireAuth, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+  const { pet_type_id } = req.body as { pet_type_id?: string };
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (!pet_type_id) {
+    return res.status(400).json({ error: 'Missing pet_type_id' });
+  }
+
+  // Check if the user already has the maximum number of pets (3)
+  const pets = await getPetsByOwnerUUID(user_uuid);
+  if (pets.length >= 3) {
+    return res.status(400).json({ error: 'You have reached the maximum number of pets (3)' });
+  }
+
+  const petType = petTypes.find(pt => pt.id === pet_type_id);
+  if (!petType) {
+    return res.status(400).json({ error: 'Invalid pet_type_id' });
+  }
+
+  // Check if the user has enough money to adopt the pet
+  if ((user.money || 0) < petType.cost) {
+    return res.status(400).json({ error: 'Insufficient funds to adopt this pet' });
+  }
+
+  // Deduct the money from the user
+  user.money = (user.money || 0) - petType.cost;
+  await updateUser(user);
+
+  const pet: IPet = {
+    uuid: v4(),
+    owner_uuid: user_uuid,
+    name: null,
+    type_id: petType.id,
+    level: 1,
+    time_last_fed: Date.now(),
+    time_last_played: Date.now(),
+    time_created: Date.now(),
+    exp: 0,
+    is_dead: false,
+  };
+
+  await createPet(pet);
+
+  return res.status(200).json({
+    message: 'Pet purchased successfully',
     pet: petToDoc(pet),
   });
 });
@@ -125,7 +206,7 @@ router.post('/feed', requireAuth, async (req, res) => {
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
   const user = await getUserByUUID(user_uuid);
-  const { pet_uuid } = req.body as { pet_uuid?: string };
+  const { pet_uuid, feed_type } = req.body as { pet_uuid?: string; feed_type?: string };
 
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
@@ -143,9 +224,10 @@ router.post('/feed', requireAuth, async (req, res) => {
   }
 
   // Check if the user has enough money to feed the pet
-  const feedCost = 50;
+  const feedCost =
+    feed_type && FEED_COSTS[feed_type] ? FEED_COSTS[feed_type] : FEED_COSTS['standard'];
   if ((user.money || 0) < feedCost) {
-    return res.status(400).json({ error: 'Not enough money to feed the pet' });
+    return res.status(400).json({ error: 'Insufficient funds to feed the pet' });
   }
 
   // Check if the pet has been fed in the last 5 minutes
@@ -161,7 +243,7 @@ router.post('/feed', requireAuth, async (req, res) => {
   pet.time_last_fed = Date.now();
 
   // Add experience points to the pet for being fed
-  pet.exp += 15;
+  pet.exp += feed_type && FEED_EXP[feed_type] ? FEED_EXP[feed_type] : FEED_EXP['standard'];
 
   await updatePet(pet);
 
@@ -234,11 +316,60 @@ router.post('/release', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'Pet not found' });
   }
 
+  // If the pet is dead, it costs 500 to release
+  if (pets[petIndex].is_dead) {
+    const releaseCost = 500;
+    if ((user.money || 0) < releaseCost) {
+      return res.status(400).json({ error: 'Insufficient funds to release the pet' });
+    }
+    user.money = (user.money || 0) - releaseCost;
+    await updateUser(user);
+  }
+
   // Remove the pet from the database
   await deletePetByUUID(pet_uuid);
 
   return res.status(200).json({
     message: 'Pet released successfully',
+  });
+});
+
+router.post('/revive', requireAuth, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+  const { pet_uuid } = req.body as { pet_uuid?: string };
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (!pet_uuid) {
+    return res.status(400).json({ error: 'Missing pet_uuid' });
+  }
+
+  const pets = await getPetsByOwnerUUID(user_uuid);
+  const petIndex = pets.findIndex(p => p.uuid === pet_uuid);
+
+  if (petIndex === -1) {
+    return res.status(404).json({ error: 'Pet not found' });
+  }
+
+  // It costs 100,000 to revive a pet
+  const reviveCost = 100000;
+  if ((user.money || 0) < reviveCost) {
+    return res.status(400).json({ error: 'Insufficient funds to revive the pet' });
+  }
+  user.money = (user.money || 0) - reviveCost;
+  await updateUser(user);
+
+  // Revive the pet
+  pets[petIndex].is_dead = false;
+  await updatePet(pets[petIndex]);
+
+  return res.status(200).json({
+    message: 'Pet revived successfully',
   });
 });
 

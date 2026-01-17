@@ -11,6 +11,7 @@ export interface IPet {
   time_last_played: number;
   time_created: number;
   exp: number;
+  is_dead: boolean;
 }
 
 export function petToDoc(p: IPet): IPet {
@@ -24,6 +25,7 @@ export function petToDoc(p: IPet): IPet {
     time_last_played: p.time_last_played,
     time_created: p.time_created,
     exp: p.exp,
+    is_dead: p.is_dead,
   };
 }
 
@@ -39,5 +41,6 @@ export function petFromDoc(doc: any): IPet {
     time_last_played: doc.time_last_played || 0,
     time_created: doc.time_created || 0,
     exp: doc.exp || 0,
+    is_dead: doc.is_dead || false,
   };
 }
