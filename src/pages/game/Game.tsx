@@ -1,5 +1,5 @@
 import './Game.css';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
 import {
@@ -111,13 +111,13 @@ export default function Game() {
     rawSetTab(newTab);
   };
 
-  const updateEverything = async () => {
+  const updateEverything = useCallback(async () => {
     const totalResources = await getTotalResourceValue();
     const userData = await fetchUser();
     setUser(userData);
     setResourcesTotal(totalResources);
     setTotalNetWorth((userData?.money || 0) + totalResources);
-  };
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -127,7 +127,7 @@ export default function Game() {
       await updateEverything();
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [updateEverything]);
 
   useEffect(() => {
     const updateFormattedUserRole = (role: string) => {
