@@ -21,9 +21,9 @@ import { getPrices } from '../../helpers/market';
 import { smartFormatNumber } from '../../helpers/numbers';
 
 export default function Game() {
+  const [totalNetWorth, setTotalNetWorth] = useState<number>(0);
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
   const [aquariumTotal] = useState<number>(0);
-  const [petsTotal] = useState<number>(0);
   const [tab, rawSetTab] = useState<
     | 'money'
     | 'resources'
@@ -111,24 +111,20 @@ export default function Game() {
     rawSetTab(newTab);
   };
 
-  const updateTotalResourcesValue = async () => {
-    const totalValue = await getTotalResourceValue();
-    setResourcesTotal(totalValue);
-  };
-
-  const updateUser = async () => {
+  const updateEverything = async () => {
+    const totalResources = await getTotalResourceValue();
     const userData = await fetchUser();
     setUser(userData);
+    setResourcesTotal(totalResources);
+    setTotalNetWorth((userData?.money || 0) + totalResources);
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void updateTotalResourcesValue();
-    void updateUser();
+    void updateEverything();
 
     const interval = setInterval(async () => {
-      await updateTotalResourcesValue();
-      await updateUser();
+      await updateEverything();
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -220,9 +216,17 @@ export default function Game() {
             <AnimatedBackground />
             <div className="money-tab-content">
               <h1 className="mono">
-                <span>{smartFormatNumber(user?.money || 0)}</span>
+                <span>{smartFormatNumber(totalNetWorth)}</span>
               </h1>
               <div className="money-info">
+                <span className="money-info-line">
+                  <EmojiText>💰 Money:</EmojiText>{' '}
+                  <span className="mono">{smartFormatNumber(user?.money || 0)}</span>
+                </span>
+                <span className="money-info-line">
+                  <EmojiText>💎 Gems:</EmojiText>{' '}
+                  <span className="mono">{smartFormatNumber(0)}</span>
+                </span>
                 <span className="money-info-line">
                   <EmojiText>📈 Resources:</EmojiText>{' '}
                   <span className="mono">{smartFormatNumber(resourcesTotal)}</span>
@@ -230,10 +234,6 @@ export default function Game() {
                 <span className="money-info-line">
                   <EmojiText>🎣 Aquarium:</EmojiText>{' '}
                   <span className="mono">{smartFormatNumber(aquariumTotal)}</span>
-                </span>
-                <span className="money-info-line">
-                  <EmojiText>🐶 Pets:</EmojiText>{' '}
-                  <span className="mono">{smartFormatNumber(petsTotal)}</span>
                 </span>
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function Game() {
           }}
           onBuySell={() => {
             // Refresh the resource's value and quantity
-            void updateTotalResourcesValue();
+            void updateEverything();
             const fetchQuantity = async () => {
               const qty = await getResourceQuantity(marketModalResource.id);
               setResourceQuantities(prev => ({

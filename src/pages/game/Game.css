@@ -161,11 +161,9 @@ html[data-theme='dark'] .app-logo-light {
 
 .money-info {
   margin-top: 20px;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 250px);
   gap: 15px;
-  flex-wrap: wrap;
-  flex-direction: column;
-  justify-content: center;
 }
 
 .money-info-line {
