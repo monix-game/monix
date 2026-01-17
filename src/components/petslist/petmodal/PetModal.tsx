@@ -1,6 +1,6 @@
 import React from 'react';
 import './PetModal.css';
-import { Button, EmojiText, Modal } from '../..';
+import { Button, EmojiText, Input, Modal } from '../..';
 import type { IPet } from '../../../../server/common/models/pet';
 import {
   calculateEnergy,
@@ -28,6 +28,8 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
   const energy = calculateEnergy(pet.time_last_played, pet.time_created);
 
   const [confirmingRelease, setConfirmingRelease] = React.useState<boolean>(false);
+  const [namingPet, setNamingPet] = React.useState<boolean>(false);
+  const [petNameInput, setPetNameInput] = React.useState<string>(pet.name || '');
 
   const playWithPetClick = async () => {
     await playWithPet(pet.uuid);
@@ -45,8 +47,13 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
     onClose();
   };
 
-  const giveANameClick = async () => {
-    await namePet(pet.uuid, prompt('Enter a name for your pet:') || ''); // Simple prompt for demo purposes
+  const confirmNameClick = async () => {
+    if (petNameInput.trim() === '') {
+      return;
+    }
+    setNamingPet(false);
+
+    await namePet(pet.uuid, petNameInput); // Simple prompt for demo purposes
     void updateList();
   };
 
@@ -100,12 +107,25 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
             <span className="pet-modal-stat-value">{energy}%</span>
           </div>
         </div>
+        {namingPet && (
+          <div className="pet-modal-input">
+            <Input value={petNameInput} onValueChange={value => setPetNameInput(value)} placeholder='A great name awaits...' />
+          </div>
+        )}
         <div className="pet-modal-actions">
-          {pet.name === '' && !confirmingRelease && (
+          {pet.name === '' && !confirmingRelease && !namingPet && (
             <>
-              <Button onClickAsync={giveANameClick}>Give a Name</Button>
+              <Button onClick={() => setNamingPet(true)}>Give a Name</Button>
               <Button secondary onClick={() => setConfirmingRelease(true)}>
                 Release
+              </Button>
+            </>
+          )}
+          {namingPet && (
+            <>
+              <Button onClickAsync={confirmNameClick}>Confirm Name</Button>
+              <Button secondary onClick={() => setNamingPet(false)}>
+                Cancel
               </Button>
             </>
           )}
@@ -126,7 +146,7 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
               </Button>
             </>
           )}
-          {pet.name !== '' && !canLevelUpPet(pet) && !confirmingRelease && (
+          {pet.name !== '' && !canLevelUpPet(pet) && !confirmingRelease && !namingPet && (
             <>
               <Button
                 secondary
