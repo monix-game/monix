@@ -20,7 +20,7 @@ export const Input: React.FC<InputProps> = ({
   onValueChange,
   predicate = () => true,
   predicateText = 'Input does not satisfy the requirements',
-  isPassword,
+  isPassword = false,
   className,
   ...props
 }) => {

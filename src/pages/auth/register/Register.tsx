@@ -84,6 +84,8 @@ export default function Register() {
                 placeholder="U$3RN4M3"
                 onValueChange={handleUsernameChange}
                 value={username}
+                predicate={text => /^[a-zA-Z0-9_]{3,15}$/.test(text)}
+                predicateText="Username must be 3-15 characters and can only contain letters, numbers, and underscores"
               ></Input>
               <Input
                 label="Password"
@@ -91,6 +93,8 @@ export default function Register() {
                 placeholder="P4$$W0RD"
                 onValueChange={handlePasswordChange}
                 value={password}
+                predicate={text => text.length >= 6}
+                predicateText="Password must be at least 6 characters long"
               ></Input>
               <Input
                 label="Repeat Password"
@@ -99,6 +103,8 @@ export default function Register() {
                 onValueChange={handlePassword2Change}
                 placeholder="R3P34T P4$$W0RD"
                 value={password2}
+                predicate={text => text === password}
+                predicateText="Passwords must match"
               ></Input>
               {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
               <Button onClick={submitForm} isLoading={loading}>

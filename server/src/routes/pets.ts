@@ -101,12 +101,12 @@ router.post('/name', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Pet already has a name' });
   }
 
-  // Check if the name is valid (only letters, numbers, spaces, underscores, and hyphens, max length 20)
-  const nameRegex = /^[a-zA-Z0-9 _-]{1,20}$/;
+  // Check if the name is valid (only letters, numbers, spaces, underscores, and hyphens, max length 15)
+  const nameRegex = /^[a-zA-Z0-9 _-]{1,15}$/;
   if (!nameRegex.test(name)) {
     return res.status(400).json({
       error:
-        'Invalid name. Names can only contain letters, numbers, spaces, underscores, and hyphens, and must be between 1 and 20 characters long.',
+        'Invalid name. Names can only contain letters, numbers, spaces, underscores, and hyphens, and must be between 1 and 15 characters long.',
     });
   }
 

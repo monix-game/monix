@@ -18,6 +18,20 @@ router.post('/register', async (req: Request, res: Response) => {
   const existing = await getUserByUsername(username);
   if (existing) return res.status(400).json({ error: 'Username already exists' });
 
+  // Make sure username is 3-15 characters and only contains letters, numbers, underscores, hyphens
+  const usernameRegex = /^[a-zA-Z0-9_-]{3,15}$/;
+  if (!usernameRegex.test(username)) {
+    return res.status(400).json({
+      error:
+        'Invalid username. Usernames can only contain letters, numbers, underscores, and hyphens, and must be between 3 and 15 characters long.',
+    });
+  }
+
+  // Make sure password is at least 6 characters
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+  }
+
   const password_hash = crypto.createHash('sha256').update(String(password)).digest('hex');
   const user: IUser = {
     uuid: v4(),
