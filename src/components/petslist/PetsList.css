@@ -1,0 +1,24 @@
+.pets-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  gap: 16px;
+}
+
+.pets-list.no-pets {
+  justify-content: center;
+}
+
+.info-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+
+.no-pets {
+  font-size: 16px;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 20px;
+}

@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*", "common/models/session.ts", "common/models/user.ts"]
+  "include": ["src/**/*", "common/**/*"]
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import './ResourceList.css';
 import { type ResourceInfo } from '../../../server/common/resources';
-import { Resource } from '../resource/Resource';
+import { Resource } from './resource/Resource';
 import { Spinner } from '../spinner/Spinner';
 
 interface ResourceListProps {

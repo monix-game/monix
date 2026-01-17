@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import './Resource.css';
-import type { ResourceInfo } from '../../../server/common/resources';
-import { getResourceQuantity } from '../../helpers/resource';
-import { EmojiText } from '../EmojiText';
-import { smartFormatNumber } from '../../helpers/numbers';
+import type { ResourceInfo } from '../../../../server/common/resources';
+import { getResourceQuantity } from '../../../helpers/resource';
+import { EmojiText } from '../../EmojiText';
+import { smartFormatNumber } from '../../../helpers/numbers';
 
 interface ResourceProps {
   info: ResourceInfo;

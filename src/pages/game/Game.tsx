@@ -6,10 +6,10 @@ import {
   EmojiText,
   ResourceList,
   AnimatedBackground,
-  Footer,
   ResourceGraph,
   Button,
   ResourceModal,
+  PetsList,
 } from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -210,11 +210,16 @@ export default function Game() {
         </div>
         <div className="spacer" />
         <div className="user-info">
-          <IconUser size={24} />
-          <span className="username">{user ? user.username : 'User'}</span>
-          {userRole !== null && userRole !== 'user' && (
-            <span className={`badge ${userRole}`}>{userRoleFormatted}</span>
-          )}
+          <div className="username-info">
+            <IconUser size={24} />
+            <span className="username">{user ? user.username : 'User'}</span>
+            {userRole !== null && userRole !== 'user' && (
+              <span className={`badge ${userRole}`}>{userRoleFormatted}</span>
+            )}
+          </div>
+          <div className="user-money">
+            <EmojiText>💰</EmojiText> <span className="money-amount mono">{moneyShort}</span>
+          </div>
         </div>
       </header>
 
@@ -276,8 +281,8 @@ export default function Game() {
         )}
         {tab === 'pets' && (
           <div className="tab-content">
-            <h2>Pets Tab</h2>
-            <p>Content for Pets will go here.</p>
+            <h2>Pets</h2>
+            <PetsList money={user?.money || 0} />
           </div>
         )}
         {tab === 'relics' && (
@@ -305,8 +310,6 @@ export default function Game() {
           </div>
         )}
       </main>
-
-      <Footer fixed={tab !== 'resources'} />
 
       {marketModalResource && (
         <ResourceModal

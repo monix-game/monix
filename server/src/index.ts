@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import marketRouter from './routes/market';
 import resourcesRouter from './routes/resources';
+import petsRouter from './routes/pets';
 import { connectDB } from './db';
 
 dotenv.config();
@@ -41,6 +42,7 @@ if (CORS_ORIGINS.includes('*')) {
 app.use('/api/auth', authRouter);
 app.use('/api/market', marketRouter);
 app.use('/api/resources', resourcesRouter);
+app.use('/api/pets', petsRouter);
 
 async function start() {
   await connectDB(MONGO_URI);

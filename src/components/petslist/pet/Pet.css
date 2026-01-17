@@ -1,0 +1,116 @@
+.pet {
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  background-color: var(--dark-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 250px;
+  height: 250px;
+  transition: background-color 0.2s;
+}
+
+.pet:hover {
+  cursor: pointer;
+  background-color: var(--bg);
+}
+
+.pet-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.pet-icon {
+  width: 64px;
+  height: 64px;
+  background-color: var(--primary-1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pet-icon span {
+  font-size: 32px;
+  user-select: none;
+}
+
+.pet-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pet-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.pet-type {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.pet-exp {
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pet-exp-info {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.pet-exp-info span {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+}
+
+.pet-exp-bar {
+  width: 100%;
+  height: 10px;
+  background-color: var(--bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.pet-exp-fill {
+  height: 100%;
+  background-color: var(--primary-1);
+  transition: width 0.3s;
+  border-radius: var(--border-radius);
+}
+
+.pet-stats {
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  gap: 4px;
+}
+
+.pet-stat {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.pet-stat-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.pet-stat-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+}

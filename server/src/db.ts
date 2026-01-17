@@ -1,6 +1,7 @@
 import { MongoClient, Db } from 'mongodb';
 import { IUser, userFromDoc, userToDoc } from '../common/models/user';
 import { ISession, sessionFromDoc, sessionToDoc } from '../common/models/session';
+import { IPet, petFromDoc, petToDoc } from '../common/models/pet';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -38,6 +39,11 @@ export async function updateUser(user: IUser): Promise<void> {
   await database.collection('users').updateOne({ uuid: user.uuid }, { $set: userToDoc(user) });
 }
 
+export async function deleteUserByUUID(uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('users').deleteOne({ uuid });
+}
+
 export async function getUserSessions(user_uuid: string): Promise<ISession[]> {
   const database = ensureDB();
   const docs = await database.collection('sessions').find({ user_uuid }).toArray();
@@ -53,4 +59,31 @@ export async function getSessionByToken(token: string): Promise<ISession | null>
 export async function createSession(session: ISession): Promise<void> {
   const database = ensureDB();
   await database.collection('sessions').insertOne(sessionToDoc(session));
+}
+
+export async function createPet(pet: IPet): Promise<void> {
+  const database = ensureDB();
+  await database.collection('pets').insertOne(petToDoc(pet));
+}
+
+export async function getPetsByOwnerUUID(owner_uuid: string): Promise<IPet[]> {
+  const database = ensureDB();
+  const docs = await database.collection('pets').find({ owner_uuid }).toArray();
+  return docs.map(petFromDoc);
+}
+
+export async function updatePet(pet: IPet): Promise<void> {
+  const database = ensureDB();
+  await database.collection('pets').updateOne({ uuid: pet.uuid }, { $set: petToDoc(pet) });
+}
+
+export async function deletePetByUUID(uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('pets').deleteOne({ uuid });
+}
+
+export async function getPetByUUID(uuid: string): Promise<IPet | null> {
+  const database = ensureDB();
+  const doc = await database.collection('pets').findOne({ uuid });
+  return doc ? petFromDoc(doc) : null;
 }
