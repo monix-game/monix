@@ -9,7 +9,7 @@
   user-select: none;
 }
 
-.input-label > * {
+.input-label>* {
   vertical-align: middle;
 }
 
@@ -20,7 +20,44 @@
 .input-inner {
   padding: 7px;
   border-radius: var(--border-radius);
-  border: 2px solid var(--primary-2);
-  background-color: var(--bg);
+  background-color: transparent;
+  border: 2px solid transparent;
   color: var(--text-muted);
+  transition: background-color 0.2s;
+}
+
+.input-inner.primary {
+  border-color: var(--primary-2);
+}
+
+.input-inner.primary:focus:not(:disabled),
+.input-inner.primary:active:not(:disabled) {
+  background-color: var(--primary-1);
+}
+
+.input-inner.blue {
+  border-color: var(--blue-2);
+}
+
+.input-inner.blue:focus:not(:disabled),
+.input-inner.blue:active:not(:disabled) {
+  background-color: var(--blue-1);
+}
+
+.input-inner.red {
+  border-color: var(--red-2);
+}
+
+.input-inner.red:focus:not(:disabled),
+.input-inner.red:active:not(:disabled) {
+  background-color: var(--red-1);
+}
+
+.input-inner.purple {
+  border-color: var(--purple-2);
+}
+
+.input-inner.purple:focus:not(:disabled),
+.input-inner.purple:active:not(:disabled) {
+  background-color: var(--purple-1);
 }

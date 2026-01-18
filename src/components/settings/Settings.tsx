@@ -123,6 +123,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           icon={<IconTrash />}
           label="Delete Account"
           description="Permanently delete your account"
+          danger
           buttonLabel="Delete Account"
           buttonAction={() => {
             setIsDeleteAccountModalOpen(true);

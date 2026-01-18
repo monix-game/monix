@@ -24,6 +24,8 @@
   --red-1: #ff5252;
   --red-2: #ff3838;
 
+  --danger: var(--red-1);
+
   --graph-fill: rgba(74, 185, 227, 0.12);
   --graph-grid-stroke: rgba(0, 0, 0, 0.1);
 
@@ -48,6 +50,8 @@ html[data-theme='dark'] {
   --purple-2: #8a00bd;
   --red-1: #ad1700;
   --red-2: #d61c00;
+
+  --danger: var(--red-2);
 
   --graph-grid-stroke: rgba(255, 255, 255, 0.1);
 }

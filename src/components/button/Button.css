@@ -1,6 +1,4 @@
 .btn {
-  border: 2px solid var(--primary-2);
-  background-color: var(--primary-1);
   border-radius: var(--border-radius);
   font-weight: 500;
   cursor: pointer;
@@ -18,9 +16,76 @@
   white-space: nowrap;
 }
 
-.btn-secondary {
+.btn.primary {
+  border: 2px solid var(--primary-2);
+  background-color: var(--primary-1);
+}
+
+.btn-secondary.primary {
   border: 2px dashed var(--primary-2);
-  background-color: var(--bg);
+}
+
+.btn-secondary.primary:hover:not(:disabled),
+.btn-secondary.primary:focus:not(:disabled),
+.btn-secondary.primary:active:not(:disabled) {
+  background-color: var(--primary-1);
+}
+
+.btn.blue {
+  border: 2px solid var(--blue-2);
+  background-color: var(--blue-1);
+}
+
+.btn-secondary.blue {
+  border: 2px dashed var(--blue-2);
+}
+
+.btn-secondary.blue:hover:not(:disabled),
+.btn-secondary.blue:focus:not(:disabled),
+.btn-secondary.blue:active:not(:disabled) {
+  background-color: var(--blue-1);
+}
+
+.btn.red {
+  border: 2px solid var(--red-2);
+  background-color: var(--red-1);
+}
+
+.btn-secondary.red {
+  border: 2px dashed var(--red-2);
+}
+
+.btn-secondary.red:hover:not(:disabled),
+.btn-secondary.red:focus:not(:disabled),
+.btn-secondary.red:active:not(:disabled) {
+  background-color: var(--red-1);
+}
+
+.btn.purple {
+  border: 2px solid var(--purple-2);
+  background-color: var(--purple-1);
+}
+
+.btn-secondary.purple {
+  border: 2px dashed var(--purple-2);
+}
+
+.btn-secondary.purple:hover:not(:disabled),
+.btn-secondary.purple:focus:not(:disabled),
+.btn-secondary.purple:active:not(:disabled) {
+  background-color: var(--purple-1);
+}
+
+.btn:hover:not(:disabled),
+.btn:focus:not(:disabled),
+.btn:active:not(:disabled),
+.btn-secondary {
+  background-color: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-cost {
@@ -42,17 +107,4 @@
     padding: 10px 14px;
     font-size: 0.95rem;
   }
-}
-
-.btn:hover:not(:disabled) {
-  background-color: transparent;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--primary-1);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }

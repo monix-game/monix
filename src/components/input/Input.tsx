@@ -4,6 +4,7 @@ import { IconX } from '@tabler/icons-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  color?: 'primary' | 'blue' | 'red' | 'purple';
   error?: string;
   disabled?: boolean;
   onValueChange?: (value: string) => void;
@@ -15,6 +16,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input: React.FC<InputProps> = ({
   label,
+  color = 'primary',
   error,
   disabled = false,
   onValueChange,
@@ -33,7 +35,7 @@ export const Input: React.FC<InputProps> = ({
       <input
         type={isPassword ? 'password' : 'text'}
         {...props}
-        className="input-inner"
+        className={`input-inner ${color}`}
         disabled={disabled}
         value={value}
         onChange={e => {

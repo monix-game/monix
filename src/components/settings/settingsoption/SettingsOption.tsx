@@ -9,6 +9,7 @@ interface SettingsOptionProps {
   icon: React.ReactNode;
   label: string;
   description?: string;
+  danger?: boolean;
   selectOptions?: Array<{ label: string; value: string }>;
   buttonLabel?: string;
   buttonAction?: () => void | Promise<void>;
@@ -21,6 +22,7 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
   icon,
   label,
   description,
+  danger,
   selectOptions,
   buttonLabel,
   buttonAction,
@@ -32,7 +34,7 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
   };
 
   return (
-    <div className="settings-option">
+    <div className={`settings-option ${danger ? 'danger' : ''}`}>
       <div className="settings-option-left">
         <div className="settings-icon-container">{icon}</div>
         <div className="settings-info-container">
@@ -43,6 +45,7 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
       <div className="settings-control-container">
         {type === 'button' && (
           <Button
+            color={danger ? 'red' : 'primary'}
             onClick={() => {
               if (buttonAction) {
                 void buttonAction();

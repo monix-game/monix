@@ -78,7 +78,7 @@ router.post('/login', async (req: Request, res: Response) => {
   };
   await createSession(session);
 
-  return res.status(200).json({ message: 'Login successful', ...sessionToDoc(session) });
+  return res.status(200).json({ message: 'Login successful', session: sessionToDoc(session) });
 });
 
 router.get('/user', requireAuth, (req: Request, res: Response) => {

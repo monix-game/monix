@@ -5,6 +5,7 @@ import { smartFormatNumber } from '../../helpers/numbers';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   secondary?: boolean;
+  color?: 'primary' | 'blue' | 'red' | 'purple';
   isLoading?: boolean;
   children: React.ReactNode;
   onClickAsync?: () => Promise<void>;
@@ -13,6 +14,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button: React.FC<ButtonProps> = ({
   secondary = false,
+  color = 'primary',
   isLoading = false,
   children,
   disabled,
@@ -23,7 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
-      className={`btn ${secondary ? 'btn-secondary' : ''}  ${className || ''}`}
+      className={`btn ${secondary ? 'btn-secondary' : ''} ${color} ${className || ''}`}
       disabled={disabled || isLoading}
       onClick={() => {
         if (onClickAsync) {
