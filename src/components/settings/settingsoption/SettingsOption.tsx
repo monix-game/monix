@@ -13,6 +13,7 @@ interface SettingsOptionProps {
   selectOptions?: Array<{ label: string; value: string }>;
   buttonLabel?: string;
   buttonAction?: () => void | Promise<void>;
+  disabled?: boolean;
   value?: string | boolean;
   onChange?: (value: string | boolean) => void;
 }
@@ -26,6 +27,7 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
   selectOptions,
   buttonLabel,
   buttonAction,
+  disabled,
   value,
   onChange,
 }) => {
@@ -51,14 +53,15 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
                 void buttonAction();
               }
             }}
+            disabled={disabled}
           >
             {buttonLabel}
           </Button>
         )}
         {type === 'select' && selectOptions && (
-          <Select options={selectOptions} value={value as string} onChange={onInputChange} />
+          <Select options={selectOptions} value={value as string} onChange={onInputChange} disabled={disabled} />
         )}
-        {type === 'checkbox' && <Checkbox checked={value as boolean} onClick={onInputChange} />}
+        {type === 'checkbox' && <Checkbox checked={value as boolean} onClick={onInputChange} disabled={disabled} />}
       </div>
     </div>
   );

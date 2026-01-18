@@ -11,6 +11,8 @@ export interface IUser {
   time_created: number;
   settings: ISettings;
   money: number;
+  totp_secret?: string;
+  setup_totp?: boolean;
   resources: { [key: string]: number };
 }
 
@@ -23,6 +25,8 @@ export function userToDoc(u: IUser): IUser {
     time_created: u.time_created,
     settings: u.settings,
     money: u.money || 0,
+    totp_secret: u.totp_secret,
+    setup_totp: u.setup_totp,
     resources: u.resources || {},
   };
 }
@@ -37,6 +41,8 @@ export function userFromDoc(doc: any): IUser {
     time_created: doc.time_created || 0,
     settings: doc.settings || DEFAULT_SETTINGS,
     money: doc.money || 0,
+    totp_secret: doc.totp_secret || undefined,
+    setup_totp: doc.setup_totp || false,
     resources: doc.resources || {},
   };
 }

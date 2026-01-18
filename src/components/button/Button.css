@@ -16,7 +16,7 @@
   white-space: nowrap;
 }
 
-.btn.primary {
+.btn.primary:not(.btn-secondary) {
   border: 2px solid var(--primary-2);
   background-color: var(--primary-1);
 }
@@ -31,7 +31,7 @@
   background-color: var(--primary-1);
 }
 
-.btn.blue {
+.btn.blue:not(.btn-secondary) {
   border: 2px solid var(--blue-2);
   background-color: var(--blue-1);
 }
@@ -46,7 +46,7 @@
   background-color: var(--blue-1);
 }
 
-.btn.red {
+.btn.red:not(.btn-secondary) {
   border: 2px solid var(--red-2);
   background-color: var(--red-1);
 }
@@ -61,7 +61,7 @@
   background-color: var(--red-1);
 }
 
-.btn.purple {
+.btn.purple:not(.btn-secondary) {
   border: 2px solid var(--purple-2);
   background-color: var(--purple-1);
 }

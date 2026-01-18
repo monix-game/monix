@@ -6,15 +6,18 @@ import {
   IconBrush,
   IconEyeClosed,
   IconFaceMask,
+  IconLock,
   IconLogout,
   IconLogout2,
   IconTrash,
 } from '@tabler/icons-react';
 import { applyTheme } from '../../helpers/theme';
 import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/settings';
-import { deleteAccount, logOut, logoutEverywhere } from '../../helpers/auth';
+import { deleteAccount, finish2FA, logOut, logoutEverywhere, setup2FA } from '../../helpers/auth';
 import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
+import QRCode from 'react-qr-code';
+import { Input } from '../input/Input';
 
 interface SettingsProps {
   user: IUser;
@@ -22,6 +25,9 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = React.useState<boolean>(false);
+  const [is2FAModalOpen, setIs2FAModalOpen] = React.useState<boolean>(false);
+  const [twoFASetupURI, setTwoFASetupURI] = React.useState<string>('');
+  const [twoFACode, setTwoFACode] = React.useState<string>('');
 
   // State for various settings
   const [theme, setTheme] = React.useState<'light' | 'dark' | 'system'>('light');
@@ -31,7 +37,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [privacyMode, setPrivacyMode] = React.useState<boolean>(false);
 
   useEffect(() => {
-    const loadSettingsStates = () => {
+    const loadStates = () => {
       const settings = loadSettings();
 
       setTheme(settings.theme);
@@ -40,7 +46,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
       setPrivacyMode(user.settings.privacy_mode);
     };
 
-    loadSettingsStates();
+    loadStates();
   }, [user]);
 
   return (
@@ -98,6 +104,21 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
         <h2 className="settings-header">Account</h2>
         <SettingsOption
           type="button"
+          icon={<IconLock />}
+          label="Setup 2FA"
+          description="Set up two-factor authentication for your account"
+          buttonLabel="Setup 2FA"
+          disabled={!!user.setup_totp}
+          buttonAction={async () => {
+            const uri = await setup2FA();
+            if (uri) {
+              setTwoFASetupURI(uri);
+              setIs2FAModalOpen(true);
+            }
+          }}
+        />
+        <SettingsOption
+          type="button"
           icon={<IconLogout />}
           label="Log Out"
           description="Log out of your account"
@@ -146,6 +167,25 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             secondary
           >
             Confirm Delete
+          </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={is2FAModalOpen} onClose={() => setIs2FAModalOpen(false)}>
+        <div className="settings-confirm-modal">
+          <h2>Setup 2FA</h2>
+          <p>Scan the QR code below with your authenticator app.</p>
+          <QRCode value={twoFASetupURI} className="settings-qr-code" />
+          <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
+          <Button
+            onClickAsync={async () => {
+              const success = await finish2FA(twoFACode);
+              if (success) {
+                setIs2FAModalOpen(false);
+              }
+            }}
+            secondary
+          >
+            Verify Code
           </Button>
         </div>
       </Modal>

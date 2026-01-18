@@ -3,11 +3,35 @@ import type { IUser } from '../../server/common/models/user';
 import type { ISession } from '../../server/common/models/session';
 import { api } from './api';
 
-export async function login(username: string, password: string): Promise<boolean> {
+export async function userNeeds2FA(username: string, password: string): Promise<boolean> {
+  try {
+    const resp = await api.post<{ needs_2fa: boolean }>('/auth/needs-2fa', {
+      username,
+      password,
+    });
+    if (resp && resp.success) {
+      const payload = resp.data;
+      if (payload && typeof payload.needs_2fa === 'boolean') {
+        return payload.needs_2fa;
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error('Error checking if user needs 2FA', err);
+    return false;
+  }
+}
+
+export async function login(
+  username: string,
+  password: string,
+  twoFACode?: string
+): Promise<boolean> {
   try {
     const resp = await api.post<{ session: ISession }>('/auth/login', {
       username,
       password,
+      token: twoFACode,
     });
     if (resp && resp.success) {
       const payload = resp.data;
@@ -49,6 +73,32 @@ export async function fetchUser(): Promise<IUser | null> {
   } catch (err) {
     console.error('Error fetching user', err);
     return null;
+  }
+}
+
+export async function setup2FA(): Promise<string | null> {
+  try {
+    const resp = await api.post<{ uri: string }>('/auth/setup-2fa');
+    if (resp && resp.success) {
+      const payload = resp.data;
+      if (payload && payload.uri) {
+        return payload.uri;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('Error setting up 2FA', err);
+    return null;
+  }
+}
+
+export async function finish2FA(token: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/auth/finish-2fa', { token });
+    return resp.success;
+  } catch (err) {
+    console.error('Error finishing 2FA setup', err);
+    return false;
   }
 }
 
