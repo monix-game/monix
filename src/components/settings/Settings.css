@@ -32,4 +32,12 @@
   width: 200px;
   height: 200px;
   margin: auto;
+  padding: 10px;
+  background-color: white;
+}
+
+.settings-danger-section {
+  border: 2px dashed var(--danger);
+  border-radius: var(--border-radius);
+  transition: all 0.2s;
 }

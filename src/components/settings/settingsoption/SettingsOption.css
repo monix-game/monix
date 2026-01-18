@@ -9,10 +9,6 @@
   transition: background-color 0.2s;
 }
 
-.settings-option.danger {
-  border: 2px dashed var(--danger);
-}
-
 .settings-option-left {
   display: flex;
   flex-direction: row;

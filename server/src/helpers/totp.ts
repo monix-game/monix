@@ -9,6 +9,6 @@ export async function verifyTOTPToken(secret: string, token: string): Promise<bo
   return Boolean(res);
 }
 
-export function getTOTPURI(secret: string, accountName: string, issuer: string): string {
-  return generateURI({ secret, label: accountName, issuer });
+export function getTOTPURI(secret: string, username: string): string {
+  return generateURI({ secret, label: username, issuer: 'Monix' });
 }

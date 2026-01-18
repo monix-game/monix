@@ -121,7 +121,7 @@ router.post('/setup-2fa', requireAuth, async (req: Request, res: Response) => {
   authUser.totp_secret = secret;
   await updateUser(authUser);
 
-  const uri = getTOTPURI(secret, authUser.username, 'Monix');
+  const uri = getTOTPURI(secret, authUser.username);
 
   return res.status(200).json({ message: 'Setup 2FA successfully', uri });
 });
@@ -146,6 +146,29 @@ router.post('/finish-2fa', requireAuth, async (req: Request, res: Response) => {
   await updateUser(authUser);
 
   return res.status(200).json({ message: '2FA setup completed successfully' });
+});
+
+router.post('/remove-2fa', requireAuth, async (req: Request, res: Response) => {
+  const { token } = (req.body as { token?: string }) || {};
+  if (!token) return res.status(400).json({ error: 'Missing 2FA token' });
+
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+  if (!authUser.totp_secret || !authUser.setup_totp)
+    return res.status(400).json({ error: '2FA not set up' });
+
+  const isTokenValid = await verifyTOTPToken(authUser.totp_secret, token);
+  if (!isTokenValid) {
+    return res.status(401).json({ error: 'Invalid 2FA token' });
+  }
+
+  authUser.totp_secret = undefined;
+  authUser.setup_totp = false;
+  await updateUser(authUser);
+
+  return res.status(200).json({ message: '2FA removed successfully' });
 });
 
 router.get('/user', requireAuth, (req: Request, res: Response) => {

@@ -102,6 +102,16 @@ export async function finish2FA(token: string): Promise<boolean> {
   }
 }
 
+export async function remove2FA(token: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/auth/remove-2fa', { token });
+    return resp.success;
+  } catch (err) {
+    console.error('Error removing 2FA', err);
+    return false;
+  }
+}
+
 export function logOut() {
   localStorage.removeItem(localStorageKey('session_token'));
   localStorage.removeItem(localStorageKey('session_user_uuid'));

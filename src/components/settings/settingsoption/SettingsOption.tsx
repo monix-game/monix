@@ -36,7 +36,7 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
   };
 
   return (
-    <div className={`settings-option ${danger ? 'danger' : ''}`}>
+    <div className="settings-option">
       <div className="settings-option-left">
         <div className="settings-icon-container">{icon}</div>
         <div className="settings-info-container">

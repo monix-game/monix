@@ -7,16 +7,24 @@ import {
   IconEyeClosed,
   IconFaceMask,
   IconLock,
+  IconLockOpen,
   IconLogout,
   IconLogout2,
   IconTrash,
 } from '@tabler/icons-react';
 import { applyTheme } from '../../helpers/theme';
 import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/settings';
-import { deleteAccount, finish2FA, logOut, logoutEverywhere, setup2FA } from '../../helpers/auth';
+import {
+  deleteAccount,
+  finish2FA,
+  logOut,
+  logoutEverywhere,
+  remove2FA,
+  setup2FA,
+} from '../../helpers/auth';
 import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
-import QRCode from 'react-qr-code';
+import { QRCodeSVG } from 'qrcode.react';
 import { Input } from '../input/Input';
 
 interface SettingsProps {
@@ -26,6 +34,7 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = React.useState<boolean>(false);
   const [is2FAModalOpen, setIs2FAModalOpen] = React.useState<boolean>(false);
+  const [is2FARemoveModalOpen, setIs2FARemoveModalOpen] = React.useState<boolean>(false);
   const [twoFASetupURI, setTwoFASetupURI] = React.useState<string>('');
   const [twoFACode, setTwoFACode] = React.useState<string>('');
 
@@ -104,21 +113,6 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
         <h2 className="settings-header">Account</h2>
         <SettingsOption
           type="button"
-          icon={<IconLock />}
-          label="Setup 2FA"
-          description="Set up two-factor authentication for your account"
-          buttonLabel="Setup 2FA"
-          disabled={!!user.setup_totp}
-          buttonAction={async () => {
-            const uri = await setup2FA();
-            if (uri) {
-              setTwoFASetupURI(uri);
-              setIs2FAModalOpen(true);
-            }
-          }}
-        />
-        <SettingsOption
-          type="button"
           icon={<IconLogout />}
           label="Log Out"
           description="Log out of your account"
@@ -139,17 +133,48 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             location.href = '/auth/login';
           }}
         />
-        <SettingsOption
-          type="button"
-          icon={<IconTrash />}
-          label="Delete Account"
-          description="Permanently delete your account"
-          danger
-          buttonLabel="Delete Account"
-          buttonAction={() => {
-            setIsDeleteAccountModalOpen(true);
-          }}
-        />
+        {!user.setup_totp && (
+          <SettingsOption
+            type="button"
+            icon={<IconLock />}
+            label="Setup 2FA"
+            description="Set up two-factor authentication for your account"
+            buttonLabel="Setup 2FA"
+            disabled={user.setup_totp}
+            buttonAction={async () => {
+              const uri = await setup2FA();
+              if (uri) {
+                setTwoFASetupURI(uri);
+                setIs2FAModalOpen(true);
+              }
+            }}
+          />
+        )}
+        <div className="settings-danger-section">
+          {user.setup_totp && (
+            <SettingsOption
+              type="button"
+              icon={<IconLockOpen />}
+              label="Remove 2FA"
+              description="Remove two-factor authentication for your account"
+              buttonLabel="Remove 2FA"
+              disabled={!user.setup_totp}
+              danger
+              buttonAction={() => setIs2FARemoveModalOpen(true)}
+            />
+          )}
+          <SettingsOption
+            type="button"
+            icon={<IconTrash />}
+            label="Delete Account"
+            description="Permanently delete your account"
+            danger
+            buttonLabel="Delete Account"
+            buttonAction={() => {
+              setIsDeleteAccountModalOpen(true);
+            }}
+          />
+        </div>
       </div>
       <Modal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)}>
         <div className="settings-confirm-modal">
@@ -174,13 +199,33 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
         <div className="settings-confirm-modal">
           <h2>Setup 2FA</h2>
           <p>Scan the QR code below with your authenticator app.</p>
-          <QRCode value={twoFASetupURI} className="settings-qr-code" />
+          <QRCodeSVG value={twoFASetupURI} className="settings-qr-code" />
           <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
           <Button
             onClickAsync={async () => {
               const success = await finish2FA(twoFACode);
               if (success) {
                 setIs2FAModalOpen(false);
+                window.location.reload();
+              }
+            }}
+            secondary
+          >
+            Verify Code
+          </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={is2FARemoveModalOpen} onClose={() => setIs2FARemoveModalOpen(false)}>
+        <div className="settings-confirm-modal">
+          <h2>Remove 2FA</h2>
+          <p>Enter the code from your authenticator app to remove 2FA.</p>
+          <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
+          <Button
+            onClickAsync={async () => {
+              const success = await remove2FA(twoFACode);
+              if (success) {
+                setIs2FARemoveModalOpen(false);
+                window.location.reload();
               }
             }}
             secondary
