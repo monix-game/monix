@@ -1,14 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
+import { DEFAULT_SETTINGS, type ISettings } from './settings';
+
 export interface IUser {
   uuid: string;
   username: string;
   password_hash: string;
   role: 'admin' | 'game_mod' | 'social_mod' | 'helper' | 'user';
   time_created: number;
-  money?: number;
-  resources?: { [key: string]: number };
+  settings: ISettings;
+  money: number;
+  resources: { [key: string]: number };
 }
 
 export function userToDoc(u: IUser): IUser {
@@ -18,6 +21,7 @@ export function userToDoc(u: IUser): IUser {
     password_hash: u.password_hash,
     role: u.role,
     time_created: u.time_created,
+    settings: u.settings,
     money: u.money || 0,
     resources: u.resources || {},
   };
@@ -31,6 +35,7 @@ export function userFromDoc(doc: any): IUser {
     password_hash: doc.password_hash || '',
     role: doc.role || 'user',
     time_created: doc.time_created || 0,
+    settings: doc.settings || DEFAULT_SETTINGS,
     money: doc.money || 0,
     resources: doc.resources || {},
   };

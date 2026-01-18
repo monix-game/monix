@@ -194,10 +194,7 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
             !feedingPet &&
             !pet.is_dead && (
               <>
-                <Button
-                  secondary
-                  onClick={() => setFeedingPet(true)}
-                >
+                <Button secondary onClick={() => setFeedingPet(true)}>
                   Feed
                 </Button>
                 <Button onClickAsync={playWithPetClick} disabled={!canPlayWithPet(pet)}>

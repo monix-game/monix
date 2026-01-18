@@ -38,8 +38,7 @@ export const PetShopModal: React.FC<PetShopModalProps> = ({
               <div key={type.id} className="pet-shop-modal-item">
                 <div className="pet-shop-modal-item-info">
                   <h3>
-                    <EmojiText>{type.icon}</EmojiText>
-                    {' '}{type.name}
+                    <EmojiText>{type.icon}</EmojiText> {type.name}
                   </h3>
                 </div>
                 <Button

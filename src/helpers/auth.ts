@@ -4,40 +4,87 @@ import type { ISession } from '../../server/common/models/session';
 import { api } from './api';
 
 export async function login(username: string, password: string): Promise<boolean> {
-  const data = await api.post<ISession>('/auth/login', {
-    username,
-    password,
-  });
-
-  if (data.success) {
-    saveToken(data.data!);
-    return true;
+  try {
+    const resp = await api.post<{ session: ISession }>('/auth/login', {
+      username,
+      password,
+    });
+    if (resp && resp.success) {
+      const payload = resp.data;
+      if (payload && payload.session) {
+        saveToken(payload.session);
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error('Error logging in', err);
+    return false;
   }
-
-  return false;
 }
 
 export async function register(username: string, password: string): Promise<boolean> {
-  const data = await api.post('/auth/register', {
-    username,
-    password,
-  });
-
-  if (data.success) {
-    return true;
+  try {
+    const resp = await api.post('/auth/register', {
+      username,
+      password,
+    });
+    return resp.success;
+  } catch (err) {
+    console.error('Error registering user', err);
+    return false;
   }
-
-  return false;
 }
 
 export async function fetchUser(): Promise<IUser | null> {
-  const data = await api.get<{ user: IUser }>('/auth/user');
-
-  if (data.success) {
-    return data.data!.user;
+  try {
+    const resp = await api.get<{ user: IUser }>('/auth/user');
+    if (resp && resp.success) {
+      const payload = resp.data;
+      if (payload && payload.user) {
+        return payload.user;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('Error fetching user', err);
+    return null;
   }
+}
 
-  return null;
+export function logOut() {
+  localStorage.removeItem(localStorageKey('session_token'));
+  localStorage.removeItem(localStorageKey('session_user_uuid'));
+  localStorage.removeItem(localStorageKey('session_time_created'));
+  localStorage.removeItem(localStorageKey('session_expires_at'));
+}
+
+export async function logoutEverywhere(): Promise<boolean> {
+  try {
+    const resp = await api.post('/auth/logout');
+    if (resp && resp.success) {
+      logOut();
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Error logging out everywhere', err);
+    return false;
+  }
+}
+
+export async function deleteAccount(): Promise<boolean> {
+  try {
+    const resp = await api.post('/auth/delete');
+    if (resp && resp.success) {
+      logOut();
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Error deleting account', err);
+    return false;
+  }
 }
 
 function saveToken(session: ISession) {
@@ -61,11 +108,4 @@ export function isSignedIn(): boolean {
   }
 
   return true;
-}
-
-export function signOut() {
-  localStorage.removeItem(localStorageKey('session_token'));
-  localStorage.removeItem(localStorageKey('session_user_uuid'));
-  localStorage.removeItem(localStorageKey('session_time_created'));
-  localStorage.removeItem(localStorageKey('session_expires_at'));
 }

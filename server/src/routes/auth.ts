@@ -1,11 +1,19 @@
 import { Router, Request, Response } from 'express';
-import { getUserByUsername, createUser, createSession } from '../db';
+import {
+  getUserByUsername,
+  createUser,
+  createSession,
+  deleteSessionsByUserUUID,
+  deleteUserByUUID,
+  deletePetsByOwnerUUID,
+} from '../db';
 import { type IUser, userToDoc } from '../../common/models/user';
 import { ISession, sessionToDoc } from '../../common/models/session';
 import crypto from 'crypto';
 import { v4 } from 'uuid';
 import { requireAuth } from '../middleware';
 import { SESSION_EXPIRES_IN } from '../index';
+import { DEFAULT_SETTINGS } from '../../common/models/settings';
 
 const router = Router();
 
@@ -40,6 +48,8 @@ router.post('/register', async (req: Request, res: Response) => {
     money: 1000,
     role: 'user',
     time_created: Date.now() / 1000,
+    settings: DEFAULT_SETTINGS,
+    resources: {},
   };
 
   await createUser(user);
@@ -78,6 +88,35 @@ router.get('/user', requireAuth, (req: Request, res: Response) => {
   if (!authUser) return res.status(404).json({ error: 'User not found' });
 
   return res.status(200).json({ user: userToDoc(authUser) });
+});
+
+router.post('/logout', requireAuth, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(400).json({ error: 'No active user found' });
+
+  await deleteSessionsByUserUUID(authUser.uuid);
+
+  return res.status(200).json({ message: 'All sessions logged out successfully' });
+});
+
+router.post('/delete', requireAuth, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(400).json({ error: 'No active user found' });
+
+  // Deleting user sessions
+  await deleteSessionsByUserUUID(authUser.uuid);
+
+  // Deleting user pets
+  await deletePetsByOwnerUUID(authUser.uuid);
+
+  // Deleting user
+  await deleteUserByUUID(authUser.uuid);
+
+  return res.status(200).json({ message: 'User account deleted successfully' });
 });
 
 export default router;

@@ -92,6 +92,11 @@ export async function deletePetByUUID(uuid: string): Promise<void> {
   await database.collection('pets').deleteOne({ uuid });
 }
 
+export async function deletePetsByOwnerUUID(owner_uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('pets').deleteMany({ owner_uuid });
+}
+
 export async function getPetByUUID(uuid: string): Promise<IPet | null> {
   const database = ensureDB();
   const doc = await database.collection('pets').findOne({ uuid });

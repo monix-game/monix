@@ -1,6 +1,6 @@
-import { loadSettings, type ISettings } from './settings';
+import { loadSettings, type IClientSettings } from './settings';
 
-export function applyTheme(theme: ISettings['theme']) {
+export function applyTheme(theme: IClientSettings['theme']) {
   const root = document.documentElement;
 
   if (theme === 'light') {

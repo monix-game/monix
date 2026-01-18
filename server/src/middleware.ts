@@ -36,6 +36,9 @@ async function authenticateRequest(req: Request, res: Response) {
 
   // @ts-expect-error We are adding a custom property to the Request object
   req.authUser = user;
+  // @ts-expect-error We are adding a custom property to the Request object
+  req.authSession = session;
+
   return user;
 }
 

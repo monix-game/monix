@@ -3,23 +3,20 @@ import './SettingsOption.css';
 import { Button } from '../../button/Button';
 import { Select } from '../../select/Select';
 import { Checkbox } from '../../checkbox/Checkbox';
-import { updateSetting, type ISettings } from '../../../helpers/settings';
 
 interface SettingsOptionProps {
-  id: string;
   type: 'button' | 'select' | 'checkbox';
   icon: React.ReactNode;
   label: string;
   description?: string;
   selectOptions?: Array<{ label: string; value: string }>;
   buttonLabel?: string;
-  buttonAction?: () => void;
-  value: string | boolean;
-  setValue: (value: string | boolean) => void;
+  buttonAction?: () => void | Promise<void>;
+  value?: string | boolean;
+  onChange?: (value: string | boolean) => void;
 }
 
 export const SettingsOption: React.FC<SettingsOptionProps> = ({
-  id,
   type,
   icon,
   label,
@@ -28,16 +25,10 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
   buttonLabel,
   buttonAction,
   value,
-  setValue,
+  onChange,
 }) => {
-  const onSelectChange = (newValue: string) => {
-    setValue(newValue);
-    updateSetting(id as keyof ISettings, newValue as ISettings[keyof ISettings]);
-  };
-
-  const onCheckboxChange = (newValue: boolean) => {
-    setValue(newValue);
-    updateSetting(id as keyof ISettings, newValue as ISettings[keyof ISettings]);
+  const onInputChange = (newValue: string | boolean) => {
+    if (onChange) onChange(newValue);
   };
 
   return (
@@ -50,11 +41,21 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
         </div>
       </div>
       <div className="settings-control-container">
-        {type === 'button' && <Button onClick={buttonAction}>{buttonLabel}</Button>}
-        {type === 'select' && selectOptions && (
-          <Select options={selectOptions} value={value as string} onChange={onSelectChange} />
+        {type === 'button' && (
+          <Button
+            onClick={() => {
+              if (buttonAction) {
+                void buttonAction();
+              }
+            }}
+          >
+            {buttonLabel}
+          </Button>
         )}
-        {type === 'checkbox' && <Checkbox checked={value as boolean} onClick={onCheckboxChange} />}
+        {type === 'select' && selectOptions && (
+          <Select options={selectOptions} value={value as string} onChange={onInputChange} />
+        )}
+        {type === 'checkbox' && <Checkbox checked={value as boolean} onClick={onInputChange} />}
       </div>
     </div>
   );
