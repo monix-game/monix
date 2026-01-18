@@ -19,9 +19,14 @@ export default function Landing() {
     <div className="landing-container">
       <header className="landing-header">
         <img
-          src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
+          src={monixLogoLight}
           alt="Monix Logo"
-          className="landing-logo"
+          className="landing-logo landing-logo-light"
+        />
+        <img
+          src={monixLogoDark}
+          alt="Monix Logo"
+          className="landing-logo landing-logo-dark"
         />
         <h1 className="landing-title">Monix</h1>
         <div className="spacer"></div>
@@ -57,12 +62,12 @@ export default function Landing() {
       </header>
 
       <main className="landing-main">
-        <div className="title">
+        <div className="landing-title">
           <img src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight} alt="Monix Logo" />
           <h1>Monix</h1>
         </div>
 
-        <div className="section hero">
+        <div className="landing-section hero">
           <span className="hero-subtitle mono">Explore hours of content!</span>
           <h1 className="hero-title">
             <span className="hero-title-word">
@@ -102,7 +107,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="section testimonials">
+        <div className="landing-section testimonials">
           <h1 className="section-title">What our users say</h1>
           <div className="testimonials-container">
             <div className="testimonial">

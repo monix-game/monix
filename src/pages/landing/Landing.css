@@ -22,6 +22,14 @@
   height: 65px;
 }
 
+html[data-theme='light'] .landing-logo-dark {
+  display: none;
+}
+
+html[data-theme='dark'] .landing-logo-light {
+  display: none;
+}
+
 .landing-title {
   font-size: 2rem;
   font-weight: 700;
@@ -35,7 +43,7 @@
   gap: 50px;
 }
 
-.section {
+.landing-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -125,7 +133,7 @@
   user-select: none;
 }
 
-.title {
+.landing-title {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -134,12 +142,12 @@
   margin-bottom: 20px;
 }
 
-.title img {
+.landing-title img {
   width: 100px;
   height: 100px;
 }
 
-.title h1 {
+.landing-title h1 {
   font-size: 3rem;
   font-weight: 800;
   user-select: none;
@@ -167,7 +175,7 @@
     height: 80px;
   }
 
-  .section {
+  .landing-section {
     padding: 24px;
     gap: 16px;
   }
@@ -200,16 +208,16 @@
     margin-right: 0;
   }
 
-  .title h1 {
+  .landing-title h1 {
     font-size: 1.8rem;
   }
 
-  .title img {
+  .landing-title img {
     width: 60px;
     height: 60px;
   }
 
-  .section {
+  .landing-section {
     width: 100%;
     padding: 16px;
     margin: 0 12px;

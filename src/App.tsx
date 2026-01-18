@@ -18,6 +18,7 @@ function App() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
         <Route path="/game" element={<Game />} />
+        <Route path="*" element={<Landing />} />
       </Routes>
     </BrowserRouter>
   );
