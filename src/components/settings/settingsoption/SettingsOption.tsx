@@ -59,9 +59,16 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
           </Button>
         )}
         {type === 'select' && selectOptions && (
-          <Select options={selectOptions} value={value as string} onChange={onInputChange} disabled={disabled} />
+          <Select
+            options={selectOptions}
+            value={value as string}
+            onChange={onInputChange}
+            disabled={disabled}
+          />
         )}
-        {type === 'checkbox' && <Checkbox checked={value as boolean} onClick={onInputChange} disabled={disabled} />}
+        {type === 'checkbox' && (
+          <Checkbox checked={value as boolean} onClick={onInputChange} disabled={disabled} />
+        )}
       </div>
     </div>
   );

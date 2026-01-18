@@ -18,16 +18,8 @@ export default function Landing() {
   return (
     <div className="landing-container">
       <header className="landing-header">
-        <img
-          src={monixLogoLight}
-          alt="Monix Logo"
-          className="landing-logo landing-logo-light"
-        />
-        <img
-          src={monixLogoDark}
-          alt="Monix Logo"
-          className="landing-logo landing-logo-dark"
-        />
+        <img src={monixLogoLight} alt="Monix Logo" className="landing-logo landing-logo-light" />
+        <img src={monixLogoDark} alt="Monix Logo" className="landing-logo landing-logo-dark" />
         <h1 className="landing-title">Monix</h1>
         <div className="spacer"></div>
 
