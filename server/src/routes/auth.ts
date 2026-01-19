@@ -76,7 +76,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '2FA token required' });
     }
 
-    const isTokenValid = await verifyTOTPToken(user.totp_secret, token);
+    const isTokenValid = verifyTOTPToken(user.totp_secret, token);
     if (!isTokenValid) {
       return res.status(401).json({ error: 'Invalid 2FA token' });
     }
@@ -137,7 +137,7 @@ router.post('/finish-2fa', requireAuth, async (req: Request, res: Response) => {
   if (!authUser.totp_secret) return res.status(400).json({ error: '2FA not set up' });
   if (authUser.setup_totp) return res.status(400).json({ error: '2FA already set up' });
 
-  const isTokenValid = await verifyTOTPToken(authUser.totp_secret, token);
+  const isTokenValid = verifyTOTPToken(authUser.totp_secret, token);
   if (!isTokenValid) {
     return res.status(401).json({ error: 'Invalid 2FA token' });
   }
@@ -159,7 +159,7 @@ router.post('/remove-2fa', requireAuth, async (req: Request, res: Response) => {
   if (!authUser.totp_secret || !authUser.setup_totp)
     return res.status(400).json({ error: '2FA not set up' });
 
-  const isTokenValid = await verifyTOTPToken(authUser.totp_secret, token);
+  const isTokenValid = verifyTOTPToken(authUser.totp_secret, token);
   if (!isTokenValid) {
     return res.status(401).json({ error: 'Invalid 2FA token' });
   }

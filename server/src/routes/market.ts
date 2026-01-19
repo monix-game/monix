@@ -17,7 +17,8 @@ router.get('/price/:resourceId', requireAuth, (req: Request, res: Response) => {
     }
   }
 
-  const price = Number(generatePrice(resourceId, time).toFixed(2));
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  const price = Number(generatePrice(resourceId as string, time).toFixed(2));
   const price_data = { resource_id: resourceId, price };
   return res.status(200).json({ success: true, data: price_data });
 });
@@ -49,7 +50,8 @@ router.get('/history/:resourceId', requireAuth, (req: Request, res: Response) =>
   const totalPoints = Math.max(0, Math.floor(hoursBack) * 1800);
   for (let i = 0; i < totalPoints; i++) {
     const timestamp = currentTime - i * 2;
-    history.push({ time: timestamp, price: generatePrice(resourceId, timestamp) });
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    history.push({ time: timestamp, price: generatePrice(resourceId as string, timestamp) });
   }
   history.reverse();
   return res.status(200).json({ success: true, data: history });
