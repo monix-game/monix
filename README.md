@@ -41,7 +41,7 @@ Music provided by Ferretosan Music (<https://music.ferretosan.com/> & <https://f
 
 Some other assets obtained from public domain sources.
 
-This application is not affiliated with or endorsed by any of the original asset creators.
+This application is not affiliated with or endorsed by any of the original asset creators except Ferretosan Music.
 
 All rights reserved by their respective owners.
 
