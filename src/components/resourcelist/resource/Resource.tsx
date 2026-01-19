@@ -3,7 +3,7 @@ import './Resource.css';
 import type { ResourceInfo } from '../../../../server/common/resources';
 import { getResourceQuantity } from '../../../helpers/resource';
 import { EmojiText } from '../../EmojiText';
-import { smartFormatNumber } from '../../../helpers/numbers';
+import { smartFormatNumber } from '../../../helpers/utils';
 
 interface ResourceProps {
   info: ResourceInfo;

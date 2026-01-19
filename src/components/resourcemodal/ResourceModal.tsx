@@ -3,7 +3,7 @@ import './ResourceModal.css';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { Button, EmojiText, Input, Modal } from '..';
 import { buyResource, sellResource } from '../../helpers/resource';
-import { smartFormatNumber } from '../../helpers/numbers';
+import { smartFormatNumber } from '../../helpers/utils';
 
 interface ResourceModalProps {
   resource: ResourceInfo;

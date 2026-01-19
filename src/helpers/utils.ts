@@ -35,3 +35,24 @@ export function smartFormatNumber(num: number, includeDollarSign = true): string
   const prefix = includeDollarSign ? '$' : '';
   return (isNegative ? '-' : '') + prefix + formattedValue + (units[unitIndex] || '');
 }
+
+export function getOrdinalSuffix(n: number): string {
+  const j = n % 10,
+    k = n % 100;
+  if (j === 1 && k !== 11) {
+    return 'st';
+  }
+  if (j === 2 && k !== 12) {
+    return 'nd';
+  }
+  if (j === 3 && k !== 13) {
+    return 'rd';
+  }
+  return 'th';
+}
+
+export function getPodiumLevel(rank: number): 'first' | 'second' | 'third' {
+  if (rank === 1) return 'first';
+  if (rank === 2) return 'second';
+  return 'third';
+}

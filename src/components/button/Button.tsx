@@ -1,7 +1,7 @@
 import React from 'react';
 import './Button.css';
 import { Spinner } from '../spinner/Spinner';
-import { smartFormatNumber } from '../../helpers/numbers';
+import { smartFormatNumber } from '../../helpers/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   secondary?: boolean;

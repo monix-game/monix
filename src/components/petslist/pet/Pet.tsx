@@ -8,7 +8,7 @@ import {
   expRequiredForLevel,
 } from '../../../../server/common/pet';
 import type { IPet } from '../../../../server/common/models/pet';
-import { smartFormatNumber } from '../../../helpers/numbers';
+import { smartFormatNumber } from '../../../helpers/utils';
 
 interface PetProps {
   pet: IPet;

@@ -6,6 +6,7 @@ import marketRouter from './routes/market';
 import resourcesRouter from './routes/resources';
 import petsRouter from './routes/pets';
 import settingsRouter from './routes/settings';
+import leaderboardRouter from './routes/leaderboard';
 import { connectDB } from './db';
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/market', marketRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/pets', petsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/leaderboard', leaderboardRouter);
 
 async function start() {
   await connectDB(MONGO_URI);

@@ -19,7 +19,7 @@ import { fetchUser } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
-import { smartFormatNumber } from '../../helpers/numbers';
+import { smartFormatNumber } from '../../helpers/utils';
 
 export default function Game() {
   const [totalNetWorth, setTotalNetWorth] = useState<number>(0);

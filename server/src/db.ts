@@ -29,6 +29,12 @@ export async function getUserByUsername(username: string): Promise<IUser | null>
   return doc ? userFromDoc(doc) : null;
 }
 
+export async function getAllUsers(): Promise<IUser[]> {
+  const database = ensureDB();
+  const docs = await database.collection('users').find({}).toArray();
+  return docs.map(userFromDoc);
+}
+
 export async function createUser(user: IUser): Promise<void> {
   const database = ensureDB();
   await database.collection('users').insertOne(userToDoc(user));
