@@ -110,3 +110,8 @@
   flex-direction: row;
   gap: 5px;
 }
+
+.leaderboard-spinner {
+  justify-self: center;
+  align-self: center;
+}
