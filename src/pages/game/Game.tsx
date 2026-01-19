@@ -11,6 +11,7 @@ import {
   ResourceModal,
   PetsList,
   Settings,
+  Leaderboard,
 } from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -290,8 +291,7 @@ export default function Game() {
         )}
         {tab === 'leaderboard' && (
           <div className="tab-content">
-            <h2>Leaderboard Tab</h2>
-            <p>Content for Leaderboard will go here.</p>
+            <Leaderboard />
           </div>
         )}
         {tab === 'settings' && (

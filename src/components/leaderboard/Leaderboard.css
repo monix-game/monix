@@ -1,0 +1,112 @@
+.leaderboard-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.podium {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  margin: 0 auto;
+  gap: 20px;
+  width: 70%;
+  height: 300px;
+}
+
+.podium-position {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.podium-position.third {
+  border-bottom: 3px solid #cd7f32; /* Bronze */
+  background: linear-gradient(rgba(205, 127, 50, 0.05), rgba(205, 127, 50, 0.2));
+  height: 80%;
+}
+
+.podium-position.second {
+  border-bottom: 3px solid #c0c0c0; /* Silver */
+  background: linear-gradient(rgba(192, 192, 192, 0.05), rgba(192, 192, 192, 0.2));
+  height: 90%;
+}
+
+.podium-position.first {
+  border-bottom: 3px solid #ffd700; /* Gold */
+  background: linear-gradient(rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.2));
+  height: 100%;
+}
+
+.podium-rank {
+  font-size: 2.2em;
+  font-weight: bold;
+}
+
+.podium-user {
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.podium-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-1);
+}
+
+.podium-money {
+  font-size: 1em;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.leaderboard-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  width: 50%;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.leaderboard-entry {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+}
+
+.leaderboard-rank {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.leaderboard-user {
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.leaderboard-money {
+  font-size: 1em;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.leaderboard-user-info {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}

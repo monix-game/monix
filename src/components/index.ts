@@ -13,3 +13,4 @@ export { ResourceModal } from './resourcemodal/ResourceModal';
 export { PetsList } from './petslist/PetsList';
 export { Select } from './select/Select';
 export { Settings } from './settings/Settings';
+export { Leaderboard } from './leaderboard/Leaderboard';
