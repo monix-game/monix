@@ -71,12 +71,12 @@ router.post('/login', async (req: Request, res: Response) => {
   if (user.password_hash !== password_hash)
     return res.status(401).json({ error: 'Invalid username or password' });
 
-  if (user.totp_secret) {
+  if (user.setup_totp) {
     if (!token) {
       return res.status(400).json({ error: '2FA token required' });
     }
 
-    const isTokenValid = verifyTOTPToken(user.totp_secret, token);
+    const isTokenValid = verifyTOTPToken(user.totp_secret!, token);
     if (!isTokenValid) {
       return res.status(401).json({ error: 'Invalid 2FA token' });
     }
@@ -107,7 +107,7 @@ router.post('/needs-2fa', async (req: Request, res: Response) => {
   if (user.password_hash !== password_hash)
     return res.status(401).json({ error: 'Invalid username or password' });
 
-  return res.status(200).json({ needs_2fa: Boolean(user.totp_secret && user.setup_totp) });
+  return res.status(200).json({ needs_2fa: user.setup_totp });
 });
 
 router.post('/setup-2fa', requireAuth, async (req: Request, res: Response) => {
