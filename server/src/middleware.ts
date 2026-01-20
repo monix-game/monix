@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
 
-const HIERARCHY = ['admin', 'game_mod', 'social_mod', 'helper'];
+const ROLE_HIERARCHY = ['admin', 'game_mod', 'social_mod', 'helper'];
+const SUBSCRIPTION_HIERARCHY = ['pro', 'plus'];
 
 async function authenticateRequest(req: Request, res: Response) {
   const unauthorized = () => {
@@ -48,19 +49,49 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   next();
 }
 
+export function requireSubscription(subscription: 'plus' | 'pro') {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    const user = await authenticateRequest(req, res);
+    if (!user) return;
+
+    const currentTime = Date.now() / 1000;
+    const payment = user.payment;
+
+    if (!payment || !payment.current_subscription || !payment.subscription_expires_at) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    if (payment.subscription_expires_at < currentTime) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const userSubscriptionIndex = SUBSCRIPTION_HIERARCHY.indexOf(payment.current_subscription);
+    const requiredSubscriptionIndex = SUBSCRIPTION_HIERARCHY.indexOf(subscription);
+
+    if (userSubscriptionIndex < requiredSubscriptionIndex) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    next();
+  };
+}
+
 export function requireRole(role: 'admin' | 'game_mod' | 'social_mod' | 'helper') {
   return async function (req: Request, res: Response, next: NextFunction) {
     const user = await authenticateRequest(req, res);
     if (!user) return;
 
-    if (!HIERARCHY.includes(role)) {
+    if (!ROLE_HIERARCHY.includes(role)) {
       // Not staff role, automatically unauthorized
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
-    const userRoleIndex = HIERARCHY.indexOf(user.role);
-    const requiredRoleIndex = HIERARCHY.indexOf(role);
+    const userRoleIndex = ROLE_HIERARCHY.indexOf(user.role);
+    const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
 
     if (userRoleIndex > requiredRoleIndex) {
       res.status(401).json({ message: 'Unauthorized' });

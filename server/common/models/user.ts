@@ -11,10 +11,16 @@ export interface IUser {
   time_created: number;
   settings: ISettings;
   money: number;
+  gems: number;
   totp_secret?: string;
   setup_totp?: boolean;
   avatar_data_uri?: string;
   resources: { [key: string]: number };
+  payment?: {
+    current_subscription?: 'plus' | 'pro' | null;
+    subscription_expires_at?: number;
+    customer_id?: string;
+  };
 }
 
 export function userToDoc(u: IUser): IUser {
@@ -26,10 +32,12 @@ export function userToDoc(u: IUser): IUser {
     time_created: u.time_created,
     settings: u.settings,
     money: u.money,
+    gems: u.gems,
     totp_secret: u.totp_secret,
     setup_totp: u.setup_totp,
     avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
+    payment: u.payment,
   };
 }
 
@@ -43,9 +51,11 @@ export function userFromDoc(doc: any): IUser {
     time_created: doc.time_created || 0,
     settings: doc.settings || DEFAULT_SETTINGS,
     money: doc.money || 0,
+    gems: doc.gems || 0,
     totp_secret: doc.totp_secret || undefined,
     setup_totp: doc.setup_totp || false,
     avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
+    payment: doc.payment || undefined,
   };
 }

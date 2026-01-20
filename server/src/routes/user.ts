@@ -48,6 +48,7 @@ router.post('/register', async (req: Request, res: Response) => {
     username,
     password_hash,
     money: 1000,
+    gems: 0,
     role: 'user',
     time_created: Date.now() / 1000,
     settings: DEFAULT_SETTINGS,
