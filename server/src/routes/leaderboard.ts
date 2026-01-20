@@ -18,9 +18,11 @@ router.get('/', requireAuth, async (req, res) => {
   const leaderboard = await Promise.all(
     topUsers.map(async (user, index) => {
       const userData = await getUserByUUID(user.uuid);
+
       return {
         rank: index + 1,
         username: userData ? userData.username : 'Unknown',
+        avatar: userData ? userData.avatar_data_uri : undefined,
         money: user.money || 0,
       };
     })

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRouter from './routes/auth';
+import userRouter from './routes/user';
 import marketRouter from './routes/market';
 import resourcesRouter from './routes/resources';
 import petsRouter from './routes/pets';
@@ -41,7 +41,7 @@ if (CORS_ORIGINS.includes('*')) {
   );
 }
 
-app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
 app.use('/api/market', marketRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/pets', petsRouter);

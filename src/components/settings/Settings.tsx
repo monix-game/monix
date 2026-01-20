@@ -11,6 +11,7 @@ import {
   IconLogout,
   IconLogout2,
   IconTrash,
+  IconUserCircle,
 } from '@tabler/icons-react';
 import { applyTheme } from '../../helpers/theme';
 import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/settings';
@@ -20,7 +21,9 @@ import {
   logOut,
   logoutEverywhere,
   remove2FA,
+  removeAvatar,
   setup2FA,
+  uploadAvatar,
 } from '../../helpers/auth';
 import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
@@ -37,6 +40,8 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [is2FARemoveModalOpen, setIs2FARemoveModalOpen] = React.useState<boolean>(false);
   const [twoFASetupURI, setTwoFASetupURI] = React.useState<string>('');
   const [twoFACode, setTwoFACode] = React.useState<string>('');
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = React.useState<boolean>(false);
+  const [isDeleteAvatarModalOpen, setIsDeleteAvatarModalOpen] = React.useState<boolean>(false);
 
   // State for various settings
   const [theme, setTheme] = React.useState<'light' | 'dark' | 'system'>('light');
@@ -44,6 +49,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
 
   // Server settings
   const [privacyMode, setPrivacyMode] = React.useState<boolean>(false);
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
 
   useEffect(() => {
     const loadStates = () => {
@@ -95,6 +101,26 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
         />
 
         <h2 className="settings-header">Social</h2>
+        <SettingsOption
+          type="button"
+          icon={<IconUserCircle />}
+          label="User Avatar"
+          description="Upload or change your user avatar"
+          buttonLabel="Change Avatar"
+          buttonAction={() => setIsAvatarModalOpen(true)}
+        />
+        {user.avatar_data_uri && (
+          <SettingsOption
+            type="button"
+            icon={<IconTrash />}
+            label="Remove Avatar"
+            description="Remove your current avatar"
+            danger
+            buttonLabel="Remove Avatar"
+            buttonAction={() => setIsDeleteAvatarModalOpen(true)}
+          />
+        )}
+
         <h2 className="settings-header">Notifications</h2>
         <h2 className="settings-header">Privacy</h2>
         <SettingsOption
@@ -191,7 +217,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             }}
             secondary
           >
-            Confirm Delete
+            Confirm
           </Button>
         </div>
       </Modal>
@@ -231,6 +257,58 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             secondary
           >
             Verify Code
+          </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={isAvatarModalOpen} onClose={() => setIsAvatarModalOpen(false)}>
+        <div className="settings-confirm-modal">
+          <h2>Upload Avatar</h2>
+          <p>Upload a new avatar image for your profile.</p>
+          <Input
+            type="file"
+            onChange={e => {
+              if (e.target.files && e.target.files.length > 0) {
+                setAvatarFile(e.target.files[0]);
+                console.log('Selected file:', e.target.files[0]);
+              } else {
+                setAvatarFile(null);
+                alert('No file selected.');
+              }
+            }}
+          />
+          <Button
+            onClickAsync={async () => {
+              if (avatarFile) {
+                const success = await uploadAvatar(avatarFile);
+                if (success) {
+                  setIsAvatarModalOpen(false);
+                  window.location.reload();
+                }
+              } else {
+                alert('Please select a file to upload.');
+              }
+            }}
+            secondary
+          >
+            Upload Avatar
+          </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={isDeleteAvatarModalOpen} onClose={() => setIsDeleteAvatarModalOpen(false)}>
+        <div className="settings-confirm-modal">
+          <h2>Confirm Remove Avatar</h2>
+          <p>Are you sure you want to remove your avatar? This action cannot be undone.</p>
+          <Button onClick={() => setIsDeleteAvatarModalOpen(false)}>Cancel</Button>
+          <Button
+            onClickAsync={async () => {
+              const success = await removeAvatar();
+              if (success) {
+                setIsDeleteAvatarModalOpen(false);
+              }
+            }}
+            secondary
+          >
+            Confirm
           </Button>
         </div>
       </Modal>

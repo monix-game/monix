@@ -4,6 +4,7 @@ export interface LeaderboardEntry {
   rank: number;
   username: string;
   money: number;
+  avatar?: string;
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[] | null> {

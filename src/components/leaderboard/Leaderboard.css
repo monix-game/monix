@@ -63,6 +63,13 @@
   border: 2px solid var(--primary-1);
 }
 
+.podium-avatar-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  padding: 5px;
+}
+
 .podium-money {
   font-size: 1em;
   color: var(--text-muted);

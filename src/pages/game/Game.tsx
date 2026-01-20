@@ -198,7 +198,10 @@ export default function Game() {
         <div className="spacer" />
         <div className="user-info">
           <div className="username-info">
-            <IconUser size={24} />
+            {user?.avatar_data_uri && (
+              <img src={user.avatar_data_uri} alt="User Avatar" className="user-avatar" />
+            )}
+            {!user?.avatar_data_uri && <IconUser size={24} />}
             <span className="username">{user ? user.username : 'User'}</span>
             {userRole !== null && userRole !== 'user' && (
               <span className={`badge ${userRole}`}>{userRoleFormatted}</span>

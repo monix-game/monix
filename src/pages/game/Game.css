@@ -93,6 +93,14 @@ html[data-theme='dark'] .app-logo-light {
   vertical-align: middle;
 }
 
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
 .username-info .username {
   font-weight: 600;
   font-size: 1rem;
@@ -155,7 +163,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 

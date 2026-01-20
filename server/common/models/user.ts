@@ -13,6 +13,7 @@ export interface IUser {
   money: number;
   totp_secret?: string;
   setup_totp?: boolean;
+  avatar_data_uri?: string;
   resources: { [key: string]: number };
 }
 
@@ -24,9 +25,10 @@ export function userToDoc(u: IUser): IUser {
     role: u.role,
     time_created: u.time_created,
     settings: u.settings,
-    money: u.money || 0,
+    money: u.money,
     totp_secret: u.totp_secret,
     setup_totp: u.setup_totp,
+    avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
   };
 }
@@ -43,6 +45,7 @@ export function userFromDoc(doc: any): IUser {
     money: doc.money || 0,
     totp_secret: doc.totp_secret || undefined,
     setup_totp: doc.setup_totp || false,
+    avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
   };
 }

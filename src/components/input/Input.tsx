@@ -29,6 +29,24 @@ export const Input: React.FC<InputProps> = ({
   const [value, setValue] = React.useState<string>('');
   const [errorText, setErrorText] = React.useState<string>(error || '');
 
+  const isFileInput = props.type === 'file';
+
+  // For file inputs we must not control `value` nor override the parent's `onChange`.
+  if (isFileInput) {
+    return (
+      <div className={`input ${className || ''}`}>
+        {label && <span className="input-label">{label}</span>}
+        <input {...props} className={`input-inner ${color}`} disabled={disabled} />
+        {errorText && (
+          <span className="input-label">
+            <IconX size={15} className="icon" />
+            <span>{errorText}</span>
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`input ${className || ''}`}>
       {label && <span className="input-label">{label}</span>}

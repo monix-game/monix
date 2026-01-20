@@ -5,7 +5,7 @@ import { api } from './api';
 
 export async function userNeeds2FA(username: string, password: string): Promise<boolean> {
   try {
-    const resp = await api.post<{ needs_2fa: boolean }>('/auth/needs-2fa', {
+    const resp = await api.post<{ needs_2fa: boolean }>('/user/needs-2fa', {
       username,
       password,
     });
@@ -28,7 +28,7 @@ export async function login(
   twoFACode?: string
 ): Promise<boolean> {
   try {
-    const resp = await api.post<{ session: ISession }>('/auth/login', {
+    const resp = await api.post<{ session: ISession }>('/user/login', {
       username,
       password,
       token: twoFACode,
@@ -49,7 +49,7 @@ export async function login(
 
 export async function register(username: string, password: string): Promise<boolean> {
   try {
-    const resp = await api.post('/auth/register', {
+    const resp = await api.post('/user/register', {
       username,
       password,
     });
@@ -62,7 +62,7 @@ export async function register(username: string, password: string): Promise<bool
 
 export async function fetchUser(): Promise<IUser | null> {
   try {
-    const resp = await api.get<{ user: IUser }>('/auth/user');
+    const resp = await api.get<{ user: IUser }>('/user/user');
     if (resp && resp.success) {
       const payload = resp.data;
       if (payload && payload.user) {
@@ -78,7 +78,7 @@ export async function fetchUser(): Promise<IUser | null> {
 
 export async function setup2FA(): Promise<string | null> {
   try {
-    const resp = await api.post<{ uri: string }>('/auth/setup-2fa');
+    const resp = await api.post<{ uri: string }>('/user/setup-2fa');
     if (resp && resp.success) {
       const payload = resp.data;
       if (payload && payload.uri) {
@@ -94,7 +94,7 @@ export async function setup2FA(): Promise<string | null> {
 
 export async function finish2FA(token: string): Promise<boolean> {
   try {
-    const resp = await api.post('/auth/finish-2fa', { token });
+    const resp = await api.post('/user/finish-2fa', { token });
     return resp.success;
   } catch (err) {
     console.error('Error finishing 2FA setup', err);
@@ -104,10 +104,46 @@ export async function finish2FA(token: string): Promise<boolean> {
 
 export async function remove2FA(token: string): Promise<boolean> {
   try {
-    const resp = await api.post('/auth/remove-2fa', { token });
+    const resp = await api.post('/user/remove-2fa', { token });
     return resp.success;
   } catch (err) {
     console.error('Error removing 2FA', err);
+    return false;
+  }
+}
+
+export async function uploadAvatar(file: File): Promise<boolean> {
+  try {
+    // Convert file to data URI
+    const reader = new FileReader();
+    const dataURI: string = await new Promise((resolve, reject) => {
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to read file as data URI'));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Error reading file'));
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const resp = await api.post('/user/upload/avatar', { avatar_url: dataURI });
+    return resp.success;
+  } catch (err) {
+    console.error('Error uploading avatar', err);
+    return false;
+  }
+}
+
+export async function removeAvatar(): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/remove/avatar');
+    return resp.success;
+  } catch (err) {
+    console.error('Error removing avatar', err);
     return false;
   }
 }
@@ -121,7 +157,7 @@ export function logOut() {
 
 export async function logoutEverywhere(): Promise<boolean> {
   try {
-    const resp = await api.post('/auth/logout');
+    const resp = await api.post('/user/logout');
     if (resp && resp.success) {
       logOut();
       return true;
@@ -135,7 +171,7 @@ export async function logoutEverywhere(): Promise<boolean> {
 
 export async function deleteAccount(): Promise<boolean> {
   try {
-    const resp = await api.post('/auth/delete');
+    const resp = await api.post('/user/delete');
     if (resp && resp.success) {
       logOut();
       return true;

@@ -3,6 +3,7 @@ import './Leaderboard.css';
 import { fetchLeaderboard, type LeaderboardEntry } from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
 import { getOrdinalSuffix, getPodiumLevel } from '../../helpers/utils';
+import { IconUser } from '@tabler/icons-react';
 
 export const Leaderboard: React.FC = () => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
@@ -41,7 +42,10 @@ export const Leaderboard: React.FC = () => {
                   {entry.rank}
                   {getOrdinalSuffix(entry.rank)}
                 </span>
-                <img src="https://picsum.photos/100" alt="User Avatar" className="podium-avatar" />
+                {entry.avatar && (
+                  <img src={entry.avatar} alt="User Avatar" className="podium-avatar" />
+                )}
+                {!entry.avatar && <IconUser size={64} className="podium-avatar-placeholder" />}
                 <span className="podium-user">{entry.username}</span>
                 <span className="podium-money">${entry.money.toLocaleString()}</span>
               </div>

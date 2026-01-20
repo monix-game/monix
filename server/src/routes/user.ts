@@ -184,7 +184,7 @@ router.post('/logout', requireAuth, async (req: Request, res: Response) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
 
-  if (!authUser) return res.status(400).json({ error: 'No active user found' });
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
 
   await deleteSessionsByUserUUID(authUser.uuid);
 
@@ -195,7 +195,7 @@ router.post('/delete', requireAuth, async (req: Request, res: Response) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
 
-  if (!authUser) return res.status(400).json({ error: 'No active user found' });
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
 
   // Deleting user sessions
   await deleteSessionsByUserUUID(authUser.uuid);
@@ -207,6 +207,41 @@ router.post('/delete', requireAuth, async (req: Request, res: Response) => {
   await deleteUserByUUID(authUser.uuid);
 
   return res.status(200).json({ message: 'User account deleted successfully' });
+});
+
+router.post('/upload/avatar', requireAuth, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  const { avatar_url } = (req.body as { avatar_url?: string }) || {};
+
+  if (!avatar_url) return res.status(400).json({ error: 'Missing avatar URL' });
+
+  // Simple URL validation
+  try {
+    new URL(avatar_url);
+  } catch {
+    return res.status(400).json({ error: 'Invalid avatar URL' });
+  }
+
+  authUser.avatar_data_uri = avatar_url;
+  await updateUser(authUser);
+
+  return res.status(200).json({ message: 'Avatar updated successfully' });
+});
+
+router.post('/remove/avatar', requireAuth, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  authUser.avatar_data_uri = undefined;
+  await updateUser(authUser);
+
+  return res.status(200).json({ message: 'Avatar removed successfully' });
 });
 
 export default router;
