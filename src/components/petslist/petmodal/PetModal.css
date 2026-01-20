@@ -86,6 +86,12 @@
   gap: 4px;
 }
 
+.pet-modal-sleeping {
+  font-size: 1rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .pet-modal-stat {
   display: flex;
   flex-direction: row;

@@ -8,7 +8,11 @@ import {
   canFeedPet,
   canLevelUpPet,
   canPlayWithPet,
+  dailySleepPeriod,
   expRequiredForLevel,
+  formatSleepRemainder,
+  formatTimeUntilSleep,
+  isPetAsleep,
 } from '../../../../server/common/pet';
 import { petTypes } from '../../../../server/common/petTypes';
 import {
@@ -126,6 +130,11 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
               </div>
             </div>
             <div className="pet-modal-stats">
+              <span className="pet-modal-sleeping">
+                {isPetAsleep(pet) &&
+                  `💤 Sleeping for ${formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}`}
+                {!isPetAsleep(pet) && `😄 Sleeping in ${formatTimeUntilSleep(pet.uuid)}`}
+              </span>
               <div className="pet-modal-stat">
                 <span className="pet-modal-stat-label">Happiness:</span>
                 <span className="pet-modal-stat-value">{happiness}%</span>

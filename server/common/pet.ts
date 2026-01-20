@@ -71,3 +71,103 @@ export function canPlayWithPet(pet: IPet): boolean {
   const fiveMinutes = 5 * 60 * 1000;
   return now - pet.time_last_played >= fiveMinutes;
 }
+
+function fnv1a32(str: string): number {
+  let h = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0; // multiply by FNV prime
+  }
+  return h >>> 0;
+}
+
+/** Mulberry32 PRNG - returns function that yields deterministic pseudorandom numbers in [0,1). */
+function mulberry32(seed: number) {
+  let t = seed >>> 0;
+  return function () {
+    t = (t + 0x6d2b79f5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export type PetSleepPeriod = {
+  start: Date;
+  durationMinutes: number;
+  end: Date;
+};
+
+export function dailySleepPeriod(dayDate: Date, uuid: string): PetSleepPeriod {
+  const year = dayDate.getUTCFullYear();
+  const month = dayDate.getUTCMonth(); // 0..11
+  const day = dayDate.getUTCDate(); // 1..31
+
+  // Build a key like "2026-1-20"
+  const key = `${year}-${month + 1}-${day}-${uuid}`;
+
+  // Seed PRNG deterministically from the date key
+  const seed = fnv1a32(key);
+  const rng = mulberry32(seed);
+
+  // Duration: integer minutes in [10, 45] inclusive (36 possible values)
+  const durationMinutes = 10 + Math.floor(rng() * 36);
+
+  // Start minute within the day such that the nap ends on the same calendar day
+  const latestStartMinute = 24 * 60 - durationMinutes; // inclusive
+  const startMinute = Math.floor(rng() * (latestStartMinute + 1));
+
+  // Build start Date at local midnight then add minutes
+  const start = new Date(year, month, day, 0, 0, 0, 0);
+  start.setMinutes(start.getMinutes() + startMinute);
+
+  const end = new Date(start.getTime() + durationMinutes * 60_000);
+
+  return { start, durationMinutes, end };
+}
+
+export function formatSleepRemainder(sleepPeriod: PetSleepPeriod): string {
+  const now = new Date();
+
+  // Return string like "12m30s remaining"
+  const remainingMs = sleepPeriod.end.getTime() - now.getTime();
+  const remainingMinutes = Math.floor(remainingMs / 60000);
+  const remainingSeconds = Math.floor((remainingMs % 60000) / 1000);
+
+  let remainingStr = '';
+  if (remainingMinutes > 0) {
+    remainingStr += `${remainingMinutes}m`;
+  }
+  remainingStr += `${remainingSeconds}s`;
+
+  return remainingStr;
+}
+
+export function formatTimeUntilSleep(uuid: string) {
+  // Get today's sleep period, if already slept today, get tomorrow's
+  const now = new Date();
+  let sleepPeriod = dailySleepPeriod(now, uuid);
+  if (now >= sleepPeriod.end) {
+    // Already slept today, get tomorrow's
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    sleepPeriod = dailySleepPeriod(tomorrow, uuid);
+  }
+
+  // Return string like "in 3h15m"
+  const timeUntilMs = sleepPeriod.start.getTime() - now.getTime();
+  const hours = Math.floor(timeUntilMs / 3600000);
+  const minutes = Math.floor((timeUntilMs % 3600000) / 60000);
+
+  let result = '';
+  if (hours > 0) {
+    result += `${hours}h`;
+  }
+  result += `${minutes}m`;
+
+  return result;
+}
+
+export function isPetAsleep(pet: IPet, now: Date = new Date()): boolean {
+  const sleepPeriod = dailySleepPeriod(now, pet.uuid);
+  return now >= sleepPeriod.start && now < sleepPeriod.end;
+}

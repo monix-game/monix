@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware';
 import {
   createPet,
   deletePetByUUID,
+  getPetByUUID,
   getPetsByOwnerUUID,
   getUserByUUID,
   updatePet,
@@ -12,7 +13,13 @@ import { type IUser } from '../../common/models/user';
 import { type IPet, petToDoc } from '../../common/models/pet';
 import { petTypes } from '../../common/petTypes';
 import { v4 } from 'uuid';
-import { calculateHunger, canFeedPet, canLevelUpPet, canPlayWithPet } from '../../common/pet';
+import {
+  calculateHunger,
+  canFeedPet,
+  canLevelUpPet,
+  canPlayWithPet,
+  isPetAsleep,
+} from '../../common/pet';
 
 const router = Router();
 
@@ -170,8 +177,7 @@ router.post('/name', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_uuid or name' });
   }
 
-  const pets = await getPetsByOwnerUUID(user_uuid);
-  const pet = pets.find(p => p.uuid === pet_uuid);
+  const pet = await getPetByUUID(pet_uuid);
 
   if (!pet) {
     return res.status(404).json({ error: 'Pet not found' });
@@ -216,8 +222,7 @@ router.post('/feed', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_uuid' });
   }
 
-  const pets = await getPetsByOwnerUUID(user_uuid);
-  const pet = pets.find(p => p.uuid === pet_uuid);
+  const pet = await getPetByUUID(pet_uuid);
 
   if (!pet) {
     return res.status(404).json({ error: 'Pet not found' });
@@ -233,6 +238,11 @@ router.post('/feed', requireAuth, async (req, res) => {
   // Check if the pet has been fed in the last 5 minutes
   if (!canFeedPet(pet)) {
     return res.status(400).json({ error: 'You can only feed your pet once every 5 minutes' });
+  }
+
+  // Check if the pet is asleep
+  if (isPetAsleep(pet)) {
+    return res.status(400).json({ error: 'Cannot feed the pet while it is asleep' });
   }
 
   // Deduct the money from the user
@@ -268,8 +278,7 @@ router.post('/play', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_uuid' });
   }
 
-  const pets = await getPetsByOwnerUUID(user_uuid);
-  const pet = pets.find(p => p.uuid === pet_uuid);
+  const pet = await getPetByUUID(pet_uuid);
 
   if (!pet) {
     return res.status(404).json({ error: 'Pet not found' });
@@ -278,6 +287,11 @@ router.post('/play', requireAuth, async (req, res) => {
   // Check if the user has played in the last 5 minutes
   if (!canPlayWithPet(pet)) {
     return res.status(400).json({ error: 'You can only play with your pet once every 5 minutes' });
+  }
+
+  // Check if the pet is asleep
+  if (isPetAsleep(pet)) {
+    return res.status(400).json({ error: 'Cannot play with the pet while it is asleep' });
   }
 
   // Update the pet's last played time
@@ -309,15 +323,14 @@ router.post('/release', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_uuid' });
   }
 
-  const pets = await getPetsByOwnerUUID(user_uuid);
-  const petIndex = pets.findIndex(p => p.uuid === pet_uuid);
+  const pet = await getPetByUUID(pet_uuid);
 
-  if (petIndex === -1) {
+  if (!pet) {
     return res.status(404).json({ error: 'Pet not found' });
   }
 
   // If the pet is dead, it costs 500 to release
-  if (pets[petIndex].is_dead) {
+  if (pet.is_dead) {
     const releaseCost = 500;
     if ((user.money || 0) < releaseCost) {
       return res.status(400).json({ error: 'Insufficient funds to release the pet' });
@@ -327,7 +340,7 @@ router.post('/release', requireAuth, async (req, res) => {
   }
 
   // Remove the pet from the database
-  await deletePetByUUID(pet_uuid);
+  await deletePetByUUID(pet.uuid);
 
   return res.status(200).json({
     message: 'Pet released successfully',
@@ -349,11 +362,14 @@ router.post('/revive', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_uuid' });
   }
 
-  const pets = await getPetsByOwnerUUID(user_uuid);
-  const petIndex = pets.findIndex(p => p.uuid === pet_uuid);
+  const pet = await getPetByUUID(pet_uuid);
 
-  if (petIndex === -1) {
+  if (!pet) {
     return res.status(404).json({ error: 'Pet not found' });
+  }
+
+  if (!pet.is_dead) {
+    return res.status(400).json({ error: 'Pet is not dead' });
   }
 
   // It costs 100,000 to revive a pet
@@ -365,8 +381,8 @@ router.post('/revive', requireAuth, async (req, res) => {
   await updateUser(user);
 
   // Revive the pet
-  pets[petIndex].is_dead = false;
-  await updatePet(pets[petIndex]);
+  pet.is_dead = false;
+  await updatePet(pet);
 
   return res.status(200).json({
     message: 'Pet revived successfully',
@@ -388,8 +404,7 @@ router.post('/levelup', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_uuid' });
   }
 
-  const pets = await getPetsByOwnerUUID(user_uuid);
-  const pet = pets.find(p => p.uuid === pet_uuid);
+  const pet = await getPetByUUID(pet_uuid);
 
   if (!pet) {
     return res.status(404).json({ error: 'Pet not found' });

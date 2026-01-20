@@ -5,7 +5,11 @@ import { petTypes } from '../../../../server/common/petTypes';
 import {
   calculateHappiness,
   calculateHunger,
+  dailySleepPeriod,
   expRequiredForLevel,
+  formatSleepRemainder,
+  formatTimeUntilSleep,
+  isPetAsleep,
 } from '../../../../server/common/pet';
 import type { IPet } from '../../../../server/common/models/pet';
 import { smartFormatNumber } from '../../../helpers/utils';
@@ -51,6 +55,11 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
             </div>
           </div>
           <div className="pet-stats">
+            <span className="pet-sleeping">
+              {isPetAsleep(pet) &&
+                `💤 Sleeping for ${formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}`}
+              {!isPetAsleep(pet) && `😄 Sleeping in ${formatTimeUntilSleep(pet.uuid)}`}
+            </span>
             <div className="pet-stat">
               <span className="pet-stat-label">Happiness:</span>
               <span className="pet-stat-value">{happiness}%</span>
