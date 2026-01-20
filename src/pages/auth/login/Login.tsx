@@ -150,7 +150,7 @@ export default function Login() {
             </div>
 
             <span className="auth-note">
-              Already have an account? <a href="/auth/login">Login here</a>
+              Don't have an account? <a href="/auth/register">Register here</a>
             </span>
           </div>
         )}
