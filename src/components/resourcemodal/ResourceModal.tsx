@@ -83,7 +83,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
               <Input
                 type="number"
                 min="1"
-                value={marketQuantity === 0 ? '' : marketQuantity}
+                value={marketQuantity === 0 ? '' : marketQuantity.toString()}
                 placeholder="Quantity to buy"
                 className="market-input"
                 onValueChange={value => setMarketQuantity(Number(value))}
@@ -139,7 +139,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   <Input
                     type="number"
                     min="1"
-                    value={marketQuantity === 0 ? '' : marketQuantity}
+                    value={marketQuantity === 0 ? '' : marketQuantity.toString()}
                     max={quantity}
                     placeholder="Quantity to sell"
                     className="market-input"
