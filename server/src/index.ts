@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './db';
 import Stripe from 'stripe';
+import Filter from '../common/filter/filter';
 
 dotenv.config();
 
@@ -23,6 +24,8 @@ export const PRICE_ID_GEMS_PACK_500 = process.env.PRICE_ID_GEMS_PACK_500 || '';
 export const PRICE_ID_GEMS_PACK_1000 = process.env.PRICE_ID_GEMS_PACK_1000 || '';
 
 export const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-12-15.clover' });
+
+export const profanityFilter = new Filter();
 
 import userRouter from './routes/user';
 import marketRouter from './routes/market';

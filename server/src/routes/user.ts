@@ -13,7 +13,7 @@ import { ISession, sessionToDoc } from '../../common/models/session';
 import crypto from 'crypto';
 import { v4 } from 'uuid';
 import { requireAuth } from '../middleware';
-import { SESSION_EXPIRES_IN } from '../index';
+import { SESSION_EXPIRES_IN, profanityFilter } from '../index';
 import { DEFAULT_SETTINGS } from '../../common/models/settings';
 import { createSecret, getTOTPURI, verifyTOTPToken } from '../helpers/totp';
 
@@ -40,6 +40,11 @@ router.post('/register', async (req: Request, res: Response) => {
   // Make sure password is at least 6 characters
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+  }
+
+  // Make sure the username isn't profane
+  if (profanityFilter.isProfane(username)) {
+    return res.status(400).json({ error: 'Username contains inappropriate language' });
   }
 
   const password_hash = crypto.createHash('sha256').update(String(password)).digest('hex');

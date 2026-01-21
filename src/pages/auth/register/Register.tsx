@@ -5,6 +5,7 @@ import { AnimatedBackground, Button, Footer, Input } from '../../../components';
 import { useEffect, useState } from 'react';
 import { isSignedIn, register } from '../../../helpers/auth';
 import { currentTheme } from '../../../helpers/theme';
+import Filter from '../../../../server/common/filter/filter';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -84,8 +85,13 @@ export default function Register() {
                 placeholder="U$3RN4M3"
                 onValueChange={handleUsernameChange}
                 value={username}
-                predicate={text => /^[a-zA-Z0-9_]{3,15}$/.test(text)}
-                predicateText="Username must be 3-15 characters and can only contain letters, numbers, and underscores"
+                predicate={text => {
+                  const regex = /^[a-zA-Z0-9_]{3,15}$/;
+                  const valid = regex.test(text);
+                  const isProfane = new Filter().isProfane(text);
+                  return valid && !isProfane;
+                }}
+                predicateText="Username must be 3-15 characters, can only contain letters, numbers, and underscores, and must not contain inappropriate language"
               ></Input>
               <Input
                 label="Password"

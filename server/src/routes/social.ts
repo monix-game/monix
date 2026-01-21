@@ -10,6 +10,7 @@ import { requireAuth } from '../middleware';
 import { IMessage, messageToDoc } from '../../common/models/message';
 import { v4 } from 'uuid';
 import { roomToDoc } from '../../common/models/room';
+import { profanityFilter } from '../index';
 
 const router = Router();
 
@@ -46,13 +47,16 @@ router.post('/send', requireAuth, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to send messages in this room' });
   }
 
+  // Censor the message content
+  const censoredContent = profanityFilter.censorText(content);
+
   const message: IMessage = {
     uuid: v4(),
     sender_uuid: user.uuid,
     sender_username: user.username,
     sender_role: user.role,
     room_uuid,
-    content,
+    content: censoredContent,
     time_sent: Date.now(),
     edited: false,
   };
