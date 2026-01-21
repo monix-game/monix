@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
 
-const ROLE_HIERARCHY = ['admin', 'game_mod', 'social_mod', 'helper'];
+const ROLE_HIERARCHY = ['owner', 'admin', 'game_mod', 'social_mod', 'helper'];
 const SUBSCRIPTION_HIERARCHY = ['pro', 'plus'];
 
 async function authenticateRequest(req: Request, res: Response) {

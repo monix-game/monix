@@ -117,16 +117,21 @@ html[data-theme='dark'] .app-logo-light {
 }
 
 .badge.social-mod {
+  background-color: var(--primary-1);
+  border: 2px solid var(--primary-2);
+}
+
+.badge.game-mod {
   background-color: var(--blue-1);
   border: 2px solid var(--blue-2);
 }
 
-.badge.game-mod {
+.badge.admin {
   background-color: var(--purple-1);
   border: 2px solid var(--purple-2);
 }
 
-.badge.admin {
+.badge.owner {
   background-color: var(--red-1);
   border: 2px solid var(--red-2);
 }

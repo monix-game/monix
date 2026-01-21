@@ -7,7 +7,7 @@ export interface IUser {
   uuid: string;
   username: string;
   password_hash: string;
-  role: 'admin' | 'game_mod' | 'social_mod' | 'helper' | 'user';
+  role: 'owner' | 'admin' | 'game_mod' | 'social_mod' | 'helper' | 'user';
   time_created: number;
   settings: ISettings;
   money: number;
