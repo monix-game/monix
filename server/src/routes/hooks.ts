@@ -23,7 +23,7 @@ const PRICE_IDS: { [key: string]: string } = {
   gems_pack_1000: PRICE_ID_GEMS_PACK_1000,
 };
 
-router.get('/stripe', async (req, res) => {
+router.post('/stripe', async (req, res) => {
   const payload = req.body as string;
   const sig = req.headers['stripe-signature'] as string;
 
@@ -84,6 +84,9 @@ router.post('/session', async (req, res) => {
   }
 
   const priceId = PRICE_IDS[item];
+  if (!priceId) {
+    return res.status(500).json({ error: 'Price ID not configured for this item' });
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
