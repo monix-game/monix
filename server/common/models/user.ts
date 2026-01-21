@@ -19,7 +19,6 @@ export interface IUser {
   payment?: {
     current_subscription?: 'plus' | 'pro' | null;
     subscription_expires_at?: number;
-    customer_id?: string;
   };
 }
 

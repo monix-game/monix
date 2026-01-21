@@ -1,0 +1,51 @@
+.payment-container {
+  width: 100%;
+  height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.payment-island {
+  position: relative;
+  z-index: 1;
+  background-color: var(--bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.payment-island-header {
+  padding-bottom: 10px;
+  border-bottom: 2px dotted var(--primary-2);
+}
+
+.payment-island-header h1 {
+  text-align: center;
+}
+
+.payment-logo-container {
+  display: flex;
+  justify-content: center;
+}
+
+.payment-logo-container img {
+  width: 150px;
+}
+
+.payment-island-main {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.payment-island-subtitle {
+  margin-bottom: 15px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}

@@ -7,6 +7,7 @@ import resourcesRouter from './routes/resources';
 import petsRouter from './routes/pets';
 import settingsRouter from './routes/settings';
 import leaderboardRouter from './routes/leaderboard';
+import hooksRouter from './routes/hooks';
 import { connectDB } from './db';
 
 dotenv.config();
@@ -21,6 +22,11 @@ export const CORS_ORIGINS = rawOrigins
 
 export const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/monix';
 export const SESSION_EXPIRES_IN = Number(process.env.SESSION_EXPIRES_IN || 172800); // default 2 days
+export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
+export const PRICE_ID_GEMS_PACK_100 = process.env.PRICE_ID_GEMS_PACK_100 || '';
+export const PRICE_ID_GEMS_PACK_500 = process.env.PRICE_ID_GEMS_PACK_500 || '';
+export const PRICE_ID_GEMS_PACK_1000 = process.env.PRICE_ID_GEMS_PACK_1000 || '';
 
 const app = express();
 app.use(express.json());
@@ -47,6 +53,7 @@ app.use('/api/resources', resourcesRouter);
 app.use('/api/pets', petsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/leaderboard', leaderboardRouter);
+app.use('/api/hooks', hooksRouter);
 
 async function start() {
   await connectDB(MONGO_URI);
