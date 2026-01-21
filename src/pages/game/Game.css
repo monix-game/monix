@@ -132,6 +132,12 @@ html[data-theme='dark'] .app-logo-light {
 }
 
 .user-money {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.user-money div {
   font-size: 1rem;
   font-weight: 500;
   display: flex;
@@ -163,7 +169,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 
@@ -185,6 +191,14 @@ html[data-theme='dark'] .app-logo-light {
   padding: 10px 15px;
   border: 2px solid var(--primary-1);
   border-radius: var(--border-radius);
+}
+
+.gem-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  width: 75%;
 }
 
 .tab-content h2 {

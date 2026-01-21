@@ -12,6 +12,7 @@ import {
   PetsList,
   Settings,
   Leaderboard,
+  GemCard,
 } from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -20,6 +21,7 @@ import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resour
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
 import { smartFormatNumber } from '../../helpers/utils';
+import { createPaymentSession } from '../../helpers/payments';
 
 export default function Game() {
   const [totalNetWorth, setTotalNetWorth] = useState<number>(0);
@@ -34,6 +36,7 @@ export default function Game() {
     | 'relics'
     | 'council'
     | 'leaderboard'
+    | 'gems'
     | 'settings'
   >('money');
   const [user, setUser] = useState<IUser | null>(null);
@@ -170,6 +173,7 @@ export default function Game() {
               { key: 'relics', label: '🦴 Relics' },
               { key: 'council', label: '🏛️ Council' },
               { key: 'leaderboard', label: '🏆 Leaderboard' },
+              { key: 'gems', label: '💎 Gems' },
               { key: 'settings', label: '⚙️ Settings' },
             ] as const;
 
@@ -208,8 +212,14 @@ export default function Game() {
             )}
           </div>
           <div className="user-money">
-            <EmojiText>💰 </EmojiText>
-            <span className="money-amount mono">{smartFormatNumber(user?.money || 0)}</span>
+            <div>
+              <EmojiText>💰 </EmojiText>
+              <span className="money-amount mono">{smartFormatNumber(user?.money || 0)}</span>
+            </div>
+            <div>
+              <EmojiText>💎 </EmojiText>
+              <span className="money-amount mono">{smartFormatNumber(user?.gems || 0, false)}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -295,6 +305,43 @@ export default function Game() {
         {tab === 'leaderboard' && (
           <div className="tab-content">
             <Leaderboard />
+          </div>
+        )}
+        {tab === 'gems' && (
+          <div className="tab-content">
+            <h2>Gems Store</h2>
+            <div className="gem-card-list">
+              <GemCard
+                amount={100}
+                price="A$1.00"
+                onClickAsync={async () => {
+                  const url = await createPaymentSession('gems_pack_100', user!.username);
+                  if (url) {
+                    window.location.href = url;
+                  }
+                }}
+              />
+              <GemCard
+                amount={500}
+                price="A$4.50"
+                onClickAsync={async () => {
+                  const url = await createPaymentSession('gems_pack_500', user!.username);
+                  if (url) {
+                    window.location.href = url;
+                  }
+                }}
+              />
+              <GemCard
+                amount={1000}
+                price="A$8.50"
+                onClickAsync={async () => {
+                  const url = await createPaymentSession('gems_pack_1000', user!.username);
+                  if (url) {
+                    window.location.href = url;
+                  }
+                }}
+              />
+            </div>
           </div>
         )}
         {tab === 'settings' && (

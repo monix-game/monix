@@ -1,0 +1,31 @@
+.gem-card {
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.gem-card-header img {
+  width: 100%;
+  height: auto;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.gem-card-body {
+  padding: 10px;
+}
+
+.gem-card-body-info {
+  margin: 10px 0;
+}
+
+.gem-amount {
+  font-size: 1.5em;
+  margin: 0;
+}
+
+.gem-price {
+  font-size: 1.2em;
+  color: var(--text-muted);
+  margin: 5px 0 0 0;
+}
