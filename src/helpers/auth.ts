@@ -130,8 +130,8 @@ export async function uploadAvatar(file: File): Promise<boolean> {
     canvas.width = size;
     canvas.height = size;
 
-    // Draw white background
-    ctx.fillStyle = '#FFFFFF';
+    // Draw transparent background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
     ctx.fillRect(0, 0, size, size);
 
     // Calculate aspect ratio and draw image centered
