@@ -1,13 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import userRouter from './routes/user';
-import marketRouter from './routes/market';
-import resourcesRouter from './routes/resources';
-import petsRouter from './routes/pets';
-import settingsRouter from './routes/settings';
-import leaderboardRouter from './routes/leaderboard';
-import hooksRouter from './routes/hooks';
 import { connectDB } from './db';
 import Stripe from 'stripe';
 
@@ -30,6 +23,14 @@ export const PRICE_ID_GEMS_PACK_500 = process.env.PRICE_ID_GEMS_PACK_500 || '';
 export const PRICE_ID_GEMS_PACK_1000 = process.env.PRICE_ID_GEMS_PACK_1000 || '';
 
 export const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-12-15.clover' });
+
+import userRouter from './routes/user';
+import marketRouter from './routes/market';
+import resourcesRouter from './routes/resources';
+import petsRouter from './routes/pets';
+import settingsRouter from './routes/settings';
+import leaderboardRouter from './routes/leaderboard';
+import hooksRouter from './routes/hooks';
 
 const app = express();
 app.use(express.json());
