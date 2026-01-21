@@ -2,11 +2,16 @@ import React, { useCallback, useEffect } from 'react';
 import './Social.css';
 import type { IRoom } from '../../../server/common/models/room';
 import { EmojiText } from '../EmojiText';
-import { getRoomMessages, sendMessage } from '../../helpers/social';
+import { getRoomMessages, reportMessage, sendMessage } from '../../helpers/social';
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
 import type { IUser } from '../../../server/common/models/user';
 import { formatRelativeTime, titleCase } from '../../helpers/utils';
+import { IconArrowBack, IconClipboard, IconFlag } from '@tabler/icons-react';
+import { Modal } from '../modal/Modal';
+import { Select } from '../select/Select';
+import { Button } from '../button/Button';
+import { punishXCategories } from '../../../server/common/punishx/categories';
 
 interface SocialProps {
   user: IUser;
@@ -18,6 +23,17 @@ interface SocialProps {
 export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) => {
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
+  const [contextMenu, setContextMenu] = React.useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    message?: IMessage | null;
+  }>({ visible: false, x: 0, y: 0, message: null });
+
+  const [isReportModalOpen, setIsReportModalOpen] = React.useState<boolean>(false);
+  const [reportedMessage, setReportedMessage] = React.useState<IMessage | null>(null);
+  const [reportReason, setReportReason] = React.useState<string>('');
+  const [reportDetails, setReportDetails] = React.useState<string>('');
 
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -59,6 +75,63 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     await fetchMessages();
   };
 
+  const reportMessageClick = async () => {
+    if (!reportedMessage) return;
+
+    await reportMessage(reportedMessage.uuid, reportReason, reportDetails);
+
+    // Close modal and clear state
+    setIsReportModalOpen(false);
+    setReportedMessage(null);
+    setReportReason('');
+    setReportDetails('');
+  };
+
+  // Context menu handlers
+  const onMessageContextMenu = (e: MouseEvent, msg: IMessage) => {
+    e.preventDefault();
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, message: msg });
+  };
+
+  const hideContextMenu = () => setContextMenu({ visible: false, x: 0, y: 0, message: null });
+
+  useEffect(() => {
+    const onClick = () => hideContextMenu();
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') hideContextMenu();
+    };
+    window.addEventListener('click', onClick);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('click', onClick);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    hideContextMenu();
+  };
+
+  const replyToMessage = (msg: IMessage) => {
+    setMessageInput(prev => `@${msg.sender_username} ${prev}`);
+    hideContextMenu();
+    // focus input: find the input element by class
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const el = document.querySelector('.social-message-input input') as HTMLInputElement | null;
+    if (el) el.focus();
+  };
+
   return (
     <div className="social-root">
       <div className="social-sidebar">
@@ -78,22 +151,23 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
         </div>
       </div>
       <div className="social-main">
-        <h2><EmojiText>{room.name}</EmojiText></h2>
+        <h2>
+          <EmojiText>{room.name}</EmojiText>
+        </h2>
         <div className="message-container" ref={messageContainerRef}>
           {messages.map(msg => (
             <div
               key={msg.uuid}
               className={`message-item ${msg.sender_uuid === user.uuid ? 'self' : ''}`}
+              onContextMenu={e => onMessageContextMenu(e.nativeEvent, msg)}
             >
               <div className="message-header">
                 <span className="message-sender">
                   <span className="message-username">{msg.sender_username}</span>
-                  {msg.sender_role ? (
+                  {msg.sender_role && (
                     <span className={`message-badge ${msg.sender_role.toLowerCase()}`}>
                       {titleCase(msg.sender_role)}
                     </span>
-                  ) : (
-                    ''
                   )}
                 </span>
                 <span className="message-timestamp">
@@ -105,6 +179,45 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               </div>
             </div>
           ))}
+          {contextMenu.visible && contextMenu.message && (
+            <div
+              className="context-menu"
+              style={{ left: contextMenu.x, top: contextMenu.y, position: 'fixed' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div
+                className="context-menu-item"
+                onClick={() => {
+                  void copyText(contextMenu.message!.content);
+                  hideContextMenu();
+                }}
+              >
+                <IconClipboard />
+                <span>Copy text</span>
+              </div>
+              <div
+                className="context-menu-item"
+                onClick={() => {
+                  replyToMessage(contextMenu.message!);
+                  hideContextMenu();
+                }}
+              >
+                <IconArrowBack />
+                <span>Reply</span>
+              </div>
+              <div
+                className="context-menu-item"
+                onClick={() => {
+                  setReportedMessage(contextMenu.message!);
+                  setIsReportModalOpen(true);
+                  hideContextMenu();
+                }}
+              >
+                <IconFlag />
+                <span>Report</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="social-main-bottom">
           <Input
@@ -120,6 +233,32 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           />
         </div>
       </div>
+
+      <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)}>
+        <div className="social-modal-content">
+          <h2>Report Message</h2>
+          <p>Please select a reason for reporting this message:</p>
+          <Select
+            value={reportReason}
+            onChange={value => setReportReason(value)}
+            options={punishXCategories.map(category => ({
+              value: category.id,
+              label: category.name,
+            }))}
+          />
+          <Input
+            placeholder="Additional details (optional)"
+            value={reportDetails}
+            onValueChange={value => setReportDetails(value)}
+          />
+          <div className="social-modal-actions">
+            <Button onClick={() => setIsReportModalOpen(false)}>Cancel</Button>
+            <Button color="red" onClickAsync={reportMessageClick}>
+              Submit Report
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

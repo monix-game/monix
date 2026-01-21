@@ -106,6 +106,14 @@ html[data-theme='dark'] .app-logo-light {
   font-size: 1rem;
 }
 
+.username-info .username.clickable {
+  cursor: pointer;
+}
+
+.username-info .username.clickable:hover {
+  text-decoration: underline;
+}
+
 .username-info .badge {
   background-color: var(--primary-1);
   color: var(--text);
@@ -174,7 +182,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 

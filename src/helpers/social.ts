@@ -52,3 +52,36 @@ export async function sendMessage(room_uuid: string, content: string): Promise<I
     return null;
   }
 }
+
+export async function reportMessage(
+  message_uuid: string,
+  reason: string,
+  details?: string
+): Promise<boolean> {
+  try {
+    const resp = await api.post('/social/report', {
+      message_uuid,
+      reason,
+      details,
+    });
+    return resp && resp.success;
+  } catch (err) {
+    console.error('Error reporting message', err);
+    return false;
+  }
+}
+
+export async function reviewReport(
+  report_uuid: string,
+  action: 'reviewed' | 'dismissed'
+): Promise<boolean> {
+  try {
+    const resp = await api.post(`/social/report/${report_uuid}/review`, {
+      action,
+    });
+    return resp && resp.success;
+  } catch (err) {
+    console.error('Error reviewing report', err);
+    return false;
+  }
+}

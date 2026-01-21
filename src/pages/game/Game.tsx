@@ -140,6 +140,7 @@ export default function Game() {
     if (!userData) window.location.href = '/auth/login';
 
     setUser(userData);
+    setUserRole(userData ? userData.role : 'user');
     setResourcesTotal(totalResources);
     setTotalNetWorth((userData?.money || 0) + totalResources);
     setSocialRooms(socialRooms);
@@ -154,16 +155,6 @@ export default function Game() {
     }, 1000);
     return () => clearInterval(interval);
   }, [updateEverything]);
-
-  useEffect(() => {
-    void fetchUser().then(userData => {
-      setUser(userData);
-
-      const role = userData ? userData.role : 'user';
-
-      setUserRole(role);
-    });
-  }, []);
 
   return (
     <div className="app-container">
@@ -217,7 +208,16 @@ export default function Game() {
               <img src={user.avatar_data_uri} alt="User Avatar" className="user-avatar" />
             )}
             {!user?.avatar_data_uri && <IconUser size={24} />}
-            <span className="username">{user ? user.username : 'User'}</span>
+            <span
+              className={`username ${user?.role !== 'user' ? 'clickable' : ''}`}
+              onClick={() => {
+                if (user?.role !== 'user') {
+                  window.location.href = '/staff';
+                }
+              }}
+            >
+              {user ? user.username : 'User'}
+            </span>
             {userRole !== null && userRole !== 'user' && (
               <span className={`badge ${userRole}`}>{titleCase(userRole)}</span>
             )}

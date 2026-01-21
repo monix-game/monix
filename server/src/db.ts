@@ -4,6 +4,7 @@ import { ISession, sessionFromDoc, sessionToDoc } from '../common/models/session
 import { type IPet, petFromDoc, petToDoc } from '../common/models/pet';
 import { type IMessage, messageFromDoc, messageToDoc } from '../common/models/message';
 import { type IRoom, roomFromDoc, roomToDoc } from '../common/models/room';
+import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -189,4 +190,28 @@ export async function getAllRooms(): Promise<IRoom[]> {
   const database = ensureDB();
   const docs = await database.collection('rooms').find({}).toArray();
   return docs.map(roomFromDoc);
+}
+
+export async function createReport(report: IReport): Promise<void> {
+  const database = ensureDB();
+  await database.collection('reports').insertOne(reportToDoc(report));
+}
+
+export async function updateReport(report: IReport): Promise<void> {
+  const database = ensureDB();
+  await database
+    .collection('reports')
+    .updateOne({ uuid: report.uuid }, { $set: reportToDoc(report) });
+}
+
+export async function getReportByUUID(uuid: string): Promise<IReport | null> {
+  const database = ensureDB();
+  const doc = await database.collection('reports').findOne({ uuid });
+  return doc ? reportFromDoc(doc) : null;
+}
+
+export async function getAllReports(): Promise<IReport[]> {
+  const database = ensureDB();
+  const docs = await database.collection('reports').find({}).toArray();
+  return docs.map(reportFromDoc);
 }

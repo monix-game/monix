@@ -1,13 +1,14 @@
 import './App.css';
+import { applyTheme, initThemeListener } from './helpers/theme';
+import { loadSettings } from './helpers/settings';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Landing from './pages/landing/Landing';
 import Login from './pages/auth/login/Login';
 import Register from './pages/auth/register/Register';
 import Game from './pages/game/Game';
 import Success from './pages/payment/success/Success';
 import Cancel from './pages/payment/cancel/Cancel';
-import { applyTheme, initThemeListener } from './helpers/theme';
-import { loadSettings } from './helpers/settings';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Staff from './pages/staff/Staff';
 
 function App() {
   initThemeListener();
@@ -22,6 +23,7 @@ function App() {
         <Route path="/game" element={<Game />} />
         <Route path="/payment/success" element={<Success />} />
         <Route path="/payment/cancel" element={<Cancel />} />
+        <Route path="/staff" element={<Staff />} />
         <Route path="*" element={<Landing />} />
       </Routes>
     </BrowserRouter>

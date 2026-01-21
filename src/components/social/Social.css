@@ -150,3 +150,46 @@
 .message-content {
   white-space: pre-wrap;
 }
+
+.context-menu {
+  z-index: 9999;
+  background: var(--bg);
+  border: 2px solid var(--primary-2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: var(--border-radius);
+  min-width: 160px;
+}
+
+.context-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+  transition: 0.2s background;
+}
+
+.context-menu-item svg {
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+}
+
+.context-menu-item>* {
+  vertical-align: middle;
+}
+
+.context-menu-item:hover {
+  background: var(--primary-1);
+}
+
+.social-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+}
+
+.social-modal-actions {
+  display: flex;
+  gap: 10px;
+}
