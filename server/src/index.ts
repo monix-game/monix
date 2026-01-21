@@ -33,7 +33,19 @@ import leaderboardRouter from './routes/leaderboard';
 import hooksRouter from './routes/hooks';
 
 const app = express();
-app.use(express.json());
+
+// Make this ignore raw body for the /hooks/stripe endpoint
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      const url = req.url || '';
+      if (url.startsWith('/api/hooks/stripe')) {
+        // @ts-expect-error We need to set rawBody manually
+        req.rawBody = buf.toString();
+      }
+    },
+  })
+);
 
 // Configure CORS: allow all if '*' present, otherwise only listed origins.
 if (CORS_ORIGINS.includes('*')) {

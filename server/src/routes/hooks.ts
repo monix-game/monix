@@ -8,6 +8,7 @@ import {
 } from '../index';
 import { getUserByUsername, updateUser } from '../db';
 import Stripe from 'stripe';
+import express from 'express';
 
 const router = Router();
 
@@ -23,8 +24,9 @@ const PRICE_IDS: { [key: string]: string } = {
   gems_pack_1000: PRICE_ID_GEMS_PACK_1000,
 };
 
-router.post('/stripe', async (req, res) => {
-  const payload = req.body as string;
+router.post('/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  // @ts-expect-error We set rawBody in index.ts
+  const payload = req.rawBody as string;
   const sig = req.headers['stripe-signature'] as string;
 
   try {
