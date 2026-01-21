@@ -11,7 +11,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   predicate?: (text: string) => boolean;
   predicateText?: string;
   isPassword?: boolean;
-  value: string;
+  value?: string;
   className?: string;
 }
 
