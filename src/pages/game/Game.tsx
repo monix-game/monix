@@ -136,6 +136,9 @@ export default function Game() {
     const totalResources = await getTotalResourceValue();
     const userData = await fetchUser();
     const socialRooms = await getAllRooms();
+
+    if (!userData) window.location.href = '/auth/login';
+
     setUser(userData);
     setResourcesTotal(totalResources);
     setTotalNetWorth((userData?.money || 0) + totalResources);
