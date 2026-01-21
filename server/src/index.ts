@@ -9,6 +9,7 @@ import settingsRouter from './routes/settings';
 import leaderboardRouter from './routes/leaderboard';
 import hooksRouter from './routes/hooks';
 import { connectDB } from './db';
+import Stripe from 'stripe';
 
 dotenv.config();
 
@@ -27,6 +28,8 @@ export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 export const PRICE_ID_GEMS_PACK_100 = process.env.PRICE_ID_GEMS_PACK_100 || '';
 export const PRICE_ID_GEMS_PACK_500 = process.env.PRICE_ID_GEMS_PACK_500 || '';
 export const PRICE_ID_GEMS_PACK_1000 = process.env.PRICE_ID_GEMS_PACK_1000 || '';
+
+export const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-12-15.clover' });
 
 const app = express();
 app.use(express.json());

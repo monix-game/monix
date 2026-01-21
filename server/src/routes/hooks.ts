@@ -3,15 +3,13 @@ import {
   PRICE_ID_GEMS_PACK_100,
   PRICE_ID_GEMS_PACK_1000,
   PRICE_ID_GEMS_PACK_500,
-  STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET,
+  stripe,
 } from '../index';
-import Stripe from 'stripe';
 import { getUserByUsername, updateUser } from '../db';
+import Stripe from 'stripe';
 
 const router = Router();
-
-const stripe = new Stripe(STRIPE_SECRET_KEY);
 
 const GEMS_LOOKUP: { [key: string]: number } = {
   gems_pack_100: 100,

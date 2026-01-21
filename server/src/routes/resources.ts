@@ -43,7 +43,6 @@ router.get('/:resourceId', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-   
   const quantity = user.resources ? user.resources[resourceId as string] || 0 : 0;
 
   return res.status(200).json({ resourceId, quantity });
@@ -60,7 +59,6 @@ router.post('/:resourceId/buy', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-   
   const resourcePrice = generatePrice(resourceId as string, Math.floor(Date.now() / 1000));
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const quantityToBuy: number = Number(req.body.quantity || 0);
@@ -80,7 +78,7 @@ router.post('/:resourceId/buy', requireAuth, async (req, res) => {
   if (!user.resources) {
     user.resources = {};
   }
-   
+
   user.resources[resourceId as string] =
     (user.resources[resourceId as string] || 0) + quantityToBuy;
 
@@ -89,7 +87,7 @@ router.post('/:resourceId/buy', requireAuth, async (req, res) => {
   return res.status(200).json({
     message: 'Purchase successful',
     resourceId,
-     
+
     quantity: user.resources[resourceId as string],
     money: user.money,
   });
@@ -106,7 +104,6 @@ router.post('/:resourceId/sell', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-   
   const resourcePrice = generatePrice(resourceId as string, Math.floor(Date.now() / 1000));
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const quantityToSell: number = Number(req.body.quantity || 0);
@@ -116,14 +113,14 @@ router.post('/:resourceId/sell', requireAuth, async (req, res) => {
   }
 
   const totalValue = resourcePrice * quantityToSell;
-   
+
   const currentQuantity = user.resources ? user.resources[resourceId as string] || 0 : 0;
   if (user.resources === undefined || currentQuantity < quantityToSell) {
     return res.status(400).json({ error: 'Insufficient resources to sell' });
   }
 
   // Deduct resources and add balance
-   
+
   user.resources[resourceId as string] = currentQuantity - quantityToSell;
   user.money = (user.money || 0) + Number(totalValue.toFixed(2));
 
@@ -132,7 +129,7 @@ router.post('/:resourceId/sell', requireAuth, async (req, res) => {
   return res.status(200).json({
     message: 'Sale successful',
     resourceId,
-     
+
     quantity: user.resources[resourceId as string],
     money: user.money,
   });
