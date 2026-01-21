@@ -114,6 +114,59 @@ export async function remove2FA(token: string): Promise<boolean> {
 
 export async function uploadAvatar(file: File): Promise<boolean> {
   try {
+    // Convert file to 500x500 PNG
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    await new Promise((resolve, reject) => {
+      img.onload = () => resolve(true);
+      img.onerror = () => reject(new Error('Failed to load image'));
+    });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Failed to get canvas context');
+
+    const size = 500;
+    canvas.width = size;
+    canvas.height = size;
+
+    // Draw white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+
+    // Calculate aspect ratio and draw image centered
+    let drawWidth = size;
+    let drawHeight = size;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (img.width > img.height) {
+      drawHeight = (img.height / img.width) * size;
+      offsetY = (size - drawHeight) / 2;
+    } else {
+      drawWidth = (img.width / img.height) * size;
+      offsetX = (size - drawWidth) / 2;
+    }
+
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+    // Convert canvas to Blob
+    const blob: Blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        b => {
+          if (b) {
+            resolve(b);
+          } else {
+            reject(new Error('Failed to convert canvas to Blob'));
+          }
+        },
+        'image/png',
+        0.9
+      );
+    });
+
+    const processedFile = new File([blob], 'avatar.png', { type: 'image/png' });
+
     // Convert file to data URI
     const reader = new FileReader();
     const dataURI: string = await new Promise((resolve, reject) => {
@@ -127,7 +180,7 @@ export async function uploadAvatar(file: File): Promise<boolean> {
       reader.onerror = () => {
         reject(new Error('Error reading file'));
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
     });
 
     const resp = await api.post('/user/upload/avatar', { avatar_url: dataURI });
