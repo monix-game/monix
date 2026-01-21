@@ -16,13 +16,11 @@ export const GemCard: React.FC<GemCardProps> = ({ amount, price, onClickAsync })
         <img src={gemBanner} alt="Gem Banner" />
       </div>
       <div className="gem-card-body">
-        <div className="gem-card-body-info">
-          <h2 className="gem-amount">{amount} Gems</h2>
-          <span className="gem-price">{price}</span>
-        </div>
+        <h2 className="gem-amount">{amount} Gems</h2>
         <Button className="gem-card-button" onClickAsync={onClickAsync}>
           Buy Now
         </Button>
+        <span className="gem-price">{price}</span>
       </div>
     </div>
   );

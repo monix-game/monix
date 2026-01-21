@@ -194,11 +194,10 @@ html[data-theme='dark'] .app-logo-light {
 }
 
 .gem-card-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   margin-top: 20px;
-  width: 75%;
 }
 
 .tab-content h2 {
