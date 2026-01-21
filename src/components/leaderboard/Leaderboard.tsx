@@ -14,7 +14,10 @@ export const Leaderboard: React.FC = () => {
     async function loadLeaderboard() {
       const data = await fetchLeaderboard();
       if (data) {
-        setPodiumData(data.slice(0, 3));
+        const podium = data.slice(0, 3);
+        // Make the podium order be 2nd, 1st, 3rd
+        setPodiumData([podium[1], podium[0], podium[2]]);
+
         setListData(data.slice(3, 10));
 
         setHydrated(true);
