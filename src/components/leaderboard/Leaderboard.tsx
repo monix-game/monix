@@ -16,7 +16,7 @@ export const Leaderboard: React.FC = () => {
       if (data) {
         const podium = data.slice(0, 3);
         // Make the podium order be 2nd, 1st, 3rd
-        setPodiumData([podium[1], podium[0], podium[2]]);
+        setPodiumData([podium[1], podium[0], podium[2]].filter(entry => entry !== undefined));
 
         setListData(data.slice(3, 10));
 

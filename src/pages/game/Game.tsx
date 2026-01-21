@@ -13,6 +13,7 @@ import {
   Settings,
   Leaderboard,
   GemCard,
+  Social,
 } from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -20,13 +21,18 @@ import { fetchUser } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
-import { smartFormatNumber } from '../../helpers/utils';
+import { smartFormatNumber, titleCase } from '../../helpers/utils';
 import { createPaymentSession } from '../../helpers/payments';
+import type { IRoom } from '../../../server/common/models/room';
+import { getAllRooms } from '../../helpers/social';
 
 export default function Game() {
+  // Net worth states
   const [totalNetWorth, setTotalNetWorth] = useState<number>(0);
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
   const [aquariumTotal] = useState<number>(0);
+
+  // Game states
   const [tab, rawSetTab] = useState<
     | 'money'
     | 'resources'
@@ -35,20 +41,31 @@ export default function Game() {
     | 'pets'
     | 'relics'
     | 'council'
+    | 'social'
     | 'leaderboard'
     | 'gems'
+    | 'store'
     | 'settings'
   >('money');
+
+  // User states
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [userRoleFormatted, setUserRoleFormatted] = useState<string | null>(null);
+
+  // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
   const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
+
+  // Resource list states
   const [resourceListHydrated, setResourceListHydrated] = useState(false);
   const [sortedResources, setSortedResources] = useState<ResourceInfo[]>([]);
   const [resourcePrices, setResourcePrices] = useState<{ [key: string]: number }>({});
   const [resourceQuantities, setResourceQuantities] = useState<{ [key: string]: number }>({});
+
+  // Social states
+  const [socialRoom, setSocialRoom] = useState<string>('general');
+  const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -118,9 +135,11 @@ export default function Game() {
   const updateEverything = useCallback(async () => {
     const totalResources = await getTotalResourceValue();
     const userData = await fetchUser();
+    const socialRooms = await getAllRooms();
     setUser(userData);
     setResourcesTotal(totalResources);
     setTotalNetWorth((userData?.money || 0) + totalResources);
+    setSocialRooms(socialRooms);
   }, []);
 
   useEffect(() => {
@@ -134,25 +153,12 @@ export default function Game() {
   }, [updateEverything]);
 
   useEffect(() => {
-    const updateFormattedUserRole = (role: string) => {
-      let formatted = role.replace('_', ' ').trim();
-
-      // Title case the formatted role
-      formatted = formatted
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-
-      setUserRoleFormatted(formatted);
-    };
-
     void fetchUser().then(userData => {
       setUser(userData);
 
       const role = userData ? userData.role : 'user';
 
       setUserRole(role);
-      updateFormattedUserRole(role);
     });
   }, []);
 
@@ -172,8 +178,10 @@ export default function Game() {
               { key: 'pets', label: '🐶 Pets' },
               { key: 'relics', label: '🦴 Relics' },
               { key: 'council', label: '🏛️ Council' },
+              { key: 'social', label: '💬 Social' },
               { key: 'leaderboard', label: '🏆 Leaderboard' },
               { key: 'gems', label: '💎 Gems' },
+              { key: 'store', label: '🏬 Store' },
               { key: 'settings', label: '⚙️ Settings' },
             ] as const;
 
@@ -208,7 +216,7 @@ export default function Game() {
             {!user?.avatar_data_uri && <IconUser size={24} />}
             <span className="username">{user ? user.username : 'User'}</span>
             {userRole !== null && userRole !== 'user' && (
-              <span className={`badge ${userRole}`}>{userRoleFormatted}</span>
+              <span className={`badge ${userRole}`}>{titleCase(userRole)}</span>
             )}
           </div>
           <div className="user-money">
@@ -302,6 +310,16 @@ export default function Game() {
             <p>Content for Council will go here.</p>
           </div>
         )}
+        {tab === 'social' && (
+          <div className="tab-content">
+            <Social
+              room={socialRooms.find(r => r.uuid === socialRoom)!}
+              setRoom={room => setSocialRoom(room.uuid)}
+              rooms={socialRooms}
+              user={user!}
+            />
+          </div>
+        )}
         {tab === 'leaderboard' && (
           <div className="tab-content">
             <Leaderboard />
@@ -342,6 +360,12 @@ export default function Game() {
                 }}
               />
             </div>
+          </div>
+        )}
+        {tab === 'store' && (
+          <div className="tab-content">
+            <h2>Store Tab</h2>
+            <p>Content for Store will go here.</p>
           </div>
         )}
         {tab === 'settings' && (

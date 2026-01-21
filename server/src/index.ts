@@ -31,6 +31,7 @@ import petsRouter from './routes/pets';
 import settingsRouter from './routes/settings';
 import leaderboardRouter from './routes/leaderboard';
 import hooksRouter from './routes/hooks';
+import socialRouter from './routes/social';
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use('/api/pets', petsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/hooks', hooksRouter);
+app.use('/api/social', socialRouter);
 
 async function start() {
   await connectDB(MONGO_URI);

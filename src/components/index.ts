@@ -15,3 +15,4 @@ export { Select } from './select/Select';
 export { Settings } from './settings/Settings';
 export { Leaderboard } from './leaderboard/Leaderboard';
 export { GemCard } from './gemcard/GemCard';
+export { Social } from './social/Social';

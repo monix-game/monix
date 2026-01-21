@@ -11,6 +11,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   predicate?: (text: string) => boolean;
   predicateText?: string;
   isPassword?: boolean;
+  value: string;
   className?: string;
 }
 
@@ -23,10 +24,10 @@ export const Input: React.FC<InputProps> = ({
   predicate = () => true,
   predicateText = 'Input does not satisfy the requirements',
   isPassword = false,
+  value,
   className,
   ...props
 }) => {
-  const [value, setValue] = React.useState<string>('');
   const [errorText, setErrorText] = React.useState<string>(error || '');
 
   const isFileInput = props.type === 'file';
@@ -58,7 +59,6 @@ export const Input: React.FC<InputProps> = ({
         value={value}
         onChange={e => {
           const newValue = e.target.value;
-          setValue(newValue);
 
           if (onValueChange) onValueChange(newValue);
 
@@ -68,7 +68,7 @@ export const Input: React.FC<InputProps> = ({
             setErrorText(error || '');
           }
         }}
-      ></input>
+      />
       {errorText && (
         <span className="input-label">
           <IconX size={15} className="icon" />

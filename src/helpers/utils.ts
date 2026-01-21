@@ -56,3 +56,67 @@ export function getPodiumLevel(rank: number): 'first' | 'second' | 'third' {
   if (rank === 2) return 'second';
   return 'third';
 }
+
+export function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  const timeFormat = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  // Today
+  if (diffDays === 0) {
+    return timeFormat;
+  }
+
+  // Yesterday
+  if (diffDays === 1) {
+    return `yesterday at ${timeFormat}`;
+  }
+
+  // Days ago
+  if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  }
+
+  // Weeks ago
+  if (diffWeeks === 1) {
+    return 'a week ago';
+  }
+  if (diffWeeks < 4) {
+    return `${diffWeeks} weeks ago`;
+  }
+
+  // Months ago
+  if (diffMonths === 1) {
+    return 'a month ago';
+  }
+  if (diffMonths < 12) {
+    return `${diffMonths} months ago`;
+  }
+
+  // Years ago
+  if (diffYears === 1) {
+    return 'a year ago';
+  }
+  return `${diffYears} years ago`;
+}
+
+export function titleCase(str: string): string {
+  return str
+    .replace('_', ' ')
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}

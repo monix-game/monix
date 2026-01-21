@@ -2,6 +2,8 @@ import { MongoClient, Db } from 'mongodb';
 import { type IUser, userFromDoc, userToDoc } from '../common/models/user';
 import { ISession, sessionFromDoc, sessionToDoc } from '../common/models/session';
 import { type IPet, petFromDoc, petToDoc } from '../common/models/pet';
+import { type IMessage, messageFromDoc, messageToDoc } from '../common/models/message';
+import { type IRoom, roomFromDoc, roomToDoc } from '../common/models/room';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -10,6 +12,27 @@ export async function connectDB(uri: string) {
   client = new MongoClient(uri);
   await client.connect();
   db = client.db();
+
+  // Create indexes
+  await db.collection('users').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('users').createIndex({ username: 1 }, { unique: true });
+  await db.collection('sessions').createIndex({ token: 1 }, { unique: true });
+  await db.collection('pets').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('messages').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('rooms').createIndex({ uuid: 1 }, { unique: true });
+
+  // Ensure default rooms exist
+  const defaultRooms: IRoom[] = [
+    { uuid: 'general', type: 'public', name: '💬 General', time_created: 0 },
+    { uuid: 'staff', type: 'staff', name: '🛠️ Staff', time_created: 0 },
+  ];
+
+  for (const room of defaultRooms) {
+    const existing = await getRoomByUUID(room.uuid);
+    if (!existing) {
+      await createRoom(room);
+    }
+  }
 }
 
 function ensureDB(): Db {
@@ -107,4 +130,63 @@ export async function getPetByUUID(uuid: string): Promise<IPet | null> {
   const database = ensureDB();
   const doc = await database.collection('pets').findOne({ uuid });
   return doc ? petFromDoc(doc) : null;
+}
+
+export async function createMessage(message: IMessage): Promise<void> {
+  const database = ensureDB();
+  await database.collection('messages').insertOne(messageToDoc(message));
+}
+
+export async function getMessagesByRoomUUID(room_uuid: string): Promise<IMessage[]> {
+  const database = ensureDB();
+  const docs = await database.collection('messages').find({ room_uuid }).toArray();
+  return docs.map(messageFromDoc);
+}
+
+export async function getMessageByUUID(uuid: string): Promise<IMessage | null> {
+  const database = ensureDB();
+  const doc = await database.collection('messages').findOne({ uuid });
+  return doc ? messageFromDoc(doc) : null;
+}
+
+export async function deleteMessageByUUID(uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('messages').deleteOne({ uuid });
+}
+
+export async function deleteMessagesByRoomUUID(room_uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('messages').deleteMany({ room_uuid });
+}
+
+export async function updateMessage(message: IMessage): Promise<void> {
+  const database = ensureDB();
+  await database.collection('messages').updateOne({ uuid: message.uuid }, { $set: message });
+}
+
+export async function createRoom(room: IRoom): Promise<void> {
+  const database = ensureDB();
+  await database.collection('rooms').insertOne(roomToDoc(room));
+}
+
+export async function getRoomByUUID(uuid: string): Promise<IRoom | null> {
+  const database = ensureDB();
+  const doc = await database.collection('rooms').findOne({ uuid });
+  return doc ? roomFromDoc(doc) : null;
+}
+
+export async function updateRoom(room: IRoom): Promise<void> {
+  const database = ensureDB();
+  await database.collection('rooms').updateOne({ uuid: room.uuid }, { $set: roomToDoc(room) });
+}
+
+export async function deleteRoomByUUID(uuid: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('rooms').deleteOne({ uuid });
+}
+
+export async function getAllRooms(): Promise<IRoom[]> {
+  const database = ensureDB();
+  const docs = await database.collection('rooms').find({}).toArray();
+  return docs.map(roomFromDoc);
 }
