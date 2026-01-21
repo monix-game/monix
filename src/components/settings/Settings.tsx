@@ -16,6 +16,7 @@ import {
 import { applyTheme } from '../../helpers/theme';
 import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/settings';
 import {
+  changePassword,
   deleteAccount,
   finish2FA,
   logOut,
@@ -42,6 +43,10 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [twoFACode, setTwoFACode] = React.useState<string>('');
   const [isAvatarModalOpen, setIsAvatarModalOpen] = React.useState<boolean>(false);
   const [isDeleteAvatarModalOpen, setIsDeleteAvatarModalOpen] = React.useState<boolean>(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = React.useState<boolean>(false);
+
+  const [oldPassword, setOldPassword] = React.useState<string>('');
+  const [password, setPassword] = React.useState<string>('');
 
   // State for various settings
   const [theme, setTheme] = React.useState<'light' | 'dark' | 'system'>('light');
@@ -158,6 +163,14 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             await logoutEverywhere();
             location.href = '/auth/login';
           }}
+        />
+        <SettingsOption
+          type="button"
+          icon={<IconLock />}
+          label="Change Password"
+          description="Change your account password"
+          buttonLabel="Change Password"
+          buttonAction={() => setIsChangePasswordModalOpen(true)}
         />
         {!user.setup_totp && (
           <SettingsOption
@@ -309,6 +322,52 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             secondary
           >
             Confirm
+          </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={isChangePasswordModalOpen} onClose={() => setIsChangePasswordModalOpen(false)}>
+        <div className="settings-confirm-modal">
+          <h2>Change Password</h2>
+          <p>Enter your current and new password.</p>
+          <Input
+            label="Old Password"
+            isPassword
+            placeholder="0LD P4$$W0RD"
+            onValueChange={value => setOldPassword(value)}
+            value={oldPassword}
+          ></Input>
+          <Input
+            label="New Password"
+            isPassword
+            placeholder="N3W P4$$W0RD"
+            onValueChange={value => setPassword(value)}
+            value={password}
+            predicates={[
+              {
+                isValid: text => {
+                  return text !== oldPassword;
+                },
+                message: 'New password must be different from old password',
+              },
+              {
+                isValid: text => {
+                  return text.length >= 6;
+                },
+                message: 'Password must be at least 6 characters long',
+              },
+            ]}
+          ></Input>
+          <Button
+            onClickAsync={async () => {
+              const success = await changePassword(oldPassword, password);
+              if (success) {
+                setIsChangePasswordModalOpen(false);
+                logOut();
+                location.href = '/auth/login';
+              }
+            }}
+          >
+            Change Password
           </Button>
         </div>
       </Modal>

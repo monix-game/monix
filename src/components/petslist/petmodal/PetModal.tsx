@@ -152,11 +152,13 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
               value={petNameInput}
               onValueChange={value => setPetNameInput(value)}
               placeholder="A great name awaits..."
-              predicate={text => {
-                const nameRegex = /^[a-zA-Z0-9 _-]{0,15}$/;
-                return nameRegex.test(text);
-              }}
-              predicateText="Names can only contain letters, numbers, spaces, underscores, and hyphens, and must be between 1 and 15 characters long."
+              predicates={[
+                {
+                  isValid: text => /^[a-zA-Z0-9 _-]{0,15}$/.test(text),
+                  message:
+                    'Names can only contain letters, numbers, spaces, underscores, and hyphens, and must be between 1 and 15 characters long.',
+                },
+              ]}
             />
           </div>
         )}

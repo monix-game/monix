@@ -2,14 +2,18 @@ import React from 'react';
 import './Input.css';
 import { IconX } from '@tabler/icons-react';
 
+export interface InputPredicate {
+  isValid: (text: string) => boolean;
+  message: string;
+}
+
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   color?: 'primary' | 'blue' | 'red' | 'purple';
   error?: string;
   disabled?: boolean;
   onValueChange?: (value: string) => void;
-  predicate?: (text: string) => boolean;
-  predicateText?: string;
+  predicates?: InputPredicate[];
   isPassword?: boolean;
   value?: string;
   className?: string;
@@ -21,8 +25,7 @@ export const Input: React.FC<InputProps> = ({
   error,
   disabled = false,
   onValueChange,
-  predicate = () => true,
-  predicateText = 'Input does not satisfy the requirements',
+  predicates,
   isPassword = false,
   value,
   className,
@@ -62,11 +65,16 @@ export const Input: React.FC<InputProps> = ({
 
           if (onValueChange) onValueChange(newValue);
 
-          if (!predicate(newValue)) {
-            setErrorText(predicateText);
-          } else {
-            setErrorText(error || '');
+          if (predicates && predicates.length > 0) {
+            for (const predicate of predicates) {
+              if (!predicate.isValid(newValue)) {
+                setErrorText(predicate.message);
+                return;
+              }
+            }
           }
+
+          setErrorText('');
         }}
       />
       {errorText && (

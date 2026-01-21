@@ -250,4 +250,32 @@ router.post('/remove/avatar', requireAuth, async (req: Request, res: Response) =
   return res.status(200).json({ message: 'Avatar removed successfully' });
 });
 
+router.post('/change/password', requireAuth, async (req: Request, res: Response) => {
+  const { old_password, new_password } =
+    (req.body as { old_password?: string; new_password?: string }) || {};
+  if (!old_password || !new_password) {
+    return res.status(400).json({ error: 'Missing old or new password' });
+  }
+
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  const old_password_hash = crypto.createHash('sha256').update(String(old_password)).digest('hex');
+  if (authUser.password_hash !== old_password_hash) {
+    return res.status(401).json({ error: 'Old password is incorrect' });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+  }
+
+  const new_password_hash = crypto.createHash('sha256').update(String(new_password)).digest('hex');
+  authUser.password_hash = new_password_hash;
+  await updateUser(authUser);
+
+  return res.status(200).json({ message: 'Password changed successfully' });
+});
+
 export default router;

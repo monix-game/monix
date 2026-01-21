@@ -236,6 +236,19 @@ export async function deleteAccount(): Promise<boolean> {
   }
 }
 
+export async function changePassword(oldPassword: string, newPassword: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/change/password', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
+    return resp.success;
+  } catch (err) {
+    console.error('Error changing password', err);
+    return false;
+  }
+}
+
 function saveToken(session: ISession) {
   localStorage.setItem(localStorageKey('session_token'), session.token);
   localStorage.setItem(localStorageKey('session_user_uuid'), session.user_uuid);
