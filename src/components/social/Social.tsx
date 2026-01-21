@@ -78,7 +78,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
         </div>
       </div>
       <div className="social-main">
-        <h2>{room.name}</h2>
+        <h2><EmojiText>{room.name}</EmojiText></h2>
         <div className="message-container" ref={messageContainerRef}>
           {messages.map(msg => (
             <div
