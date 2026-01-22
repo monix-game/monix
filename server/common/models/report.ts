@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { PunishXCategory } from '../punishx/categories';
+import type { PunishXCategory } from '../punishx/categories';
 
 export interface IReport {
   uuid: string;

@@ -1,6 +1,6 @@
 import { hasExpired, IPunishment } from '../../common/models/punishment';
 import { IUser } from '../../common/models/user';
-import { PunishXCategory } from '../punishx/categories';
+import type { PunishXCategory } from '../punishx/categories';
 import { v4 } from 'uuid';
 
 /**

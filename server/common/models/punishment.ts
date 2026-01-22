@@ -1,4 +1,4 @@
-import { PunishXCategory } from '../punishx/categories';
+import type { PunishXCategory } from '../punishx/categories';
 
 export interface IPunishment {
   uuid: string;
