@@ -6,6 +6,7 @@ export interface IMessage {
   sender_uuid: string;
   sender_username: string;
   sender_role?: string;
+  sender_avatar_url?: string;
   room_uuid: string;
   content: string;
   time_sent: number;
@@ -20,6 +21,7 @@ export function messageToDoc(m: IMessage): IMessage {
     sender_uuid: m.sender_uuid,
     sender_username: m.sender_username,
     sender_role: m.sender_role,
+    sender_avatar_url: m.sender_avatar_url,
     room_uuid: m.room_uuid,
     content: m.content,
     time_sent: m.time_sent,
@@ -36,6 +38,7 @@ export function messageFromDoc(doc: any): IMessage {
     sender_uuid: doc.sender_uuid || '',
     sender_username: doc.sender_username || '',
     sender_role: doc.sender_role || undefined,
+    sender_avatar_url: doc.sender_avatar_url || undefined,
     room_uuid: doc.room_uuid || '',
     content: doc.content || '',
     time_sent: doc.time_sent || 0,

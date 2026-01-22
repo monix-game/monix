@@ -70,18 +70,3 @@ export async function reportMessage(
     return false;
   }
 }
-
-export async function reviewReport(
-  report_uuid: string,
-  action: 'reviewed' | 'dismissed'
-): Promise<boolean> {
-  try {
-    const resp = await api.post(`/social/report/${report_uuid}/review`, {
-      action,
-    });
-    return resp && resp.success;
-  } catch (err) {
-    console.error('Error reviewing report', err);
-    return false;
-  }
-}

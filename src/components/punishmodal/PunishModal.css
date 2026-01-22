@@ -1,0 +1,24 @@
+.punish-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+}
+
+.punish-modal-header {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.punish-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.punish-category,
+.punish-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}

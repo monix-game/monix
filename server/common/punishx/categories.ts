@@ -7,6 +7,11 @@ export interface PunishXCategory {
   }[];
 }
 
+export function getCategoryById(id: string): PunishXCategory | null {
+  const category = punishXCategories.find(cat => cat.id === id);
+  return category || null;
+}
+
 export const punishXCategories: PunishXCategory[] = [
   {
     id: 'game/exploiting/general',
@@ -37,6 +42,15 @@ export const punishXCategories: PunishXCategory[] = [
   {
     id: 'game/exploiting/bug-abuse',
     name: 'Game Exploiting - Bug Abuse',
+    levels: [
+      { type: 'game_ban', duration: 10080 }, // 7 days
+      { type: 'game_ban', duration: 40320 }, // 28 days
+      { type: 'game_ban', duration: -1 }, // Permanent
+    ],
+  },
+  {
+    id: 'game/systems/false-reporting',
+    name: 'Game Systems - False Reporting',
     levels: [
       { type: 'game_ban', duration: 10080 }, // 7 days
       { type: 'game_ban', duration: 40320 }, // 28 days

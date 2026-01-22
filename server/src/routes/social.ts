@@ -2,20 +2,19 @@ import { Router } from 'express';
 import {
   createMessage,
   createReport,
-  getAllReports,
   getAllRooms,
+  getMessageByUUID,
   getMessagesByRoomUUID,
-  getReportByUUID,
   getRoomByUUID,
   getUserByUUID,
-  updateReport,
 } from '../db';
-import { requireAuth, requireRole } from '../middleware';
+import { requireAuth } from '../middleware';
 import { IMessage, messageToDoc } from '../../common/models/message';
 import { v4 } from 'uuid';
 import { roomToDoc } from '../../common/models/room';
 import { profanityFilter } from '../index';
 import { IReport } from '../../common/models/report';
+import { getCategoryById } from '../../common/punishx/categories';
 
 const router = Router();
 
@@ -59,7 +58,8 @@ router.post('/send', requireAuth, async (req, res) => {
     uuid: v4(),
     sender_uuid: user.uuid,
     sender_username: user.username,
-    sender_role: user.role,
+    sender_role: user.role === 'user' ? undefined : user.role,
+    sender_avatar_url: user.avatar_data_uri,
     room_uuid,
     content: censoredContent,
     time_sent: Date.now(),
@@ -129,11 +129,35 @@ router.post('/report', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing message_uuid or reason' });
   }
 
+  const message = await getMessageByUUID(message_uuid);
+
+  if (!message) {
+    return res.status(404).json({ error: 'Message not found' });
+  }
+
+  const reportedUser = await getUserByUUID(message.sender_uuid);
+
+  if (!reportedUser) {
+    return res.status(404).json({ error: 'Reported user not found' });
+  }
+
+  const category = getCategoryById(reason);
+
+  if (!category) {
+    return res.status(404).json({ error: 'Invalid report reason' });
+  }
+
+  if (!category.id.startsWith('social')) {
+    return res.status(400).json({ error: 'Report reason is not valid for social reports' });
+  }
+
   const report: IReport = {
     uuid: v4(),
     reporter_uuid: user.uuid,
     message_uuid,
-    reason,
+    message_content: message.content,
+    reported_uuid: reportedUser.uuid,
+    reason: category.id,
     details,
     status: 'pending',
     time_reported: Date.now(),
@@ -142,29 +166,6 @@ router.post('/report', requireAuth, async (req, res) => {
   await createReport(report);
 
   res.status(201).json({ report });
-});
-
-router.get('/reports', requireRole('game_mod'), async (req, res) => {
-  const reports = await getAllReports();
-
-  res.status(200).json({ reports });
-});
-
-router.post('/reports/:report_uuid/review', requireRole('game_mod'), async (req, res) => {
-  const { report_uuid } = req.params;
-  const { action } = req.body as { action: 'reviewed' | 'dismissed' };
-  
-  const report = await getReportByUUID(report_uuid as string);
-
-  if (!report) {
-    return res.status(404).json({ error: 'Report not found' });
-  }
-  
-  report.status = action;
-
-  await updateReport(report);
-  
-  res.status(200).json({ report });
 });
 
 export default router;

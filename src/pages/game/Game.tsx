@@ -164,6 +164,8 @@ export default function Game() {
         <h1 className="app-title">Monix</h1>
         <div className="nav-tabs">
           {(() => {
+            const noOfRows = 2;
+
             const tabs = [
               { key: 'money', label: '💰 Money' },
               { key: 'resources', label: '🪙 Resources' },
@@ -179,9 +181,11 @@ export default function Game() {
               { key: 'settings', label: '⚙️ Settings' },
             ] as const;
 
-            const half = Math.ceil(tabs.length / 2);
-            const row1 = tabs.slice(0, half);
-            const row2 = tabs.slice(half);
+            const half = Math.ceil(tabs.length / noOfRows);
+            const rows = [];
+            for (let i = 0; i < noOfRows; i++) {
+              rows.push(tabs.slice(i * half, i * half + half));
+            }
 
             const renderTab = (t: { key: typeof tab; label: string }) => (
               <span
@@ -195,8 +199,12 @@ export default function Game() {
 
             return (
               <>
-                <div className="nav-row">{row1.map(renderTab)}</div>
-                <div className="nav-row">{row2.map(renderTab)}</div>
+                {rows.map((row, rowIndex) => (
+                  // eslint-disable-next-line react-x/no-array-index-key
+                  <div key={rowIndex} className="nav-row">
+                    {row.map(t => renderTab(t))}
+                  </div>
+                ))}
               </>
             );
           })()}
@@ -219,7 +227,7 @@ export default function Game() {
               {user ? user.username : 'User'}
             </span>
             {userRole !== null && userRole !== 'user' && (
-              <span className={`badge ${userRole}`}>{titleCase(userRole)}</span>
+              <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
             )}
           </div>
           <div className="user-money">
@@ -268,7 +276,9 @@ export default function Game() {
           <div className="tab-content">
             <div className="resource-list-header">
               <h2>Resources</h2>
-              <span><b>Total Value:</b> {smartFormatNumber(resourcesTotal)}</span>
+              <span>
+                <b>Total Value:</b> {smartFormatNumber(resourcesTotal)}
+              </span>
             </div>
             <ResourceList
               setMarketModalResource={setMarketModalResource}

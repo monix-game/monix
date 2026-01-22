@@ -6,12 +6,12 @@ import { getRoomMessages, reportMessage, sendMessage } from '../../helpers/socia
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
 import type { IUser } from '../../../server/common/models/user';
-import { formatRelativeTime, titleCase } from '../../helpers/utils';
 import { IconArrowBack, IconClipboard, IconFlag } from '@tabler/icons-react';
 import { Modal } from '../modal/Modal';
 import { Select } from '../select/Select';
 import { Button } from '../button/Button';
 import { punishXCategories } from '../../../server/common/punishx/categories';
+import { Message } from '../message/Message';
 
 interface SocialProps {
   user: IUser;
@@ -156,28 +156,12 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
         </h2>
         <div className="message-container" ref={messageContainerRef}>
           {messages.map(msg => (
-            <div
+            <Message
               key={msg.uuid}
-              className={`message-item ${msg.sender_uuid === user.uuid ? 'self' : ''}`}
+              user={user}
+              message={msg}
               onContextMenu={e => onMessageContextMenu(e.nativeEvent, msg)}
-            >
-              <div className="message-header">
-                <span className="message-sender">
-                  <span className="message-username">{msg.sender_username}</span>
-                  {msg.sender_role && (
-                    <span className={`message-badge ${msg.sender_role.toLowerCase()}`}>
-                      {titleCase(msg.sender_role)}
-                    </span>
-                  )}
-                </span>
-                <span className="message-timestamp">
-                  {formatRelativeTime(new Date(msg.time_sent))}
-                </span>
-              </div>
-              <div className="message-content">
-                <EmojiText>{msg.content}</EmojiText>
-              </div>
-            </div>
+            />
           ))}
           {contextMenu.visible && contextMenu.message && (
             <div
@@ -241,10 +225,12 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           <Select
             value={reportReason}
             onChange={value => setReportReason(value)}
-            options={punishXCategories.map(category => ({
-              value: category.id,
-              label: category.name,
-            }))}
+            options={punishXCategories
+              .filter(category => category.id.startsWith('social'))
+              .map(category => ({
+                value: category.id,
+                label: category.name,
+              }))}
           />
           <Input
             placeholder="Additional details (optional)"

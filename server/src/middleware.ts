@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
+import { hasRole } from '../common/roles';
 
-const ROLE_HIERARCHY = ['owner', 'admin', 'game_mod', 'social_mod', 'helper'];
 const SUBSCRIPTION_HIERARCHY = ['pro', 'plus'];
 
 async function authenticateRequest(req: Request, res: Response) {
@@ -79,21 +79,14 @@ export function requireSubscription(subscription: 'plus' | 'pro') {
   };
 }
 
-export function requireRole(role: 'admin' | 'game_mod' | 'social_mod' | 'helper') {
+export function requireRole(role: 'admin' | 'mod' | 'helper') {
   return async function (req: Request, res: Response, next: NextFunction) {
     const user = await authenticateRequest(req, res);
     if (!user) return;
 
-    if (!ROLE_HIERARCHY.includes(role)) {
-      // Not staff role, automatically unauthorized
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
+    const hasRoleResult = hasRole(user.role, role);
 
-    const userRoleIndex = ROLE_HIERARCHY.indexOf(user.role);
-    const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
-
-    if (userRoleIndex > requiredRoleIndex) {
+    if (!hasRoleResult) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }

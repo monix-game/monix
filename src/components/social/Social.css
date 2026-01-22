@@ -90,67 +90,6 @@
   min-height: 0;
 }
 
-.message-item {
-  padding: 10px;
-  border-radius: var(--border-radius);
-  background-color: var(--dark-bg);
-  border: 2px solid var(--primary-2);
-  width: 70%;
-  word-wrap: break-word;
-}
-
-.message-item.self {
-  align-self: flex-end;
-  background-color: var(--primary-1);
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-
-.message-sender {
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.message-badge {
-  background-color: var(--primary-1);
-  color: var(--text);
-  padding: 1px 3px;
-  border-radius: var(--border-radius);
-  border: 2px solid var(--primary-2);
-  font-size: 0.6rem;
-  font-weight: 600;
-}
-
-.message-badge.social-mod {
-  background-color: var(--primary-1);
-  border: 2px solid var(--primary-2);
-}
-
-.message-badge.game-mod {
-  background-color: var(--blue-1);
-  border: 2px solid var(--blue-2);
-}
-
-.message-badge.admin {
-  background-color: var(--purple-1);
-  border: 2px solid var(--purple-2);
-}
-
-.message-badge.owner {
-  background-color: var(--red-1);
-  border: 2px solid var(--red-2);
-}
-
-.message-content {
-  white-space: pre-wrap;
-}
-
 .context-menu {
   z-index: 9999;
   background: var(--bg);

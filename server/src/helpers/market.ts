@@ -1,6 +1,11 @@
 import crypto from 'crypto';
 import { resources } from '../../common/resources';
 
+/**
+ * Generates a pseudo-random fraction based on a seed string.
+ * @param seed - The seed string to generate the pseudo-random number
+ * @returns A pseudo-random number between 0 and 1 based on the provided seed
+ */
 function pseudoRandomFraction(seed: string): number {
   const hash = crypto.createHash('sha256').update(seed).digest('hex');
   // take first 8 hex chars -> 32-bit int
@@ -10,6 +15,12 @@ function pseudoRandomFraction(seed: string): number {
   return int / 0xffffffff;
 }
 
+/**
+ * Generate a price for a resource at a given timestamp.
+ * @param resourceId - The ID of the resource to generate the price for
+ * @param timestamp - The timestamp to use as part of the seed for price generation
+ * @returns The generated price for the resource at the given timestamp
+ */
 export function generatePrice(resourceId: string, timestamp: number): number {
   const resource = resources.find(v => v.id === resourceId);
 

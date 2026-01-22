@@ -12,3 +12,33 @@ img.emoji {
   margin: 0 0.05em 0 0.1em;
   vertical-align: -0.1em;
 }
+
+.user-badge {
+  background-color: var(--primary-1);
+  color: var(--text);
+  padding: 1px 3px;
+  border-radius: var(--border-radius);
+  border: 2px solid var(--primary-2);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.user-badge.social-mod {
+  background-color: var(--primary-1);
+  border: 2px solid var(--primary-2);
+}
+
+.user-badge.game-mod {
+  background-color: var(--blue-1);
+  border: 2px solid var(--blue-2);
+}
+
+.user-badge.admin {
+  background-color: var(--purple-1);
+  border: 2px solid var(--purple-2);
+}
+
+.user-badge.owner {
+  background-color: var(--red-1);
+  border: 2px solid var(--red-2);
+}

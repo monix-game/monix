@@ -74,14 +74,19 @@ export function formatRelativeTime(date: Date): string {
     hour12: true,
   });
 
+  // Check if same calendar day
+  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayDiff = Math.floor((nowDate.getTime() - inputDate.getTime()) / (1000 * 60 * 60 * 24));
+
   // Today
-  if (diffDays === 0) {
+  if (dayDiff === 0) {
     return timeFormat;
   }
 
   // Yesterday
-  if (diffDays === 1) {
-    return `yesterday at ${timeFormat}`;
+  if (dayDiff === 1) {
+    return `Yesterday at ${timeFormat}`;
   }
 
   // Days ago
@@ -91,7 +96,7 @@ export function formatRelativeTime(date: Date): string {
 
   // Weeks ago
   if (diffWeeks === 1) {
-    return 'a week ago';
+    return 'A week ago';
   }
   if (diffWeeks < 4) {
     return `${diffWeeks} weeks ago`;
@@ -99,7 +104,7 @@ export function formatRelativeTime(date: Date): string {
 
   // Months ago
   if (diffMonths === 1) {
-    return 'a month ago';
+    return 'A month ago';
   }
   if (diffMonths < 12) {
     return `${diffMonths} months ago`;
@@ -107,7 +112,7 @@ export function formatRelativeTime(date: Date): string {
 
   // Years ago
   if (diffYears === 1) {
-    return 'a year ago';
+    return 'A year ago';
   }
   return `${diffYears} years ago`;
 }

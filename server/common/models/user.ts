@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
+import { IPunishment } from './punishment';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 
 export interface IUser {
   uuid: string;
   username: string;
   password_hash: string;
-  role: 'owner' | 'admin' | 'game_mod' | 'social_mod' | 'helper' | 'user';
+  role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
   time_created: number;
   settings: ISettings;
   money: number;
@@ -20,6 +21,7 @@ export interface IUser {
     current_subscription?: 'plus' | 'pro' | null;
     subscription_expires_at?: number;
   };
+  punishments?: IPunishment[];
 }
 
 export function userToDoc(u: IUser): IUser {
@@ -37,6 +39,7 @@ export function userToDoc(u: IUser): IUser {
     avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
     payment: u.payment,
+    punishments: u.punishments,
   };
 }
 
@@ -56,5 +59,6 @@ export function userFromDoc(doc: any): IUser {
     avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
     payment: doc.payment || undefined,
+    punishments: doc.punishments || [],
   };
 }
