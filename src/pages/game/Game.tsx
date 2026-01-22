@@ -52,6 +52,11 @@ export default function Game() {
   >('money');
   const [banned, setBanned] = useState<boolean>(false);
 
+  const setTab = useCallback((newTab: typeof tab) => {
+    document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
+    rawSetTab(newTab);
+  }, []);
+
   // User states
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -71,6 +76,43 @@ export default function Game() {
   // Social states
   const [socialRoom, setSocialRoom] = useState<string>('general');
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
+
+  const updateEverything = useCallback(async () => {
+    const userData = await fetchUser();
+    if (!userData) window.location.href = '/auth/login';
+
+    setUser(userData);
+    setUserRole(userData ? userData.role : 'user');
+
+    if (isUserBanned(userData!)) {
+      setBanned(true);
+      setCurrentPunishment(getCurrentPunishment(userData!));
+      if (tab !== 'jail' && tab !== 'settings') setTab('jail');
+      return;
+    } else {
+      if (banned) {
+        setBanned(false);
+        setTab('money');
+      }
+    }
+
+    const totalResources = await getTotalResourceValue();
+    setResourcesTotal(totalResources);
+    setTotalNetWorth((userData?.money || 0) + totalResources);
+
+    const socialRooms = await getAllRooms();
+    setSocialRooms(socialRooms);
+  }, [setTab, banned, tab]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void updateEverything();
+
+    const interval = setInterval(async () => {
+      await updateEverything();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [updateEverything]);
 
   useEffect(() => {
     let mounted = true;
@@ -129,48 +171,6 @@ export default function Game() {
       if (intervalId !== undefined) clearInterval(intervalId);
     };
   }, [banned]);
-
-  const setTab = useCallback((newTab: typeof tab) => {
-    document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
-    rawSetTab(newTab);
-  }, []);
-
-  const updateEverything = useCallback(async () => {
-    const userData = await fetchUser();
-    if (!userData) window.location.href = '/auth/login';
-
-    setUser(userData);
-    setUserRole(userData ? userData.role : 'user');
-
-    if (isUserBanned(userData!)) {
-      setBanned(true);
-      setCurrentPunishment(getCurrentPunishment(userData!));
-      if (tab !== 'jail' && tab !== 'settings') setTab('jail');
-      return;
-    } else {
-      if (banned) {
-        setBanned(false);
-        setTab('money');
-      }
-    }
-
-    const totalResources = await getTotalResourceValue();
-    setResourcesTotal(totalResources);
-    setTotalNetWorth((userData?.money || 0) + totalResources);
-
-    const socialRooms = await getAllRooms();
-    setSocialRooms(socialRooms);
-  }, [setTab, banned, tab]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void updateEverything();
-
-    const interval = setInterval(async () => {
-      await updateEverything();
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [updateEverything]);
 
   return (
     <div className="app-container">
