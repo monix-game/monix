@@ -219,6 +219,13 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
+.resource-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {

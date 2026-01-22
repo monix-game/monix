@@ -266,7 +266,10 @@ export default function Game() {
         )}
         {tab === 'resources' && (
           <div className="tab-content">
-            <h2>Resources</h2>
+            <div className="resource-list-header">
+              <h2>Resources</h2>
+              <span><b>Total Value:</b> {smartFormatNumber(resourcesTotal)}</span>
+            </div>
             <ResourceList
               setMarketModalResource={setMarketModalResource}
               setMarketModalOpen={setMarketModalOpen}
