@@ -11,7 +11,7 @@ import {
 import { getActivePunishments, punishUser } from '../helpers/punishx';
 import { getCategoryById } from '../../common/punishx/categories';
 import { DashboardInfo } from '../../common/models/dashboardInfo';
-import { IPunishment } from '../../common/models/punishment';
+import type { IPunishment } from '../../common/models/punishment';
 
 const router = Router();
 

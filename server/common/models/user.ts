@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { IPunishment } from './punishment';
+import type { IPunishment } from './punishment';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 
 export interface IUser {

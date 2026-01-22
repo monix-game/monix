@@ -1,4 +1,4 @@
-import { hasExpired, IPunishment } from '../../common/models/punishment';
+import { hasExpired, type IPunishment } from '../../common/models/punishment';
 import { IUser } from '../../common/models/user';
 import type { PunishXCategory } from '../punishx/categories';
 import { v4 } from 'uuid';
