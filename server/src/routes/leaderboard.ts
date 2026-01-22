@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware';
+import { requireActive } from '../middleware';
 import { getAllUsers, getUserByUUID } from '../db';
 
 const router = Router();
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireActive, async (req, res) => {
   // Fetch all users from the database
   const allUsers = await getAllUsers();
 

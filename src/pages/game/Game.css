@@ -196,6 +196,63 @@ html[data-theme='dark'] .app-logo-light {
   margin-bottom: 15px;
 }
 
+.jail-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+}
+
+.jail-card {
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  max-width: 600px;
+  text-align: center;
+}
+
+.jail-card h2 {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+}
+
+.jail-subtitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.jail-duration {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 1.1rem;
+}
+
+.jail-time {
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.jail-info {
+  margin-top: 15px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jail-reason {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {

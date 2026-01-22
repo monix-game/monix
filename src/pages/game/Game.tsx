@@ -21,10 +21,12 @@ import { fetchUser } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
-import { smartFormatNumber, titleCase } from '../../helpers/utils';
+import { formatRemainingTime, smartFormatNumber, titleCase } from '../../helpers/utils';
 import { createPaymentSession } from '../../helpers/payments';
 import type { IRoom } from '../../../server/common/models/room';
 import { getAllRooms } from '../../helpers/social';
+import { getCurrentPunishment, isUserBanned } from '../../../server/common/punishx/punishx';
+import { getRemainingDuration, type IPunishment } from '../../../server/common/models/punishment';
 
 export default function Game() {
   // Net worth states
@@ -46,11 +48,14 @@ export default function Game() {
     | 'gems'
     | 'store'
     | 'settings'
+    | 'jail'
   >('money');
+  const [banned, setBanned] = useState<boolean>(false);
 
   // User states
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentPunishment, setCurrentPunishment] = useState<IPunishment | null>(null);
 
   // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
@@ -72,6 +77,8 @@ export default function Game() {
     let intervalId: number | undefined;
 
     const updateResource = async () => {
+      if (banned) return;
+
       const resourcesCopy = [...resources];
 
       const fetchedPrices = await getPrices();
@@ -121,30 +128,39 @@ export default function Game() {
       mounted = false;
       if (intervalId !== undefined) clearInterval(intervalId);
     };
-  }, []);
+  }, [banned]);
 
-  useEffect(() => {
-    document.getElementsByTagName('body')[0].className = `tab-${tab}`;
-  }, [tab]);
-
-  const setTab = (newTab: typeof tab) => {
+  const setTab = useCallback((newTab: typeof tab) => {
     document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
     rawSetTab(newTab);
-  };
+  }, []);
 
   const updateEverything = useCallback(async () => {
-    const totalResources = await getTotalResourceValue();
     const userData = await fetchUser();
-    const socialRooms = await getAllRooms();
-
     if (!userData) window.location.href = '/auth/login';
 
     setUser(userData);
     setUserRole(userData ? userData.role : 'user');
+
+    if (isUserBanned(userData!)) {
+      setBanned(true);
+      setCurrentPunishment(getCurrentPunishment(userData!));
+      if (tab !== 'jail' && tab !== 'settings') setTab('jail');
+      return;
+    } else {
+      if (banned) {
+        setBanned(false);
+        setTab('money');
+      }
+    }
+
+    const totalResources = await getTotalResourceValue();
     setResourcesTotal(totalResources);
     setTotalNetWorth((userData?.money || 0) + totalResources);
+
+    const socialRooms = await getAllRooms();
     setSocialRooms(socialRooms);
-  }, []);
+  }, [setTab, banned, tab]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -164,22 +180,27 @@ export default function Game() {
         <h1 className="app-title">Monix</h1>
         <div className="nav-tabs">
           {(() => {
-            const noOfRows = 2;
+            const noOfRows = banned ? 1 : 2;
 
-            const tabs = [
-              { key: 'money', label: '💰 Money' },
-              { key: 'resources', label: '🪙 Resources' },
-              { key: 'market', label: '🏪 Market' },
-              { key: 'fishing', label: '🎣 Fishing' },
-              { key: 'pets', label: '🐶 Pets' },
-              { key: 'relics', label: '🦴 Relics' },
-              { key: 'council', label: '🏛️ Council' },
-              { key: 'social', label: '💬 Social' },
-              { key: 'leaderboard', label: '🏆 Leaderboard' },
-              { key: 'gems', label: '💎 Gems' },
-              { key: 'store', label: '🏬 Store' },
-              { key: 'settings', label: '⚙️ Settings' },
-            ] as const;
+            const tabs = banned
+              ? ([
+                  { key: 'jail', label: '🚓 Jail' },
+                  { key: 'settings', label: '⚙️ Settings' },
+                ] as const)
+              : ([
+                  { key: 'money', label: '💰 Money' },
+                  { key: 'resources', label: '🪙 Resources' },
+                  { key: 'market', label: '🏪 Market' },
+                  { key: 'fishing', label: '🎣 Fishing' },
+                  { key: 'pets', label: '🐶 Pets' },
+                  { key: 'relics', label: '🦴 Relics' },
+                  { key: 'council', label: '🏛️ Council' },
+                  { key: 'social', label: '💬 Social' },
+                  { key: 'leaderboard', label: '🏆 Leaderboard' },
+                  { key: 'gems', label: '💎 Gems' },
+                  { key: 'store', label: '🏬 Store' },
+                  { key: 'settings', label: '⚙️ Settings' },
+                ] as const);
 
             const half = Math.ceil(tabs.length / noOfRows);
             const rows = [];
@@ -387,6 +408,44 @@ export default function Game() {
         {tab === 'settings' && (
           <div className="tab-content">
             <Settings user={user!} />
+          </div>
+        )}
+        {tab === 'jail' && (
+          <div className="jail-tab">
+            <div className="jail-card">
+              <h2>
+                <EmojiText>🚓 You are in Jail 🚓</EmojiText>
+              </h2>
+              {currentPunishment ? (
+                <>
+                  <span className="jail-subtitle">You have been banned from playing Monix.</span>
+                  {currentPunishment?.duration !== -1 ? (
+                    <div className="jail-duration">
+                      <span>Remaining duration:</span>
+                      <span className="jail-time mono">
+                        {formatRemainingTime(getRemainingDuration(currentPunishment) / 1000)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="jail-duration">
+                      <span>This is a permanent ban.</span>
+                    </div>
+                  )}
+                  <div className="jail-info">
+                    <div className="jail-reason">
+                      <h3>Reason:</h3>
+                      <p>{currentPunishment.category.name}</p>
+                    </div>
+                    <div className="jail-comment">
+                      <h3>Comment:</h3>
+                      <p>{currentPunishment.reason}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p>You have been banned from playing Monix.</p>
+              )}
+            </div>
           </div>
         )}
       </main>

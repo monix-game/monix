@@ -12,7 +12,7 @@ import { type IUser, userToDoc } from '../../common/models/user';
 import { ISession, sessionToDoc } from '../../common/models/session';
 import crypto from 'crypto';
 import { v4 } from 'uuid';
-import { requireAuth } from '../middleware';
+import { requireActive, requireAuth } from '../middleware';
 import { SESSION_EXPIRES_IN, profanityFilter } from '../index';
 import { DEFAULT_SETTINGS } from '../../common/models/settings';
 import { createSecret, getTOTPURI, verifyTOTPToken } from '../helpers/totp';
@@ -215,7 +215,7 @@ router.post('/delete', requireAuth, async (req: Request, res: Response) => {
   return res.status(200).json({ message: 'User account deleted successfully' });
 });
 
-router.post('/upload/avatar', requireAuth, async (req: Request, res: Response) => {
+router.post('/upload/avatar', requireActive, async (req: Request, res: Response) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
 

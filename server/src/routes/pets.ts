@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware';
+import { requireActive } from '../middleware';
 import {
   createPet,
   deletePetByUUID,
@@ -45,7 +45,7 @@ async function updatePlayersPets(user_uuid: string) {
   }
 }
 
-router.get('/all', requireAuth, async (req, res) => {
+router.get('/all', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -65,7 +65,7 @@ router.get('/all', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/adopt', requireAuth, async (req, res) => {
+router.post('/adopt', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -106,7 +106,7 @@ router.post('/adopt', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/shop', requireAuth, async (req, res) => {
+router.post('/shop', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -162,7 +162,7 @@ router.post('/shop', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/name', requireAuth, async (req, res) => {
+router.post('/name', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -207,7 +207,7 @@ router.post('/name', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/feed', requireAuth, async (req, res) => {
+router.post('/feed', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -263,7 +263,7 @@ router.post('/feed', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/play', requireAuth, async (req, res) => {
+router.post('/play', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -308,7 +308,7 @@ router.post('/play', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/release', requireAuth, async (req, res) => {
+router.post('/release', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -347,7 +347,7 @@ router.post('/release', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/revive', requireAuth, async (req, res) => {
+router.post('/revive', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -389,7 +389,7 @@ router.post('/revive', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/levelup', requireAuth, async (req, res) => {
+router.post('/levelup', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;

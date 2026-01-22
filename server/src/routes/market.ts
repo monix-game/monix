@@ -1,11 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { resources } from '../../common/resources';
-import { requireAuth } from '../middleware';
+import { requireActive } from '../middleware';
 import { generatePrice } from '../helpers/market';
 
 const router = Router();
 
-router.get('/price/:resourceId', requireAuth, (req: Request, res: Response) => {
+router.get('/price/:resourceId', requireActive, (req: Request, res: Response) => {
   const { resourceId } = req.params;
   const { timestamp } = req.query;
 
@@ -22,7 +22,7 @@ router.get('/price/:resourceId', requireAuth, (req: Request, res: Response) => {
   return res.status(200).json({ success: true, data: price_data });
 });
 
-router.get('/prices', requireAuth, (req: Request, res: Response) => {
+router.get('/prices', requireActive, (req: Request, res: Response) => {
   const { timestamp } = req.query;
 
   let time = Math.floor(Date.now() / 1000);
@@ -40,7 +40,7 @@ router.get('/prices', requireAuth, (req: Request, res: Response) => {
   return res.status(200).json({ success: true, data: prices });
 });
 
-router.get('/history/:resourceId', requireAuth, (req: Request, res: Response) => {
+router.get('/history/:resourceId', requireActive, (req: Request, res: Response) => {
   const { resourceId } = req.params;
   const hoursBack = Number(req.query.hours_back || 2);
   const currentTime = Math.floor(Date.now() / 1000);

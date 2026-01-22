@@ -1,4 +1,4 @@
-import { hasExpired, type IPunishment } from '../../common/models/punishment';
+import { getRemainingDuration, hasExpired, type IPunishment } from '../../common/models/punishment';
 import { IUser } from '../../common/models/user';
 import type { PunishXCategory } from '../punishx/categories';
 import { v4 } from 'uuid';
@@ -15,14 +15,37 @@ export function getActivePunishments(user: IUser): IPunishment[] {
 }
 
 /**
- * Check if the user is currently banned of a specific type.
+ * Check if the user is currently banned.
  * @param user - The user to check
- * @param type - The type of ban to check ('game_ban' or 'social_ban')
- * @returns True if the user is currently banned of the specified type, false otherwise
+ * @returns True if the user is currently banned, false otherwise
  */
-export function isUserBanned(user: IUser, type: 'game_ban' | 'social_ban'): boolean {
+export function isUserBanned(user: IUser): boolean {
   const activePunishments = getActivePunishments(user);
-  return activePunishments.some(punishment => punishment.type === type);
+  return activePunishments.length > 0;
+}
+
+/**
+ * Get the current (longest remaining) punishment for a user.
+ * @param user - The user to get the punishment for
+ * @returns The current punishment with the longest remaining duration, or null if none exist
+ */
+export function getCurrentPunishment(user: IUser): IPunishment | null {
+  const activePunishments = getActivePunishments(user);
+  if (activePunishments.length === 0) return null;
+
+  // Return the longest remaining punishment
+  let currentPunishment = activePunishments[0];
+  let maxRemaining = getRemainingDuration(currentPunishment) || Infinity;
+
+  for (const punishment of activePunishments) {
+    const remaining = getRemainingDuration(punishment) || Infinity;
+    if (remaining > maxRemaining) {
+      currentPunishment = punishment;
+      maxRemaining = remaining;
+    }
+  }
+
+  return currentPunishment;
 }
 
 /**
@@ -68,13 +91,12 @@ export function getPunishment(
   return {
     uuid: v4(),
     user_uuid: user.uuid,
-    type: nextPunishmentLevel.type,
     category: category,
     level: nextLevel,
     reason,
     issued_by: issuedBy,
     issued_at: Date.now(),
-    duration: nextPunishmentLevel.duration,
+    duration: nextPunishmentLevel,
   };
 }
 

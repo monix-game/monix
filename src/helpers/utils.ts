@@ -125,3 +125,27 @@ export function titleCase(str: string): string {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+export function formatRemainingTime(seconds: number): string {
+  const units = [
+    { label: 'y', value: 60 * 60 * 24 * 365 },
+    { label: 'w', value: 60 * 60 * 24 * 7 },
+    { label: 'd', value: 60 * 60 * 24 },
+    { label: 'h', value: 60 * 60 },
+    { label: 'm', value: 60 },
+    { label: 's', value: 1 },
+  ];
+
+  let remainingSeconds = seconds;
+  const parts: string[] = [];
+
+  for (const unit of units) {
+    if (remainingSeconds >= unit.value) {
+      const unitAmount = Math.floor(remainingSeconds / unit.value);
+      parts.push(`${unitAmount}${unit.label}`);
+      remainingSeconds -= unitAmount * unit.value;
+    }
+  }
+
+  return parts.join(' ');
+}

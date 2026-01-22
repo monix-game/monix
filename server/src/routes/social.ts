@@ -8,7 +8,7 @@ import {
   getRoomByUUID,
   getUserByUUID,
 } from '../db';
-import { requireAuth } from '../middleware';
+import { requireActive } from '../middleware';
 import { IMessage, messageToDoc } from '../../common/models/message';
 import { v4 } from 'uuid';
 import { roomToDoc } from '../../common/models/room';
@@ -18,7 +18,7 @@ import { getCategoryById } from '../../common/punishx/categories';
 
 const router = Router();
 
-router.post('/send', requireAuth, async (req, res) => {
+router.post('/send', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const authUser = req.authUser;
@@ -71,7 +71,7 @@ router.post('/send', requireAuth, async (req, res) => {
   res.status(201).json({ message });
 });
 
-router.get('/room/:room_uuid/messages', requireAuth, async (req, res) => {
+router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
   const { room_uuid } = req.params;
 
   const messages = await getMessagesByRoomUUID(room_uuid as string);
@@ -79,7 +79,7 @@ router.get('/room/:room_uuid/messages', requireAuth, async (req, res) => {
   res.status(200).json({ messages: messages.map(m => messageToDoc(m)) });
 });
 
-router.get('/rooms', requireAuth, async (req, res) => {
+router.get('/rooms', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const authUser = req.authUser;
@@ -107,7 +107,7 @@ router.get('/rooms', requireAuth, async (req, res) => {
   res.status(200).json({ rooms: filteredRooms.map(r => roomToDoc(r)) });
 });
 
-router.post('/report', requireAuth, async (req, res) => {
+router.post('/report', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const authUser = req.authUser;

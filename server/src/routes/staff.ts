@@ -8,7 +8,7 @@ import {
   updateReport,
   updateUser,
 } from '../db';
-import { getActivePunishments, punishUser } from '../helpers/punishx';
+import { getActivePunishments, punishUser } from '../../common/punishx/punishx';
 import { getCategoryById } from '../../common/punishx/categories';
 import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';

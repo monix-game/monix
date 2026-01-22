@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware';
+import { requireActive } from '../middleware';
 import { getUserByUUID, updateUser } from '../db';
 import { type IUser } from '../models/user';
 import { generatePrice } from '../helpers/market';
@@ -7,7 +7,7 @@ import { resources } from '../../common/resources';
 
 const router = Router();
 
-router.get('/all', requireAuth, async (req, res) => {
+router.get('/all', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -32,7 +32,7 @@ router.get('/all', requireAuth, async (req, res) => {
   return res.status(200).json({ resources: userResources });
 });
 
-router.get('/:resourceId', requireAuth, async (req, res) => {
+router.get('/:resourceId', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -48,7 +48,7 @@ router.get('/:resourceId', requireAuth, async (req, res) => {
   return res.status(200).json({ resourceId, quantity });
 });
 
-router.post('/:resourceId/buy', requireAuth, async (req, res) => {
+router.post('/:resourceId/buy', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;
@@ -93,7 +93,7 @@ router.post('/:resourceId/buy', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/:resourceId/sell', requireAuth, async (req, res) => {
+router.post('/:resourceId/sell', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
   const user_uuid: string = authUser?.uuid;

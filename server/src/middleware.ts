@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
 import { hasRole } from '../common/roles';
+import { isUserBanned } from '../common/punishx/punishx';
 
 const SUBSCRIPTION_HIERARCHY = ['pro', 'plus'];
 
@@ -46,6 +47,18 @@ async function authenticateRequest(req: Request, res: Response) {
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const user = await authenticateRequest(req, res);
   if (!user) return;
+  next();
+}
+
+export async function requireActive(req: Request, res: Response, next: NextFunction) {
+  const user = await authenticateRequest(req, res);
+  if (!user) return;
+
+  if (isUserBanned(user)) {
+    res.status(403).json({ message: 'Forbidden' });
+    return;
+  }
+
   next();
 }
 
