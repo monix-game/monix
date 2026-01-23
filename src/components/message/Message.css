@@ -69,3 +69,11 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  text-decoration: underline;
+}

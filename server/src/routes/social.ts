@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createMessage,
   createReport,
+  deleteMessageByUUID,
   getAllRooms,
   getMessageByUUID,
   getMessagesByRoomUUID,
@@ -181,6 +182,35 @@ router.get('/rooms', requireActive, async (req, res) => {
   res.status(200).json({ rooms: filteredRooms.map(r => roomToDoc(r)) });
 });
 
+router.post('/ephemeral/dismiss/:message_uuid', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { message_uuid } = req.params;
+
+  const message = await getMessageByUUID(message_uuid as string);
+
+  if (!message) {
+    return res.status(404).json({ error: 'Message not found' });
+  }
+
+  if (!message.ephemeral || message.ephemeral_user_uuid !== user.uuid) {
+    return res.status(403).json({ error: 'You are not allowed to dismiss this message' });
+  }
+
+  await deleteMessageByUUID(message.uuid);
+
+  res.status(200).json({ success: true });
+});
+
 router.post('/report', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -223,6 +253,10 @@ router.post('/report', requireActive, async (req, res) => {
 
   if (!category.id.startsWith('social')) {
     return res.status(400).json({ error: 'Report reason is not valid for social reports' });
+  }
+
+  if (message.ephemeral) {
+    return res.status(400).json({ error: 'Cannot report an ephemeral message' });
   }
 
   const report: IReport = {

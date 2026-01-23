@@ -53,6 +53,16 @@ export async function sendMessage(room_uuid: string, content: string): Promise<I
   }
 }
 
+export async function dismissEphemeralMessage(message_uuid: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/social/ephemeral/dismiss/' + message_uuid, {});
+    return resp && resp.success;
+  } catch (err) {
+    console.error('Error dismissing ephemeral message', err);
+    return false;
+  }
+}
+
 export async function reportMessage(
   message_uuid: string,
   reason: string,

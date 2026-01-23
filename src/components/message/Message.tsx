@@ -4,6 +4,7 @@ import { formatRelativeTime, titleCase } from '../../helpers/utils';
 import { EmojiText } from '../EmojiText';
 import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';
+import { dismissEphemeralMessage } from '../../helpers/social';
 
 interface MessageProps {
   user?: IUser;
@@ -79,6 +80,11 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
     return nodes;
   };
 
+  const handleEphemeralClick = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
+    e.preventDefault();
+    void dismissEphemeralMessage(message.uuid);
+  };
+
   return (
     <div className={`message-item ${self ? 'self' : ''}`} onContextMenu={onContextMenu}>
       <div className="message-header">
@@ -93,7 +99,13 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
           )}
         </span>
         <span className="message-timestamp">
-          {message.ephemeral ? '(Ephemeral) ' : ''}
+          {message.ephemeral ? (
+            <span className="message-clickable" onClick={handleEphemeralClick}>
+              (Ephemeral){' '}
+            </span>
+          ) : (
+            ''
+          )}
           {message.edited ? '(Edited) ' : ''}
           {formatRelativeTime(new Date(message.time_sent))}
         </span>

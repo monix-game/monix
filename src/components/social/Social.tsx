@@ -164,7 +164,9 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               key={msg.uuid}
               user={user}
               message={msg}
-              onContextMenu={e => onMessageContextMenu(e.nativeEvent, msg)}
+              onContextMenu={e => {
+                if (!msg.ephemeral) onMessageContextMenu(e.nativeEvent, msg);
+              }}
             />
           ))}
           {contextMenu.visible && contextMenu.message && (
