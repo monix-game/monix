@@ -13,7 +13,12 @@ interface MessageProps {
   updateMessages: () => void;
 }
 
-export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu, updateMessages }) => {
+export const Message: React.FC<MessageProps> = ({
+  user,
+  message,
+  onContextMenu,
+  updateMessages,
+}) => {
   const self = user ? user.uuid === message.sender_uuid : false;
 
   const sanitizeText = (text: string): string => {
@@ -103,7 +108,7 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu, 
         <span className="message-timestamp">
           {message.ephemeral ? (
             <span className="message-clickable" onClick={handleEphemeralClick}>
-              (Ephemeral){' '}
+              (dismiss){' '}
             </span>
           ) : (
             ''
