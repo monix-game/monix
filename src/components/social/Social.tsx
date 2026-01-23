@@ -253,20 +253,19 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                   )}
                 </>
               )}
-              {hasRole(user.role, 'helper') ||
-                (user.uuid === contextMenu.message.sender_uuid && (
-                  <div
-                    className="context-menu-item"
-                    onClick={() => {
-                      void deleteMessage(contextMenu.message!.uuid);
-                      void fetchMessages();
-                      hideContextMenu();
-                    }}
-                  >
-                    <IconTrash />
-                    <span>Delete</span>
-                  </div>
-                ))}
+              {(hasRole(user.role, 'helper') || user.uuid === contextMenu.message.sender_uuid) && (
+                <div
+                  className="context-menu-item"
+                  onClick={() => {
+                    void deleteMessage(contextMenu.message!.uuid);
+                    void fetchMessages();
+                    hideContextMenu();
+                  }}
+                >
+                  <IconTrash />
+                  <span>Delete</span>
+                </div>
+              )}
             </div>
           )}
         </div>
