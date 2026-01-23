@@ -158,9 +158,24 @@ export async function deleteMessageByUUID(uuid: string): Promise<void> {
   await database.collection('messages').deleteOne({ uuid });
 }
 
-export async function deleteMessagesByRoomUUID(room_uuid: string): Promise<void> {
+export async function deleteMessagesByRoomUUID(
+  room_uuid: string,
+  numMessages?: number
+): Promise<void> {
   const database = ensureDB();
-  await database.collection('messages').deleteMany({ room_uuid });
+  if (numMessages) {
+    const docs = await database
+      .collection('messages')
+      .find({ room_uuid })
+      .sort({ time_sent: -1 })
+      .limit(numMessages)
+      .toArray();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    const uuidsToDelete = docs.map(doc => doc.uuid);
+    await database.collection('messages').deleteMany({ uuid: { $in: uuidsToDelete } });
+  } else {
+    await database.collection('messages').deleteMany({ room_uuid });
+  }
 }
 
 export async function updateMessage(message: IMessage): Promise<void> {

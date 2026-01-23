@@ -2,6 +2,7 @@ import { sendNyxMessage } from './nyx';
 import { IMessage } from '../../common/models/message';
 import { IUser } from '../../common/models/user';
 import { hasRole } from '../../common/roles';
+import { deleteMessagesByRoomUUID } from '../db';
 
 export interface CommandResult {
   message: IMessage | null;
@@ -47,6 +48,38 @@ const commands: Command[] = [
       message.shouted = true;
       message.content = content;
       return { message };
+    },
+  },
+  {
+    name: 'clear',
+    requiredRole: 'mod',
+    execute: async (args, message, user, room_uuid) => {
+      // If the command is /clear N, delete last N messages
+      // If N is not provided, clear last 10 messages
+      let numMessages = 10;
+      if (args.length > 0) {
+        const parsed = parseInt(args[0], 10);
+        if (!isNaN(parsed) && parsed > 0 && parsed <= 1000) {
+          numMessages = parsed;
+        } else {
+          await sendNyxMessage(
+            user.uuid,
+            'Please provide a valid number of messages to clear (1-1000).',
+            room_uuid
+          );
+          return { message, error: 'Invalid number of messages to clear.' };
+        }
+      }
+
+      // Clear the messages
+      await deleteMessagesByRoomUUID(room_uuid, numMessages);
+      await sendNyxMessage(
+        user.uuid,
+        `Cleared the last ${numMessages} messages in this room.`,
+        room_uuid
+      );
+
+      return { message: null };
     },
   },
 ];
