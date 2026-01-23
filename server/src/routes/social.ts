@@ -8,6 +8,7 @@ import {
   getMessagesByRoomUUID,
   getRoomByUUID,
   getUserByUUID,
+  updateMessage,
 } from '../db';
 import { requireActive } from '../middleware';
 import { IMessage, messageToDoc } from '../../common/models/message';
@@ -148,7 +149,7 @@ router.post('/edit/:message_uuid', requireActive, async (req, res) => {
     return res.status(404).json({ error: 'Message not found' });
   }
 
-  if (message.sender_uuid !== user.uuid) {
+  if (message.sender_uuid !== user.uuid && user.role === 'user') {
     return res.status(403).json({ error: 'You are not allowed to edit this message' });
   }
 
@@ -173,6 +174,7 @@ router.post('/edit/:message_uuid', requireActive, async (req, res) => {
   message.content = censoredContent;
   message.edited = true;
   message.time_edited = Date.now();
+  await updateMessage(message);
 
   res.status(200).json({ message });
 });
@@ -318,6 +320,10 @@ router.post('/report', requireActive, async (req, res) => {
     return res.status(404).json({ error: 'Message not found' });
   }
 
+  if (message.ephemeral || message.sender_uuid === 'nyx') {
+    return res.status(403).json({ error: 'You are not allowed to report this message' });
+  }
+
   const reportedUser = await getUserByUUID(message.sender_uuid);
 
   if (!reportedUser) {
@@ -334,8 +340,8 @@ router.post('/report', requireActive, async (req, res) => {
     return res.status(400).json({ error: 'Report reason is not valid for social reports' });
   }
 
-  if (message.ephemeral) {
-    return res.status(400).json({ error: 'Cannot report an ephemeral message' });
+  if (['owner', 'admin'].includes(reportedUser.role)) {
+    return res.status(400).json({ error: 'Cannot report this message' });
   }
 
   const report: IReport = {

@@ -190,7 +190,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               user={user}
               message={msg}
               onContextMenu={e => {
-                if (!msg.ephemeral) onMessageContextMenu(e.nativeEvent, msg);
+                onMessageContextMenu(e.nativeEvent, msg);
               }}
               updateMessages={() => void fetchMessages()}
             />
@@ -211,51 +211,58 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 <IconClipboard />
                 <span>Copy text</span>
               </div>
-              <div
-                className="context-menu-item"
-                onClick={() => {
-                  replyToMessage(contextMenu.message!);
-                  hideContextMenu();
-                }}
-              >
-                <IconArrowBack />
-                <span>Reply</span>
-              </div>
-              <div
-                className="context-menu-item"
-                onClick={() => {
-                  setEditedMessage(contextMenu.message!);
-                  setEditContent(contextMenu.message!.content);
-                  setIsEditModalOpen(true);
-                  hideContextMenu();
-                }}
-              >
-                <IconPencil />
-                <span>Edit</span>
-              </div>
-              <div
-                className="context-menu-item"
-                onClick={() => {
-                  setReportedMessage(contextMenu.message!);
-                  setIsReportModalOpen(true);
-                  hideContextMenu();
-                }}
-              >
-                <IconFlag />
-                <span>Report</span>
-              </div>
-              {(hasRole(user.role, 'helper') || user.uuid === contextMenu.message.sender_uuid) && (
-                <div
-                  className="context-menu-item"
-                  onClick={() => {
-                    void deleteMessage(contextMenu.message!.uuid);
-                    void fetchMessages();
-                    hideContextMenu();
-                  }}
-                >
-                  <IconTrash />
-                  <span>Delete</span>
-                </div>
+              {!contextMenu.message.ephemeral && (
+                <>
+                  <div
+                    className="context-menu-item"
+                    onClick={() => {
+                      replyToMessage(contextMenu.message!);
+                      hideContextMenu();
+                    }}
+                  >
+                    <IconArrowBack />
+                    <span>Reply</span>
+                  </div>
+                  <div
+                    className="context-menu-item"
+                    onClick={() => {
+                      setReportedMessage(contextMenu.message!);
+                      setIsReportModalOpen(true);
+                      hideContextMenu();
+                    }}
+                  >
+                    <IconFlag />
+                    <span>Report</span>
+                  </div>
+                  {(hasRole(user.role, 'helper') ||
+                    user.uuid === contextMenu.message.sender_uuid) && (
+                    <>
+                      <div
+                        className="context-menu-item"
+                        onClick={() => {
+                          setEditedMessage(contextMenu.message!);
+                          setEditContent(contextMenu.message!.content);
+                          setIsEditModalOpen(true);
+                          hideContextMenu();
+                        }}
+                      >
+                        <IconPencil />
+                        <span>Edit</span>
+                      </div>
+                      <div
+                        className="context-menu-item"
+                        onClick={() => {
+                          void deleteMessage(contextMenu.message!.uuid);
+                          void fetchMessages();
+                          hideContextMenu();
+                        }}
+                      >
+                        <IconTrash />
+                        <span>Delete</span>
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </div>
           )}
