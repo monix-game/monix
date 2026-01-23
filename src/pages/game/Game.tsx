@@ -35,6 +35,7 @@ export default function Game() {
   const [aquariumTotal] = useState<number>(0);
 
   // Game states
+  const [gameHydrated, setGameHydrated] = useState<boolean>(false);
   const [tab, rawSetTab] = useState<
     | 'money'
     | 'resources'
@@ -52,10 +53,15 @@ export default function Game() {
   >('money');
   const [banned, setBanned] = useState<boolean>(false);
 
-  const setTab = useCallback((newTab: typeof tab) => {
-    document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
-    rawSetTab(newTab);
-  }, []);
+  const setTab = useCallback(
+    (newTab: typeof tab) => {
+      if (!gameHydrated) return;
+
+      document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
+      rawSetTab(newTab);
+    },
+    [gameHydrated, rawSetTab]
+  );
 
   // User states
   const [user, setUser] = useState<IUser | null>(null);
@@ -106,7 +112,7 @@ export default function Game() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void updateEverything();
+    void updateEverything().then(() => setGameHydrated(true));
 
     const interval = setInterval(async () => {
       await updateEverything();
