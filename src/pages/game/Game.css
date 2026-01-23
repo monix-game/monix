@@ -196,7 +196,8 @@ html[data-theme='dark'] .app-logo-light {
   margin-bottom: 15px;
 }
 
-.jail-tab {
+.jail-tab,
+.appeal-tab {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -204,7 +205,8 @@ html[data-theme='dark'] .app-logo-light {
   min-height: calc(100vh - 200px);
 }
 
-.jail-card {
+.jail-card,
+.appeal-card {
   background-color: var(--dark-bg);
   border: 2px solid var(--primary-2);
   border-radius: var(--border-radius);
@@ -251,6 +253,46 @@ html[data-theme='dark'] .app-logo-light {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.appeal-card {
+  text-align: left;
+}
+
+.appeal-card h2 {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+}
+
+.appeal-card p {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.appeal-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+}
+
+.appeal-modal textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--bg);
+  font-family: var(--font-family-monospace);
+  color: var(--text);
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.appeal-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* Mobile Responsiveness */

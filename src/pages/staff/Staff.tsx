@@ -18,10 +18,12 @@ import {
 } from '../../helpers/staff';
 import { getCategoryById, punishXCategories } from '../../../server/common/punishx/categories';
 import { hasRole } from '../../../server/common/roles';
+import type { IAppeal } from '../../../server/common/models/appeal';
+import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
 
 export default function Staff() {
   // App states
-  const [tab, rawSetTab] = useState<'dashboard' | 'reports' | 'users'>('dashboard');
+  const [tab, rawSetTab] = useState<'dashboard' | 'reports' | 'appeals' | 'users'>('dashboard');
   const [timeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>(() => {
     const h = new Date().getHours();
     if (h >= 5 && h < 12) return 'morning';
@@ -53,6 +55,16 @@ export default function Staff() {
   const [selectedReport, setSelectedReport] = useState<IReport | null>(null);
   const [reportChangeCategory, setReportChangeCategory] = useState<string>('');
 
+  // Appeals states
+  const [appealsStatusFilter, setAppealsStatusFilter] = useState<
+    'all' | 'pending' | 'approved' | 'denied'
+  >('pending');
+  const [appeals, setAppeals] = useState<IAppeal[]>([]);
+  const [appealsHydrated, setAppealsHydrated] = useState<boolean>(false);
+  const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
+  const [selectedAppeal, setSelectedAppeal] = useState<IAppeal | null>(null);
+  const [selectedAppealAction, setSelectedAppealAction] = useState<'approve' | 'deny' | null>(null);
+
   // Users states
   const [filter, setFilter] = useState<string>('');
   const [usersHydrated, setUsersHydrated] = useState<boolean>(false);
@@ -73,6 +85,7 @@ export default function Staff() {
     const userData = await fetchUser();
     const dashboardInfo = await getDashboardInfo();
     const reports = await getAllReports();
+    const appeals = await getAllAppeals();
 
     if (!userData || userData.role === 'user') window.location.href = '/auth/login';
 
@@ -84,6 +97,9 @@ export default function Staff() {
 
     setReports(reports);
     setReportsHydrated(true);
+
+    setAppeals(appeals);
+    setAppealsHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -126,6 +142,19 @@ export default function Staff() {
     await updateEverything();
   }, [selectedReport, selectedReportAction, updateEverything]);
 
+  const handleAppealAction = useCallback(async () => {
+    if (!selectedAppeal || !selectedAppealAction) return;
+
+    await reviewAppeal(
+      selectedAppeal.uuid,
+      selectedAppealAction === 'approve' ? 'approved' : 'denied'
+    );
+    setAppealModalOpen(false);
+
+    // Refresh appeals
+    await updateEverything();
+  }, [selectedAppeal, selectedAppealAction, updateEverything]);
+
   const handleChangeReportCategory = useCallback(async () => {
     if (!selectedReport || !reportChangeCategory) return;
 
@@ -153,6 +182,11 @@ export default function Staff() {
               {
                 key: 'reports',
                 label: '📝 Reports',
+                requiredRole: 'mod',
+              },
+              {
+                key: 'appeals',
+                label: '⚖️ Appeals',
                 requiredRole: 'mod',
               },
               { key: 'users', label: '👥 Users', requiredRole: 'admin' },
@@ -256,6 +290,18 @@ export default function Staff() {
                     </h3>
                     <span className="big-number">{dashboardData?.reportsLast24Hours}</span>
                   </div>
+                  <div className="dashboard-card">
+                    <h3>
+                      <EmojiText>⚖️ Open Appeals</EmojiText>
+                    </h3>
+                    <span className="big-number">{dashboardData?.openAppeals}</span>
+                  </div>
+                  <div className="dashboard-card">
+                    <h3>
+                      <EmojiText>⚖️ Appeals Last 24h</EmojiText>
+                    </h3>
+                    <span className="big-number">{dashboardData?.appealsLast24Hours}</span>
+                  </div>
                 </>
               )}
             </div>
@@ -264,11 +310,15 @@ export default function Staff() {
         {tab === 'reports' && (
           <div className="tab-content">
             <h2>
-              {dashboardData?.openReports === 1 && 'There is currently 1 report'}
-              {dashboardData?.openReports !== 1 &&
-                `There are currently ${dashboardData?.openReports} reports`}
+              {reports.filter(
+                r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter
+              ).length === 1 && 'There is currently 1 report'}
+              {reports.filter(
+                r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter
+              ).length !== 1 &&
+                `There are currently ${reports.filter(r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter).length} reports`}
             </h2>
-            <div className="report-filter">
+            <div className="review-filter">
               <p>Filter by status:</p>
               <Select
                 value={reportsStatusFilter}
@@ -283,19 +333,22 @@ export default function Staff() {
             </div>
             <div className="review-list">
               {!reportsHydrated && <Spinner size={28} />}
-              {reportsHydrated && dashboardData?.openReports === 0 && <b>No reports to show.</b>}
+              {reportsHydrated &&
+                reports.filter(
+                  r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter
+                ).length === 0 && <b>No reports to show.</b>}
               {reportsHydrated &&
                 reports
                   .filter(r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter)
                   .map(r => (
-                    <div key={r.uuid} className="report-card">
-                      <div className="report-header">
-                        <span className={`report-badge ${r.status}`}>{titleCase(r.status)}</span>
-                        <span className="report-time">
+                    <div key={r.uuid} className="review-card">
+                      <div className="review-header">
+                        <span className={`review-badge ${r.status}`}>{titleCase(r.status)}</span>
+                        <span className="review-time">
                           {formatRelativeTime(new Date(r.time_reported))}
                         </span>
                       </div>
-                      <div className="report-body">
+                      <div className="review-body">
                         <div className="staff-info-list">
                           <div className="staff-info-line">
                             <span>Category</span>
@@ -310,7 +363,7 @@ export default function Staff() {
                             <span className="mono">{r.details || 'N/A'}</span>
                           </div>
                         </div>
-                        <div className="report-buttons">
+                        <div className="review-buttons">
                           <Button
                             color="blue"
                             onClick={() => {
@@ -349,6 +402,86 @@ export default function Staff() {
                             }}
                           >
                             Change Category
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+            </div>
+          </div>
+        )}
+        {tab === 'appeals' && (
+          <div className="tab-content">
+            <h2>
+              {appeals.filter(
+                a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter
+              ).length === 1 && 'There is currently 1 appeal'}
+              {appeals.filter(
+                a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter
+              ).length !== 1 &&
+                `There are currently ${appeals.filter(a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter).length} appeals`}
+            </h2>
+            <div className="review-filter">
+              <p>Filter by status:</p>
+              <Select
+                value={appealsStatusFilter}
+                onChange={value => setAppealsStatusFilter(value as typeof appealsStatusFilter)}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'denied', label: 'Denied' },
+                ]}
+              />
+            </div>
+            <div className="review-list">
+              {!appealsHydrated && <Spinner size={28} />}
+              {appealsHydrated &&
+                appeals.filter(
+                  a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter
+                ).length === 0 && <b>No appeals to show.</b>}
+              {appealsHydrated &&
+                appeals
+                  .filter(a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter)
+                  .map(a => (
+                    <div key={a.uuid} className="review-card">
+                      <div className="review-header">
+                        <span className={`review-badge ${a.status}`}>{titleCase(a.status)}</span>
+                        <span className="review-time">
+                          {formatRelativeTime(new Date(a.time_submitted))}
+                        </span>
+                      </div>
+                      <div className="review-body">
+                        <div className="staff-info-list">
+                          <div className="staff-info-line">
+                            <span>Punishment Category</span>
+                            <span className="mono">{getCategoryById(a.reason)?.name}</span>
+                          </div>
+                          <div className="staff-info-line">
+                            <span>Appeal Text</span>
+                            <span className="mono">{a.reason}</span>
+                          </div>
+                        </div>
+                        <div className="review-buttons">
+                          <Button
+                            color="blue"
+                            onClick={() => {
+                              setSelectedAppeal(a);
+                              setSelectedAppealAction('approve');
+                              setAppealModalOpen(true);
+                            }}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            color="red"
+                            onClick={() => {
+                              setSelectedAppeal(a);
+                              setSelectedAppealAction('deny');
+                              setAppealModalOpen(true);
+                            }}
+                          >
+                            Deny
                           </Button>
                         </div>
                       </div>
@@ -457,6 +590,23 @@ export default function Staff() {
                   </Button>
                 </>
               )}
+            </>
+          )}
+        </div>
+      </Modal>
+
+      <Modal isOpen={appealModalOpen} onClose={() => setAppealModalOpen(false)}>
+        <div className="staff-modal">
+          {selectedAppeal && selectedAppealAction && (
+            <>
+              <h2>Confirm Appeal Action</h2>
+
+              <Button onClickAsync={handleAppealAction}>
+                Confirm {titleCase(selectedAppealAction)}
+              </Button>
+              <Button secondary onClick={() => setAppealModalOpen(false)}>
+                Cancel
+              </Button>
             </>
           )}
         </div>

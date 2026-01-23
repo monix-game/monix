@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireRole } from '../middleware';
 import {
+  getAllAppeals,
   getAllReports,
   getAllUsers,
   getReportByUUID,
@@ -18,6 +19,7 @@ const router = Router();
 router.get('/dashboard', requireRole('helper'), async (req: Request, res: Response) => {
   const allUsers = await getAllUsers();
   const allReports = await getAllReports();
+  const allAppeals = await getAllAppeals();
 
   let totalPunishments = 0;
   let allPunishments: IPunishment[] = [];
@@ -35,6 +37,8 @@ router.get('/dashboard', requireRole('helper'), async (req: Request, res: Respon
     openReports: allReports.filter(r => r.status === 'pending').length,
     reportsLast24Hours: allReports.filter(r => twentyFourHoursAgo <= r.time_reported).length,
     punishmentsLast24Hours: allPunishments.filter(p => twentyFourHoursAgo <= p.issued_at).length,
+    openAppeals: allAppeals.filter(a => a.status === 'pending').length,
+    appealsLast24Hours: allAppeals.filter(a => twentyFourHoursAgo <= a.time_submitted).length,
   };
 
   res.status(200).json({ info: dashboardInfo });

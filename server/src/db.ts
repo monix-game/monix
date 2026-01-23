@@ -5,6 +5,7 @@ import { type IPet, petFromDoc, petToDoc } from '../common/models/pet';
 import { type IMessage, messageFromDoc, messageToDoc } from '../common/models/message';
 import { type IRoom, roomFromDoc, roomToDoc } from '../common/models/room';
 import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
+import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -21,6 +22,8 @@ export async function connectDB(uri: string) {
   await db.collection('pets').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('messages').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('rooms').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('reports').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('appeals').createIndex({ uuid: 1 }, { unique: true });
 
   // Ensure default rooms exist
   const defaultRooms: IRoom[] = [
@@ -214,4 +217,34 @@ export async function getAllReports(): Promise<IReport[]> {
   const database = ensureDB();
   const docs = await database.collection('reports').find({}).toArray();
   return docs.map(reportFromDoc);
+}
+
+export async function createAppeal(appeal: IAppeal): Promise<void> {
+  const database = ensureDB();
+  await database.collection('appeals').insertOne(appealToDoc(appeal));
+}
+
+export async function getAppealByUUID(uuid: string): Promise<IAppeal | null> {
+  const database = ensureDB();
+  const doc = await database.collection('appeals').findOne({ uuid });
+  return doc ? appealFromDoc(doc) : null;
+}
+
+export async function getAppealsByUserUUID(user_uuid: string): Promise<IAppeal[]> {
+  const database = ensureDB();
+  const docs = await database.collection('appeals').find({ user_uuid }).toArray();
+  return docs.map(appealFromDoc);
+}
+
+export async function getAllAppeals(): Promise<IAppeal[]> {
+  const database = ensureDB();
+  const docs = await database.collection('appeals').find({}).toArray();
+  return docs.map(appealFromDoc);
+}
+
+export async function updateAppeal(appeal: IAppeal): Promise<void> {
+  const database = ensureDB();
+  await database
+    .collection('appeals')
+    .updateOne({ uuid: appeal.uuid }, { $set: appealToDoc(appeal) });
 }
