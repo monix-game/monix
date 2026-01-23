@@ -51,6 +51,16 @@ router.post('/send', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to send messages in this room' });
   }
 
+  // Make sure the content is not empty after trimming
+  if (content.trim() === '') {
+    return res.status(400).json({ error: 'Message content cannot be empty' });
+  }
+
+  // Make sure the content is not too long
+  if (content.length > 300) {
+    return res.status(400).json({ error: 'Message content is too long' });
+  }
+
   // Censor the message content
   const censoredContent = profanityFilter.censorText(content);
 
