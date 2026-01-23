@@ -5,7 +5,8 @@ import { v4 } from 'uuid';
 export async function sendNyxMessage(
   recipientUuid: string,
   content: string,
-  room_uuid: string
+  room_uuid: string,
+  ephemeral: boolean = true
 ): Promise<void> {
   const message: IMessage = {
     uuid: v4(),
@@ -15,7 +16,7 @@ export async function sendNyxMessage(
     content,
     time_sent: Date.now(),
     edited: false,
-    ephemeral: true,
+    ephemeral: ephemeral,
     ephemeral_user_uuid: recipientUuid,
   };
 

@@ -17,6 +17,7 @@ import { profanityFilter } from '../index';
 import { IReport } from '../../common/models/report';
 import { getCategoryById } from '../../common/punishx/categories';
 import { sendNyxMessage } from '../helpers/nyx';
+import { handleCommand } from '../helpers/commands';
 
 const router = Router();
 
@@ -92,39 +93,34 @@ router.post('/send', requireActive, async (req, res) => {
     return res.status(400).json({ error: 'Messages cannot contain links' });
   }
 
-  // Check if the message starts with /shout (shouted message)
-  let finalContent = censoredContent;
-  let isShouted = false;
-  if (censoredContent.toLowerCase().startsWith('/shout ') && user.role !== 'user') {
-    finalContent = censoredContent.slice(7).trim();
-    isShouted = true;
-    // Make sure the shouted content is not empty
-    if (finalContent === '') {
-      await sendNyxMessage(
-        user.uuid,
-        'Your shouted message was not sent because it is empty. Please provide content after /shout.',
-        room_uuid
-      );
-      return res.status(400).json({ error: 'Shouted message content cannot be empty' });
-    }
-  }
-
-  const message: IMessage = {
+  const originalMessage: IMessage = {
     uuid: v4(),
     sender_uuid: user.uuid,
     sender_username: user.username,
     sender_badge: user.role === 'user' ? undefined : user.role,
     sender_avatar_url: user.avatar_data_uri,
     room_uuid,
-    content: finalContent,
+    content: censoredContent,
     time_sent: Date.now(),
     edited: false,
-    shouted: isShouted,
+    shouted: false,
   };
 
-  await createMessage(message);
+  const processed = await handleCommand(originalMessage, user, room_uuid);
 
-  res.status(201).json({ message });
+  if (processed.error) {
+    return res.status(400).json({ error: processed.error });
+  }
+
+  if (!processed.message) {
+    return res.status(200).json({ message: null });
+  }
+
+  const processedMessage = processed.message;
+
+  await createMessage(processedMessage);
+
+  res.status(201).json({ message: processedMessage });
 });
 
 router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
