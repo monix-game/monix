@@ -64,6 +64,29 @@ router.post('/send', requireActive, async (req, res) => {
   // Censor the message content
   const censoredContent = profanityFilter.censorText(content);
 
+  // Check if the censored content is empty
+  if (censoredContent.trim() === '' || censoredContent.replace(/\*+/g, '').trim() === '') {
+    return res.status(400).json({ error: 'Message content cannot be only profanity' });
+  }
+
+  // Check if the message contains links (not allowed in social rooms except for staff)
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  if (urlRegex.test(content) && user.role === 'user') {
+    return res.status(400).json({ error: 'Messages cannot contain links' });
+  }
+
+  // Check if the message starts with /shout (shouted message)
+  let finalContent = censoredContent;
+  let isShouted = false;
+  if (censoredContent.toLowerCase().startsWith('/shout ')) {
+    finalContent = censoredContent.slice(7).trim();
+    isShouted = true;
+    // Make sure the shouted content is not empty
+    if (finalContent === '') {
+      return res.status(400).json({ error: 'Shouted message content cannot be empty' });
+    }
+  }
+
   const message: IMessage = {
     uuid: v4(),
     sender_uuid: user.uuid,
@@ -71,9 +94,10 @@ router.post('/send', requireActive, async (req, res) => {
     sender_role: user.role === 'user' ? undefined : user.role,
     sender_avatar_url: user.avatar_data_uri,
     room_uuid,
-    content: censoredContent,
+    content: finalContent,
     time_sent: Date.now(),
     edited: false,
+    shouted: isShouted,
   };
 
   await createMessage(message);

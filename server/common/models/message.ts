@@ -13,6 +13,7 @@ export interface IMessage {
   nameplate?: string;
   time_edited?: number;
   edited: boolean;
+  shouted?: boolean;
 }
 
 export function messageToDoc(m: IMessage): IMessage {
@@ -28,6 +29,7 @@ export function messageToDoc(m: IMessage): IMessage {
     nameplate: m.nameplate,
     time_edited: m.time_edited,
     edited: m.edited,
+    shouted: m.shouted,
   };
 }
 
@@ -45,5 +47,6 @@ export function messageFromDoc(doc: any): IMessage {
     nameplate: doc.nameplate || undefined,
     time_edited: doc.time_edited || undefined,
     edited: doc.edited || false,
+    shouted: doc.shouted || false,
   };
 }
