@@ -26,7 +26,8 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
     text = sanitizeText(text);
 
     const nodes: React.ReactNode[] = [];
-    const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
+    // Order matters: match triple asterisks first to support nested bold+italic (***text***)
+    const regex = /(\*\*\*(.+?)\*\*\*)|(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
     let lastIndex = 0;
     let m: RegExpExecArray | null;
 
@@ -46,17 +47,26 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
       }
 
       if (m[2]) {
-        // bold
+        // bold+italic (triple)
         nodes.push(
           <strong key={nodes.length}>
-            <EmojiText>{m[2]}</EmojiText>
+            <em>
+              <EmojiText>{m[2]}</EmojiText>
+            </em>
           </strong>
         );
       } else if (m[4]) {
+        // bold
+        nodes.push(
+          <strong key={nodes.length}>
+            <EmojiText>{m[4]}</EmojiText>
+          </strong>
+        );
+      } else if (m[6]) {
         // italic
         nodes.push(
           <em key={nodes.length}>
-            <EmojiText>{m[4]}</EmojiText>
+            <EmojiText>{m[6]}</EmojiText>
           </em>
         );
       }

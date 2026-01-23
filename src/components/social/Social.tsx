@@ -142,7 +142,11 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               <div
                 key={r.uuid}
                 className={`social-room-item ${r.uuid === room.uuid ? 'active' : ''}`}
-                onClick={() => setRoom(r)}
+                onClick={() => {
+                  setRoom(r);
+                  void fetchMessages();
+                  hideContextMenu();
+                }}
               >
                 <EmojiText>{r.name}</EmojiText>
               </div>
