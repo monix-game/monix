@@ -10,9 +10,10 @@ interface MessageProps {
   user?: IUser;
   message: IMessage;
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  updateMessages: () => void;
 }
 
-export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }) => {
+export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu, updateMessages }) => {
   const self = user ? user.uuid === message.sender_uuid : false;
 
   const sanitizeText = (text: string): string => {
@@ -83,6 +84,7 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
   const handleEphemeralClick = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     e.preventDefault();
     void dismissEphemeralMessage(message.uuid);
+    updateMessages();
   };
 
   return (

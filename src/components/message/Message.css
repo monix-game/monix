@@ -70,10 +70,10 @@
   text-transform: uppercase;
 }
 
-.clickable {
+.message-clickable {
   cursor: pointer;
 }
 
-.clickable:hover {
+.message-clickable:hover {
   text-decoration: underline;
 }

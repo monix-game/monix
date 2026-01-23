@@ -167,6 +167,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               onContextMenu={e => {
                 if (!msg.ephemeral) onMessageContextMenu(e.nativeEvent, msg);
               }}
+              updateMessages={() => void fetchMessages()}
             />
           ))}
           {contextMenu.visible && contextMenu.message && (
