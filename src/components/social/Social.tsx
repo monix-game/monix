@@ -69,7 +69,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
 
     const interval = setInterval(() => {
       void fetchMessages();
-    }, 5000);
+    }, 1000);
     return () => clearInterval(interval);
   }, [fetchMessages, room]);
 
