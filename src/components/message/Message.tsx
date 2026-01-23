@@ -83,16 +83,20 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
     <div className={`message-item ${self ? 'self' : ''}`} onContextMenu={onContextMenu}>
       <div className="message-header">
         <span className="message-sender">
-          <span className="message-username">{message.sender_username}</span>
-          {message.sender_role && (
-            <span className={`message-badge ${message.sender_role.toLowerCase()}`}>
-              {titleCase(message.sender_role)}
+          <span className="message-username">
+            <EmojiText>{message.sender_username}</EmojiText>
+          </span>
+          {message.sender_badge && (
+            <span className={`message-badge ${message.sender_badge.toLowerCase()}`}>
+              {titleCase(message.sender_badge)}
             </span>
           )}
         </span>
         <span className="message-timestamp">{formatRelativeTime(new Date(message.time_sent))}</span>
       </div>
-      <div className="message-content">{renderMarkdown(message.content)}</div>
+      <div className={`message-content ${message.shouted ? 'shouted' : ''}`}>
+        {renderMarkdown(message.content)}
+      </div>
     </div>
   );
 };

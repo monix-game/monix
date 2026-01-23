@@ -1,0 +1,23 @@
+import { createMessage } from '../db';
+import { IMessage } from '../../common/models/message';
+import { v4 } from 'uuid';
+
+export async function sendNyxMessage(
+  recipientUuid: string,
+  content: string,
+  room_uuid: string
+): Promise<void> {
+  const message: IMessage = {
+    uuid: v4(),
+    sender_uuid: 'nyx',
+    sender_username: '💫 Nyx',
+    room_uuid,
+    content,
+    time_sent: Date.now(),
+    edited: false,
+    ephemeral: true,
+    ephemeral_user_uuid: recipientUuid,
+  };
+
+  await createMessage(message);
+}

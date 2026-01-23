@@ -5,7 +5,7 @@ export interface IMessage {
   uuid: string;
   sender_uuid: string;
   sender_username: string;
-  sender_role?: string;
+  sender_badge?: string;
   sender_avatar_url?: string;
   room_uuid: string;
   content: string;
@@ -14,6 +14,8 @@ export interface IMessage {
   time_edited?: number;
   edited: boolean;
   shouted?: boolean;
+  ephemeral?: boolean;
+  ephemeral_user_uuid?: string;
 }
 
 export function messageToDoc(m: IMessage): IMessage {
@@ -21,7 +23,7 @@ export function messageToDoc(m: IMessage): IMessage {
     uuid: m.uuid,
     sender_uuid: m.sender_uuid,
     sender_username: m.sender_username,
-    sender_role: m.sender_role,
+    sender_badge: m.sender_badge,
     sender_avatar_url: m.sender_avatar_url,
     room_uuid: m.room_uuid,
     content: m.content,
@@ -30,6 +32,8 @@ export function messageToDoc(m: IMessage): IMessage {
     time_edited: m.time_edited,
     edited: m.edited,
     shouted: m.shouted,
+    ephemeral: m.ephemeral,
+    ephemeral_user_uuid: m.ephemeral_user_uuid,
   };
 }
 
@@ -39,7 +43,7 @@ export function messageFromDoc(doc: any): IMessage {
     uuid: doc.uuid || '',
     sender_uuid: doc.sender_uuid || '',
     sender_username: doc.sender_username || '',
-    sender_role: doc.sender_role || undefined,
+    sender_badge: doc.sender_badge || undefined,
     sender_avatar_url: doc.sender_avatar_url || undefined,
     room_uuid: doc.room_uuid || '',
     content: doc.content || '',
@@ -48,5 +52,7 @@ export function messageFromDoc(doc: any): IMessage {
     time_edited: doc.time_edited || undefined,
     edited: doc.edited || false,
     shouted: doc.shouted || false,
+    ephemeral: doc.ephemeral || false,
+    ephemeral_user_uuid: doc.ephemeral_user_uuid || undefined,
   };
 }

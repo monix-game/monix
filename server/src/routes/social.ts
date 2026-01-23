@@ -15,6 +15,7 @@ import { roomToDoc } from '../../common/models/room';
 import { profanityFilter } from '../index';
 import { IReport } from '../../common/models/report';
 import { getCategoryById } from '../../common/punishx/categories';
+import { sendNyxMessage } from '../helpers/nyx';
 
 const router = Router();
 
@@ -58,6 +59,11 @@ router.post('/send', requireActive, async (req, res) => {
 
   // Make sure the content is not too long
   if (content.length > 300) {
+    await sendNyxMessage(
+      user.uuid,
+      'Your message was not sent because it exceeds the maximum length of 300 characters.',
+      room_uuid
+    );
     return res.status(400).json({ error: 'Message content is too long' });
   }
 
@@ -66,23 +72,38 @@ router.post('/send', requireActive, async (req, res) => {
 
   // Check if the censored content is empty
   if (censoredContent.trim() === '' || censoredContent.replace(/\*+/g, '').trim() === '') {
+    await sendNyxMessage(
+      user.uuid,
+      'Your message was not sent because it contains only profanity. Please adhere to our community guidelines.',
+      room_uuid
+    );
     return res.status(400).json({ error: 'Message content cannot be only profanity' });
   }
 
   // Check if the message contains links (not allowed in social rooms except for staff)
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   if (urlRegex.test(content) && user.role === 'user') {
+    await sendNyxMessage(
+      user.uuid,
+      'Links are not allowed in social rooms. Please use direct messaging for sharing links.',
+      room_uuid
+    );
     return res.status(400).json({ error: 'Messages cannot contain links' });
   }
 
   // Check if the message starts with /shout (shouted message)
   let finalContent = censoredContent;
   let isShouted = false;
-  if (censoredContent.toLowerCase().startsWith('/shout ')) {
+  if (censoredContent.toLowerCase().startsWith('/shout ') && user.role !== 'user') {
     finalContent = censoredContent.slice(7).trim();
     isShouted = true;
     // Make sure the shouted content is not empty
     if (finalContent === '') {
+      await sendNyxMessage(
+        user.uuid,
+        'Your shouted message was not sent because it is empty. Please provide content after /shout.',
+        room_uuid
+      );
       return res.status(400).json({ error: 'Shouted message content cannot be empty' });
     }
   }
@@ -91,7 +112,7 @@ router.post('/send', requireActive, async (req, res) => {
     uuid: v4(),
     sender_uuid: user.uuid,
     sender_username: user.username,
-    sender_role: user.role === 'user' ? undefined : user.role,
+    sender_badge: user.role === 'user' ? undefined : user.role,
     sender_avatar_url: user.avatar_data_uri,
     room_uuid,
     content: finalContent,
