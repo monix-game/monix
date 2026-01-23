@@ -127,11 +127,30 @@ router.post('/send', requireActive, async (req, res) => {
 });
 
 router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
   const { room_uuid } = req.params;
 
   const messages = await getMessagesByRoomUUID(room_uuid as string);
 
-  res.status(200).json({ messages: messages.map(m => messageToDoc(m)) });
+  // Dont return ephemeral messages if not for the user
+  const filteredMessages = messages.filter(m => {
+    if (m.ephemeral && m.ephemeral_user_uuid !== user.uuid) {
+      return false;
+    }
+    return true;
+  });
+
+  res.status(200).json({ messages: filteredMessages.map(m => messageToDoc(m)) });
 });
 
 router.get('/rooms', requireActive, async (req, res) => {

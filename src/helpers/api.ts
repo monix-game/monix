@@ -15,6 +15,15 @@ interface ApiResponse<T> {
   success: boolean;
 }
 
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = 'ApiError';
+  }
+}
+
 class ApiHandler {
   private baseUrl: string;
   private defaultTimeout: number = 10000;
@@ -73,7 +82,13 @@ class ApiHandler {
         const data = (await response.json().catch(() => null)) as T | null;
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new ApiError(
+            data && typeof data === 'object' && 'error' in data
+              ? // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+                ((data as any).error as string)
+              : `API request failed with status ${response.status}`,
+            response.status
+          );
         }
 
         return {
@@ -83,6 +98,11 @@ class ApiHandler {
           success: true,
         };
       } catch (error) {
+        if (error instanceof ApiError) {
+          lastError = error;
+          break; // Do not retry on API errors
+        }
+
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < retries) {

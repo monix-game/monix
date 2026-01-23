@@ -92,7 +92,11 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
             </span>
           )}
         </span>
-        <span className="message-timestamp">{formatRelativeTime(new Date(message.time_sent))}</span>
+        <span className="message-timestamp">
+          {message.ephemeral ? '(Ephemeral) ' : ''}
+          {message.edited ? '' : '(Edited) '}
+          {formatRelativeTime(new Date(message.time_sent))}
+        </span>
       </div>
       <div className={`message-content ${message.shouted ? 'shouted' : ''}`}>
         {renderMarkdown(message.content)}
