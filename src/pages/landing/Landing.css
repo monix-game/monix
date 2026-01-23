@@ -30,6 +30,12 @@ html[data-theme='dark'] .landing-logo-light {
   display: none;
 }
 
+.landing-header .landing-title {
+  display: block;
+  margin: 0;
+  align-self: center;
+}
+
 .landing-title {
   font-size: 2rem;
   font-weight: 700;
