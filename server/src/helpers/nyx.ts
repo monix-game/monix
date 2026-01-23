@@ -18,7 +18,7 @@ export async function sendNyxMessage(
     edited: false,
     ephemeral: ephemeral,
     ephemeral_user_uuid: recipientUuid,
-    sender_badge: 'system'
+    sender_badge: 'system',
   };
 
   await createMessage(message);

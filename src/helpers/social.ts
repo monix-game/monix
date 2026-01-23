@@ -53,6 +53,34 @@ export async function sendMessage(room_uuid: string, content: string): Promise<I
   }
 }
 
+export async function editMessage(message_uuid: string, content: string): Promise<IMessage | null> {
+  try {
+    const resp = await api.post<{ message: IMessage }>(`/social/edit/${message_uuid}`, {
+      content,
+    });
+    if (resp && resp.success) {
+      const payload = resp.data;
+      if (payload && payload.message) {
+        return payload.message;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('Error editing message', err);
+    return null;
+  }
+}
+
+export async function deleteMessage(message_uuid: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/social/delete/' + message_uuid, {});
+    return resp && resp.success;
+  } catch (err) {
+    console.error('Error deleting message', err);
+    return false;
+  }
+}
+
 export async function dismissEphemeralMessage(message_uuid: string): Promise<boolean> {
   try {
     const resp = await api.post('/social/ephemeral/dismiss/' + message_uuid, {});

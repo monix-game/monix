@@ -2,16 +2,23 @@ import React, { useCallback, useEffect } from 'react';
 import './Social.css';
 import type { IRoom } from '../../../server/common/models/room';
 import { EmojiText } from '../EmojiText';
-import { getRoomMessages, reportMessage, sendMessage } from '../../helpers/social';
+import {
+  deleteMessage,
+  editMessage,
+  getRoomMessages,
+  reportMessage,
+  sendMessage,
+} from '../../helpers/social';
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
 import type { IUser } from '../../../server/common/models/user';
-import { IconArrowBack, IconClipboard, IconFlag } from '@tabler/icons-react';
+import { IconArrowBack, IconClipboard, IconFlag, IconPencil, IconTrash } from '@tabler/icons-react';
 import { Modal } from '../modal/Modal';
 import { Select } from '../select/Select';
 import { Button } from '../button/Button';
 import { punishXCategories } from '../../../server/common/punishx/categories';
 import { Message } from '../message/Message';
+import { hasRole } from '../../../server/common/roles';
 
 interface SocialProps {
   user: IUser;
@@ -34,6 +41,10 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const [reportedMessage, setReportedMessage] = React.useState<IMessage | null>(null);
   const [reportReason, setReportReason] = React.useState<string>('');
   const [reportDetails, setReportDetails] = React.useState<string>('');
+
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState<boolean>(false);
+  const [editedMessage, setEditedMessage] = React.useState<IMessage | null>(null);
+  const [editContent, setEditContent] = React.useState<string>('');
 
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -132,6 +143,20 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     if (el) el.focus();
   };
 
+  const editMessageClick = async () => {
+    if (!editedMessage) return;
+
+    await editMessage(editedMessage.uuid, editContent);
+
+    // Close modal and clear state
+    setIsEditModalOpen(false);
+    setEditedMessage(null);
+    setEditContent('');
+
+    // Refresh messages
+    await fetchMessages();
+  };
+
   return (
     <div className="social-root">
       <div className="social-sidebar">
@@ -199,6 +224,18 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               <div
                 className="context-menu-item"
                 onClick={() => {
+                  setEditedMessage(contextMenu.message!);
+                  setEditContent(contextMenu.message!.content);
+                  setIsEditModalOpen(true);
+                  hideContextMenu();
+                }}
+              >
+                <IconPencil />
+                <span>Edit</span>
+              </div>
+              <div
+                className="context-menu-item"
+                onClick={() => {
                   setReportedMessage(contextMenu.message!);
                   setIsReportModalOpen(true);
                   hideContextMenu();
@@ -207,6 +244,19 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 <IconFlag />
                 <span>Report</span>
               </div>
+              {(hasRole(user.role, 'helper') || user.uuid === contextMenu.message.sender_uuid) && (
+                <div
+                  className="context-menu-item"
+                  onClick={() => {
+                    void deleteMessage(contextMenu.message!.uuid);
+                    void fetchMessages();
+                    hideContextMenu();
+                  }}
+                >
+                  <IconTrash />
+                  <span>Delete</span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -224,6 +274,19 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           />
         </div>
       </div>
+
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+        <div className="social-modal-content">
+          <h2>Edit Message</h2>
+          <Input value={editContent} onValueChange={value => setEditContent(value)} />
+          <div className="social-modal-actions">
+            <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+            <Button color="blue" onClickAsync={editMessageClick}>
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)}>
         <div className="social-modal-content">

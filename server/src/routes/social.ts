@@ -123,6 +123,89 @@ router.post('/send', requireActive, async (req, res) => {
   res.status(201).json({ message: processedMessage });
 });
 
+router.post('/edit/:message_uuid', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { message_uuid } = req.params;
+  const { content } = req.body as { content: string };
+
+  if (!content) {
+    return res.status(400).json({ error: 'Missing content' });
+  }
+
+  const message = await getMessageByUUID(message_uuid as string);
+
+  if (!message) {
+    return res.status(404).json({ error: 'Message not found' });
+  }
+
+  if (message.sender_uuid !== user.uuid) {
+    return res.status(403).json({ error: 'You are not allowed to edit this message' });
+  }
+
+  // Make sure the content is not empty after trimming
+  if (content.trim() === '') {
+    return res.status(400).json({ error: 'Message content cannot be empty' });
+  }
+
+  // Make sure the content is not too long
+  if (content.length > 300) {
+    return res.status(400).json({ error: 'Message content is too long' });
+  }
+
+  // Censor the message content
+  const censoredContent = profanityFilter.censorText(content);
+
+  // Check if the censored content is empty
+  if (censoredContent.trim() === '' || censoredContent.replace(/\*+/g, '').trim() === '') {
+    return res.status(400).json({ error: 'Message content cannot be only profanity' });
+  }
+
+  message.content = censoredContent;
+  message.edited = true;
+  message.time_edited = Date.now();
+
+  res.status(200).json({ message });
+});
+
+router.post('/delete/:message_uuid', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { message_uuid } = req.params;
+
+  const message = await getMessageByUUID(message_uuid as string);
+
+  if (!message) {
+    return res.status(404).json({ error: 'Message not found' });
+  }
+
+  if (message.sender_uuid !== user.uuid && user.role === 'user') {
+    return res.status(403).json({ error: 'You are not allowed to delete this message' });
+  }
+
+  await deleteMessageByUUID(message.uuid);
+
+  res.status(200).json({ success: true });
+});
+
 router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
