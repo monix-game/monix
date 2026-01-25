@@ -38,7 +38,7 @@ export default function Game() {
 
   // Game states
   const [gameHydrated, setGameHydrated] = useState<boolean>(false);
-  const [tab, rawSetTab] = useState<
+  const [tab, setTab] = useState<
     | 'money'
     | 'resources'
     | 'market'
@@ -47,6 +47,7 @@ export default function Game() {
     | 'relics'
     | 'council'
     | 'social'
+    | 'cue'
     | 'leaderboard'
     | 'gems'
     | 'store'
@@ -56,14 +57,14 @@ export default function Game() {
   >('money');
   const [banned, setBanned] = useState<boolean>(false);
 
-  const setTab = useCallback(
+  const setTabTo = useCallback(
     (newTab: typeof tab) => {
       if (!gameHydrated) return;
 
       document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
-      rawSetTab(newTab);
+      setTab(newTab);
     },
-    [gameHydrated, rawSetTab]
+    [gameHydrated, setTab]
   );
 
   // User states
@@ -94,7 +95,7 @@ export default function Game() {
     const jailTabs = ['jail', 'settings', 'appeals'];
 
     const userData = await fetchUser();
-    if (!userData) window.location.href = '/auth/login';
+    if (!userData) globalThis.location.href = '/auth/login';
 
     setUser(userData);
     setUserRole(userData ? userData.role : 'user');
@@ -102,13 +103,11 @@ export default function Game() {
     if (isUserBanned(userData!)) {
       setBanned(true);
       setCurrentPunishment(getCurrentPunishment(userData!));
-      if (!jailTabs.includes(tab)) setTab('jail');
+      if (!jailTabs.includes(tab)) setTabTo('jail');
       return;
-    } else {
-      if (banned) {
-        setBanned(false);
-        setTab('money');
-      }
+    } else if (banned) {
+      setBanned(false);
+      setTabTo('money');
     }
 
     const totalResources = await getTotalResourceValue();
@@ -117,7 +116,7 @@ export default function Game() {
 
     const socialRooms = await getAllRooms();
     setSocialRooms(socialRooms);
-  }, [tab, setTab, banned]);
+  }, [tab, setTabTo, banned]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -174,7 +173,7 @@ export default function Game() {
       await updateResource();
       if (mounted) setResourceListHydrated(true);
 
-      intervalId = window.setInterval(async () => {
+      intervalId = setInterval(async () => {
         await updateResource();
       }, 2000);
     };
@@ -225,6 +224,7 @@ export default function Game() {
                     { key: 'relics', label: '🦴 Relics' },
                     { key: 'council', label: '🏛️ Council' },
                     { key: 'social', label: '💬 Social' },
+                    { key: 'cue', label: '🔴 Cue' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'gems', label: '💎 Gems' },
                     { key: 'store', label: '🏬 Store' },
@@ -237,11 +237,18 @@ export default function Game() {
                 rows.push(tabs.slice(i * half, i * half + half));
               }
 
-              const renderTab = (t: { key: typeof tab; label: string }) => (
+              const renderTab = (t: { key: typeof tab; label: string }, index: number) => (
                 <span
                   key={t.key}
                   className={tab === t.key ? 'active tab' : 'tab'}
-                  onClick={() => setTab(t.key)}
+                  onClick={() => setTabTo(t.key)}
+                  role="tab"
+                  tabIndex={index}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setTabTo(t.key);
+                    }
+                  }}
                 >
                   <EmojiText>{t.label}</EmojiText>
                 </span>
@@ -252,7 +259,7 @@ export default function Game() {
                   {rows.map((row, rowIndex) => (
                     // eslint-disable-next-line react-x/no-array-index-key
                     <div key={rowIndex} className="nav-row">
-                      {row.map(t => renderTab(t))}
+                      {row.map((t, index) => renderTab(t, index))}
                     </div>
                   ))}
                 </>
@@ -268,9 +275,15 @@ export default function Game() {
               {!user?.avatar_data_uri && <IconUser size={24} />}
               <span
                 className={`username ${user?.role !== 'user' ? 'clickable' : ''}`}
+                role="button"
                 onClick={() => {
                   if (user?.role !== 'user') {
-                    window.location.href = '/staff';
+                    globalThis.location.href = '/staff';
+                  }
+                }}
+                onKeyDown={e => {
+                  if (user?.role !== 'user' && (e.key === 'Enter' || e.key === ' ')) {
+                    globalThis.location.href = '/staff';
                   }
                 }}
               >
@@ -344,7 +357,7 @@ export default function Game() {
           {tab === 'market' && (
             <div className="tab-content">
               <h2>Market</h2>
-              <Button onClick={() => setTab('resources')}>Choose Resource</Button>
+              <Button onClick={() => setTabTo('resources')}>Choose Resource</Button>
               <ResourceGraph
                 resource={getResourceById(marketResourceDetails)!}
                 onBuySellClick={() => {
@@ -388,6 +401,12 @@ export default function Game() {
               />
             </div>
           )}
+          {tab === 'cue' && (
+            <div className="tab-content">
+              <h2>Cue Tab</h2>
+              <p>Content for Cue will go here.</p>
+            </div>
+          )}
           {tab === 'leaderboard' && (
             <div className="tab-content">
               <Leaderboard />
@@ -403,7 +422,7 @@ export default function Game() {
                   onClickAsync={async () => {
                     const url = await createPaymentSession('gems_pack_100', user!.username);
                     if (url) {
-                      window.location.href = url;
+                      globalThis.location.href = url;
                     }
                   }}
                 />
@@ -413,7 +432,7 @@ export default function Game() {
                   onClickAsync={async () => {
                     const url = await createPaymentSession('gems_pack_500', user!.username);
                     if (url) {
-                      window.location.href = url;
+                      globalThis.location.href = url;
                     }
                   }}
                 />
@@ -423,7 +442,7 @@ export default function Game() {
                   onClickAsync={async () => {
                     const url = await createPaymentSession('gems_pack_1000', user!.username);
                     if (url) {
-                      window.location.href = url;
+                      globalThis.location.href = url;
                     }
                   }}
                 />
@@ -505,7 +524,7 @@ export default function Game() {
               setMarketModalResource(null);
             }}
             onSeeMore={() => {
-              setTab('market');
+              setTabTo('market');
               setMarketResourceDetails(marketModalResource.id);
               setMarketModalOpen(false);
             }}

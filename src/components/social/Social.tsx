@@ -111,11 +111,11 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === 'Escape') hideContextMenu();
     };
-    window.addEventListener('click', onClick);
-    window.addEventListener('keydown', onKey);
+    globalThis.addEventListener('click', onClick);
+    globalThis.addEventListener('keydown', onKey);
     return () => {
-      window.removeEventListener('click', onClick);
-      window.removeEventListener('keydown', onKey);
+      globalThis.removeEventListener('click', onClick);
+      globalThis.removeEventListener('keydown', onKey);
     };
   }, []);
 
@@ -172,6 +172,15 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                   void fetchMessages();
                   hideContextMenu();
                 }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    setRoom(r);
+                    void fetchMessages();
+                    hideContextMenu();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <EmojiText>{r.name}</EmojiText>
               </div>
@@ -207,6 +216,14 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                   void copyText(contextMenu.message!.content);
                   hideContextMenu();
                 }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    void copyText(contextMenu.message!.content);
+                    hideContextMenu();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <IconClipboard />
                 <span>Copy text</span>
@@ -219,6 +236,14 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                       replyToMessage(contextMenu.message!);
                       hideContextMenu();
                     }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        replyToMessage(contextMenu.message!);
+                        hideContextMenu();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <IconArrowBack />
                     <span>Reply</span>
@@ -230,26 +255,43 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                       setIsReportModalOpen(true);
                       hideContextMenu();
                     }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        setReportedMessage(contextMenu.message!);
+                        setIsReportModalOpen(true);
+                        hideContextMenu();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <IconFlag />
                     <span>Report</span>
                   </div>
                   {(hasRole(user.role, 'helper') ||
                     user.uuid === contextMenu.message.sender_uuid) && (
-                    <>
-                      <div
-                        className="context-menu-item"
-                        onClick={() => {
+                    <div
+                      className="context-menu-item"
+                      onClick={() => {
+                        setEditedMessage(contextMenu.message!);
+                        setEditContent(contextMenu.message!.content);
+                        setIsEditModalOpen(true);
+                        hideContextMenu();
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
                           setEditedMessage(contextMenu.message!);
                           setEditContent(contextMenu.message!.content);
                           setIsEditModalOpen(true);
                           hideContextMenu();
-                        }}
-                      >
-                        <IconPencil />
-                        <span>Edit</span>
-                      </div>
-                    </>
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <IconPencil />
+                      <span>Edit</span>
+                    </div>
                   )}
                 </>
               )}
@@ -261,6 +303,15 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                     void fetchMessages();
                     hideContextMenu();
                   }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      void deleteMessage(contextMenu.message!.uuid);
+                      void fetchMessages();
+                      hideContextMenu();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <IconTrash />
                   <span>Delete</span>

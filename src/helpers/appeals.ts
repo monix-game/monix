@@ -54,7 +54,7 @@ export async function reviewAppeal(
       status,
       review_reason,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     } else {
       return false;
