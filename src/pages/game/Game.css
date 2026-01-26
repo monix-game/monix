@@ -156,7 +156,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 
@@ -297,6 +297,41 @@ html[data-theme='dark'] .app-logo-light {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.games-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.game-card {
+  width: 300px;
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.game-card h3 {
+  font-size: 1.3rem;
+  margin-bottom: 5px;
+  user-select: none;
+}
+
+.game-card p {
+  font-size: 1rem;
+  text-align: center;
+  user-select: none;
+}
+
+.game-button {
+  margin-top: auto;
 }
 
 /* Mobile Responsiveness */

@@ -405,8 +405,26 @@ export default function Game() {
           )}
           {tab === 'games' && (
             <div className="tab-content">
-              <h2>Games Tab</h2>
-              <p>Content for Games will go here.</p>
+              <h2>
+                <EmojiText>🎮 Game Hub</EmojiText>
+              </h2>
+              <p>Play an assortment of fun, original games here on Monix.</p>
+              <div className="games-container">
+                <div className="game-card">
+                  <h3>
+                    <EmojiText>🔴 Que</EmojiText>
+                  </h3>
+                  <p>Play a game of Que, the fast-paced strategy board game.</p>
+                  <Button className="game-button">Play Que</Button>
+                </div>
+                <div className="game-card">
+                  <h3>
+                    <EmojiText>🔠 WordGrid</EmojiText>
+                  </h3>
+                  <p>Beat the daily puzzle in this exciting game of vocabulary and word skills.</p>
+                  <Button className="game-button">Play WordGrid</Button>
+                </div>
+              </div>
             </div>
           )}
           {tab === 'radio' && (
