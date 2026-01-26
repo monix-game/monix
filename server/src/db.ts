@@ -180,7 +180,9 @@ export async function deleteMessagesByRoomUUID(
 
 export async function updateMessage(message: IMessage): Promise<void> {
   const database = ensureDB();
-  await database.collection('messages').updateOne({ uuid: message.uuid }, { $set: message });
+  await database
+    .collection('messages')
+    .updateOne({ uuid: message.uuid }, { $set: messageToDoc(message) });
 }
 
 export async function createRoom(room: IRoom): Promise<void> {
