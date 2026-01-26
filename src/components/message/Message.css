@@ -81,6 +81,7 @@
   color: var(--primary-3);
   font-weight: 600;
   cursor: pointer;
+  user-select: none;
 }
 
 .message-mention:hover {
