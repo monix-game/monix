@@ -383,6 +383,8 @@ router.post('/revive', requireActive, async (req, res) => {
 
   // Revive the pet
   pet.is_dead = false;
+  pet.time_last_fed = Date.now();
+  pet.time_last_played = Date.now();
   await updatePet(pet);
 
   return res.status(200).json({
