@@ -48,6 +48,7 @@ export default function Game() {
     | 'council'
     | 'social'
     | 'cue'
+    | 'radio'
     | 'leaderboard'
     | 'gems'
     | 'store'
@@ -225,6 +226,7 @@ export default function Game() {
                     { key: 'council', label: '🏛️ Council' },
                     { key: 'social', label: '💬 Social' },
                     { key: 'cue', label: '🔴 Cue' },
+                    { key: 'radio', label: '📻 Radio' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'gems', label: '💎 Gems' },
                     { key: 'store', label: '🏬 Store' },
@@ -405,6 +407,12 @@ export default function Game() {
             <div className="tab-content">
               <h2>Cue Tab</h2>
               <p>Content for Cue will go here.</p>
+            </div>
+          )}
+          {tab === 'radio' && (
+            <div className="tab-content">
+              <h2>Radio Tab</h2>
+              <p>Content for Radio will go here.</p>
             </div>
           )}
           {tab === 'leaderboard' && (

@@ -47,7 +47,6 @@ html[data-theme='dark'] .app-logo-light {
   display: flex;
   gap: 15px;
   align-items: center;
-  /* let tabs size to their content */
   white-space: nowrap;
 }
 
