@@ -27,63 +27,179 @@ export const Message: React.FC<MessageProps> = ({
     return div.innerHTML;
   };
 
-  const renderMarkdown = (text: string): React.ReactNode[] => {
-    if (!text) return [];
+  type TokenType = 'text' | 'bold' | 'italic' | 'bold-italic' | 'newline' | 'mention';
 
-    text = sanitizeText(text);
+  interface Token {
+    type: TokenType;
+    content: string | Token[];
+  }
 
-    const nodes: React.ReactNode[] = [];
-    // Order matters: match triple asterisks first to support nested bold+italic (***text***)
-    const regex = /(\*\*\*(.+?)\*\*\*)|(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
-    let lastIndex = 0;
-    let m: RegExpExecArray | null;
+  const parseMarkdown = (text: string): Token[] => {
+    const tokens: Token[] = [];
+    let i = 0;
 
-    const pushPlain = (s: string) => {
-      if (s.length === 0) return;
-      const parts = s.split('\n');
-      parts.forEach((part, i) => {
-        if (part.length > 0) nodes.push(<EmojiText key={nodes.length}>{part}</EmojiText>);
-        if (i !== parts.length - 1) nodes.push(<br key={`br-${nodes.length}`} />);
-      });
+    const peek = (offset = 0): string => text[i + offset] || '';
+    const consume = (count = 1): string => {
+      const result = text.slice(i, i + count);
+      i += count;
+      return result;
     };
 
-    while ((m = regex.exec(text)) !== null) {
-      const idx = m.index;
-      if (idx > lastIndex) {
-        pushPlain(text.slice(lastIndex, idx));
+    const isMarkupChar = (char: string): boolean => char === '*' || char === '_';
+
+    while (i < text.length) {
+      // Check for newline
+      if (peek() === '\n') {
+        tokens.push({ type: 'newline', content: '' });
+        consume();
+        continue;
       }
 
-      if (m[2]) {
-        // bold+italic (triple)
-        nodes.push(
-          <strong key={nodes.length}>
-            <em>
-              <EmojiText>{m[2]}</EmojiText>
-            </em>
-          </strong>
-        );
-      } else if (m[4]) {
-        // bold
-        nodes.push(
-          <strong key={nodes.length}>
-            <EmojiText>{m[4]}</EmojiText>
-          </strong>
-        );
-      } else if (m[6]) {
-        // italic
-        nodes.push(
-          <em key={nodes.length}>
-            <EmojiText>{m[6]}</EmojiText>
-          </em>
-        );
+      const currentChar = peek();
+
+      // Check for triple markup (bold+italic)
+      if (isMarkupChar(currentChar) && peek(1) === currentChar && peek(2) === currentChar) {
+        const markup = currentChar;
+        consume(3);
+        const content: string[] = [];
+        while (
+          i < text.length &&
+          !(peek() === markup && peek(1) === markup && peek(2) === markup)
+        ) {
+          content.push(consume());
+        }
+        if (peek() === markup && peek(1) === markup && peek(2) === markup) {
+          consume(3);
+          tokens.push({ type: 'bold-italic', content: content.join('') });
+        } else {
+          // Unclosed, treat as text
+          tokens.push({ type: 'text', content: markup.repeat(3) + content.join('') });
+        }
+        continue;
       }
 
-      lastIndex = regex.lastIndex;
+      // Check for double markup (bold)
+      if (isMarkupChar(currentChar) && peek(1) === currentChar) {
+        const markup = currentChar;
+        consume(2);
+        const content: string[] = [];
+        while (i < text.length && !(peek() === markup && peek(1) === markup)) {
+          content.push(consume());
+        }
+        if (peek() === markup && peek(1) === markup) {
+          consume(2);
+          tokens.push({ type: 'bold', content: content.join('') });
+        } else {
+          // Unclosed, treat as text
+          tokens.push({ type: 'text', content: markup.repeat(2) + content.join('') });
+        }
+        continue;
+      }
+
+      // Check for single markup (italic)
+      if (isMarkupChar(currentChar)) {
+        const markup = currentChar;
+        consume();
+        const content: string[] = [];
+        while (i < text.length && peek() !== markup) {
+          content.push(consume());
+        }
+        if (peek() === markup) {
+          consume();
+          tokens.push({ type: 'italic', content: content.join('') });
+        } else {
+          // Unclosed, treat as text
+          tokens.push({ type: 'text', content: markup + content.join('') });
+        }
+        continue;
+      }
+
+      // Check for @username mentions
+      if (currentChar === '@') {
+        const mentionContent: string[] = [];
+        consume(); // consume '@'
+        while (i < text.length && /\w/.test(peek())) {
+          mentionContent.push(consume());
+        }
+        if (mentionContent.length > 0) {
+          tokens.push({ type: 'mention', content: '@' + mentionContent.join('') });
+          continue;
+        } else {
+          // Just a standalone '@'
+          tokens.push({ type: 'text', content: '@' });
+          continue;
+        }
+      }
+
+      // Regular text
+      const textContent: string[] = [];
+      while (i < text.length && !isMarkupChar(peek()) && peek() !== '\n') {
+        textContent.push(consume());
+      }
+      if (textContent.length > 0) {
+        tokens.push({ type: 'text', content: textContent.join('') });
+      }
     }
 
-    if (lastIndex < text.length) pushPlain(text.slice(lastIndex));
+    return tokens;
+  };
+
+  const renderTokens = (tokens: Token[]): React.ReactNode[] => {
+    const nodes: React.ReactNode[] = [];
+
+    tokens.forEach(token => {
+      switch (token.type) {
+        case 'text':
+          if (typeof token.content === 'string' && token.content.length > 0) {
+            nodes.push(<EmojiText key={nodes.length}>{token.content}</EmojiText>);
+          }
+          break;
+        case 'bold':
+          nodes.push(
+            <strong key={nodes.length}>
+              <EmojiText>{token.content as string}</EmojiText>
+            </strong>
+          );
+          break;
+        case 'italic':
+          nodes.push(
+            <em key={nodes.length}>
+              <EmojiText>{token.content as string}</EmojiText>
+            </em>
+          );
+          break;
+        case 'bold-italic':
+          nodes.push(
+            <strong key={nodes.length}>
+              <em>
+                <EmojiText>{token.content as string}</EmojiText>
+              </em>
+            </strong>
+          );
+          break;
+        case 'newline':
+          nodes.push(<br key={`br-${nodes.length}`} />);
+          break;
+        case 'mention':
+          nodes.push(
+            <span key={nodes.length}>
+              <EmojiText className="message-mention">{token.content as string}</EmojiText>
+            </span>
+          );
+          break;
+        default:
+          break;
+      }
+    });
 
     return nodes;
+  };
+
+  const renderMarkdown = (text: string): React.ReactNode[] => {
+    if (!text) return [];
+    text = sanitizeText(text);
+    const tokens = parseMarkdown(text);
+    return renderTokens(tokens);
   };
 
   const handleEphemeralClick = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {

@@ -9,7 +9,6 @@
 
 .message-item.self {
   align-self: flex-end;
-  background-color: var(--primary-1);
 }
 
 .message-header {
@@ -75,5 +74,15 @@
 }
 
 .message-clickable:hover {
+  text-decoration: underline;
+}
+
+.message-mention {
+  color: var(--primary-3);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.message-mention:hover {
   text-decoration: underline;
 }

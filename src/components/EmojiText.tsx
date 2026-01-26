@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import twemoji from '@twemoji/api';
 
 interface EmojiTextProps {
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -19,7 +20,7 @@ const createEmoji = (emoji: string): string => {
   return parsed;
 };
 
-export const EmojiText: React.FC<EmojiTextProps> = ({ children }) => {
+export const EmojiText: React.FC<EmojiTextProps> = ({ className, children }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -30,5 +31,5 @@ export const EmojiText: React.FC<EmojiTextProps> = ({ children }) => {
     }
   }, [children]);
 
-  return <span ref={spanRef}></span>;
+  return <span ref={spanRef} className={className}></span>;
 };
