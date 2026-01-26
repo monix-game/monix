@@ -10,7 +10,7 @@ import {
 } from '../db';
 import { type IUser, userToDoc } from '../../common/models/user';
 import { ISession, sessionToDoc } from '../../common/models/session';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { v4 } from 'uuid';
 import { requireActive, requireAuth } from '../middleware';
 import { SESSION_EXPIRES_IN, profanityFilter } from '../index';
@@ -255,6 +255,14 @@ router.post('/change/password', requireAuth, async (req: Request, res: Response)
     (req.body as { old_password?: string; new_password?: string }) || {};
   if (!old_password || !new_password) {
     return res.status(400).json({ error: 'Missing old or new password' });
+  }
+
+  if (old_password === new_password) {
+    return res.status(400).json({ error: 'New password must be different from old password' });
+  }
+
+  if (typeof new_password !== 'string') {
+    return res.status(400).json({ error: 'New password must be a string' });
   }
 
   // @ts-expect-error Because we add authUser in the middleware

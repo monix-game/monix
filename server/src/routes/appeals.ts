@@ -111,7 +111,7 @@ router.post('/review', requireRole('mod'), async (req: Request, res: Response) =
   if (status === 'approved') {
     const punishedUser = await getUserByUUID(appeal.user_uuid);
     if (punishedUser) {
-      if (!punishedUser.punishments) punishedUser.punishments = [];
+      punishedUser.punishments ??= [];
       const punishmentIndex = punishedUser.punishments.findIndex(
         p => p.uuid === appeal.punishment_uuid
       );

@@ -167,7 +167,7 @@ router.post('/edit/:message_uuid', requireActive, async (req, res) => {
   const censoredContent = profanityFilter.censorText(content);
 
   // Check if the censored content is empty
-  if (censoredContent.trim() === '' || censoredContent.replace(/\*+/g, '').trim() === '') {
+  if (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '') {
     return res.status(400).json({ error: 'Message content cannot be only profanity' });
   }
 

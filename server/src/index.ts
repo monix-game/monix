@@ -40,9 +40,13 @@ import appealRouter from './routes/appeals';
 
 const app = express();
 
+// Disable headers revealing server information
+app.disable('x-powered-by');
+
 // Make this ignore raw body for the /hooks/stripe endpoint
 app.use(
   express.json({
+    limit: '200mb',
     verify: (req, res, buf) => {
       const url = req.url || '';
       if (url.startsWith('/api/hooks/stripe')) {
@@ -53,6 +57,8 @@ app.use(
   })
 );
 
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
+
 // Configure CORS: allow all if '*' present, otherwise only listed origins.
 if (CORS_ORIGINS.includes('*')) {
   app.use(cors());
@@ -62,7 +68,7 @@ if (CORS_ORIGINS.includes('*')) {
       origin: (origin, callback) => {
         // allow non-browser tools (curl, server-to-server) with no origin
         if (!origin) return callback(null, true);
-        if (CORS_ORIGINS.indexOf(origin) !== -1) return callback(null, true);
+        if (CORS_ORIGINS.includes(origin)) return callback(null, true);
         return callback(new Error('Not allowed by CORS'));
       },
     })

@@ -63,7 +63,7 @@ router.post('/:resourceId/buy', requireActive, async (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const quantityToBuy: number = Number(req.body.quantity || 0);
 
-  if (isNaN(quantityToBuy) || quantityToBuy <= 0) {
+  if (Number.isNaN(quantityToBuy) || quantityToBuy <= 0) {
     return res.status(400).json({ error: 'Invalid quantity' });
   }
 
@@ -108,7 +108,7 @@ router.post('/:resourceId/sell', requireActive, async (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const quantityToSell: number = Number(req.body.quantity || 0);
 
-  if (isNaN(quantityToSell) || quantityToSell <= 0) {
+  if (Number.isNaN(quantityToSell) || quantityToSell <= 0) {
     return res.status(400).json({ error: 'Invalid quantity' });
   }
 

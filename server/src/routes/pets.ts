@@ -58,10 +58,11 @@ router.get('/all', requireActive, async (req, res) => {
   await updatePlayersPets(user_uuid);
 
   const pets = (await getPetsByOwnerUUID(user_uuid)).map(petToDoc);
+  const sortedPets = pets.sort((a, b) => a.time_created - b.time_created);
 
   return res.status(200).json({
     message: 'Pets retrieved successfully',
-    pets: pets.sort((a, b) => a.time_created - b.time_created),
+    pets: sortedPets,
   });
 });
 
