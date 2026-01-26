@@ -58,8 +58,8 @@ const commands: Command[] = [
       // If N is not provided, clear last 10 messages
       let numMessages = 10;
       if (args.length > 0) {
-        const parsed = parseInt(args[0], 10);
-        if (!isNaN(parsed) && parsed > 0 && parsed <= 1000) {
+        const parsed = Number.parseInt(args[0], 10);
+        if (!Number.isNaN(parsed) && parsed > 0 && parsed <= 1000) {
           numMessages = parsed;
         } else {
           await sendNyxMessage(

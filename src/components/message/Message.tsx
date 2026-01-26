@@ -107,7 +107,19 @@ export const Message: React.FC<MessageProps> = ({
         </span>
         <span className="message-timestamp">
           {message.ephemeral ? (
-            <span className="message-clickable" onClick={handleEphemeralClick}>
+            <span
+              className="message-clickable"
+              onClick={handleEphemeralClick}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleEphemeralClick(
+                    e as unknown as React.MouseEvent<HTMLSpanElement, MouseEvent>
+                  );
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               (dismiss){' '}
             </span>
           ) : (
