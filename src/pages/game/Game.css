@@ -65,13 +65,18 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.nav-tabs span.active {
+.nav-tabs .tab.active {
   background-color: var(--dark-bg);
   font-weight: 600;
   border-bottom: 2px dotted var(--primary-2);
 }
 
-.nav-tabs span:hover {
+.nav-tabs .tab.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-tabs .tab:hover {
   background-color: var(--dark-bg);
 }
 

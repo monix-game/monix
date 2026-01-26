@@ -240,7 +240,7 @@ export default function Game() {
               const renderTab = (t: { key: typeof tab; label: string }, index: number) => (
                 <span
                   key={t.key}
-                  className={tab === t.key ? 'active tab' : 'tab'}
+                  className={`tab ${tab === t.key ? 'active' : ''} ${!gameHydrated ? 'disabled' : ''}`}
                   onClick={() => setTabTo(t.key)}
                   role="tab"
                   tabIndex={index}
