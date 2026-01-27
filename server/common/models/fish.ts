@@ -6,6 +6,7 @@ export interface IFish {
   user_uuid: string;
   type: string;
   weight: number;
+  modifiers?: string[];
   caught_at: number;
 }
 
@@ -15,6 +16,7 @@ export function fishToDoc(f: IFish): IFish {
     user_uuid: f.user_uuid,
     type: f.type,
     weight: f.weight,
+    modifiers: f.modifiers,
     caught_at: f.caught_at,
   };
 }
@@ -26,6 +28,7 @@ export function fishFromDoc(doc: any): IFish {
     user_uuid: doc.user_uuid || '',
     type: doc.type || '',
     weight: doc.weight || 0,
+    modifiers: doc.modifiers || [],
     caught_at: doc.caught_at || 0,
   };
 }

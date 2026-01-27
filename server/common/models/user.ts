@@ -71,7 +71,11 @@ export function userFromDoc(doc: any): IUser {
     setup_totp: doc.setup_totp || false,
     avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
-    fishing: doc.fishing || undefined,
+    fishing: doc.fishing || {
+      equipped_rod: 'damaged-rod',
+      rods_owned: ['damaged-rod'],
+      aquarium: { capacity: 10, fish: [] },
+    },
     payment: doc.payment || undefined,
     punishments: doc.punishments || [],
   };
