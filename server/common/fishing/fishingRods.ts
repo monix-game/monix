@@ -71,6 +71,13 @@ export const fishingRods: FishingRodInfo[] = [
     buyable: true,
   },
   {
+    id: 'toxic-rod',
+    name: 'Toxic Rod',
+    price: 75000,
+    multiplier: 8,
+    buyable: true,
+  },
+  {
     id: 'obsidian-rod',
     name: 'Obsidian Rod',
     price: 100000,
@@ -96,6 +103,13 @@ export const fishingRods: FishingRodInfo[] = [
     name: 'Astral Rod',
     price: 3000000,
     multiplier: 25,
+    buyable: true,
+  },
+  {
+    id: 'lunar-rod',
+    name: 'Lunar Rod',
+    price: 5000000,
+    multiplier: 30,
     buyable: true,
   },
   {
