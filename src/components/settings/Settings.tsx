@@ -30,10 +30,13 @@ import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
 import { QRCodeSVG } from 'qrcode.react';
 import { Input } from '../input/Input';
+import packageJson from '../../../package.json';
 
 interface SettingsProps {
   user: IUser;
 }
+
+type ThemeOption = 'light' | 'dark' | 'system';
 
 export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = React.useState<boolean>(false);
@@ -49,7 +52,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [password, setPassword] = React.useState<string>('');
 
   // State for various settings
-  const [theme, setTheme] = React.useState<'light' | 'dark' | 'system'>('light');
+  const [theme, setTheme] = React.useState<ThemeOption>('light');
   const [motionReduction, setMotionReduction] = React.useState<boolean>(false);
 
   // Server settings
@@ -87,9 +90,9 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           value={theme}
           onChange={(newValue: string | boolean) => {
             console.log('Theme changed to:', newValue);
-            applyTheme(newValue as 'light' | 'dark' | 'system');
-            setTheme(newValue as 'light' | 'dark' | 'system');
-            updateSetting('theme', newValue as 'light' | 'dark' | 'system');
+            applyTheme(newValue as ThemeOption);
+            setTheme(newValue as ThemeOption);
+            updateSetting('theme', newValue as ThemeOption);
           }}
         />
         <SettingsOption
@@ -214,6 +217,10 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             }}
           />
         </div>
+        <p className="settings-version-info">
+          You are playing Monix on branch <span className="mono">BETA</span> on version{' '}
+          <span className="mono">{packageJson.version}</span>
+        </p>
       </div>
       <Modal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)}>
         <div className="settings-confirm-modal">
@@ -245,7 +252,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
               const success = await finish2FA(twoFACode);
               if (success) {
                 setIs2FAModalOpen(false);
-                window.location.reload();
+                globalThis.location.reload();
               }
             }}
             secondary
@@ -264,7 +271,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
               const success = await remove2FA(twoFACode);
               if (success) {
                 setIs2FARemoveModalOpen(false);
-                window.location.reload();
+                globalThis.location.reload();
               }
             }}
             secondary
@@ -295,7 +302,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
                 const success = await uploadAvatar(avatarFile);
                 if (success) {
                   setIsAvatarModalOpen(false);
-                  window.location.reload();
+                  globalThis.location.reload();
                 }
               } else {
                 alert('Please select a file to upload.');

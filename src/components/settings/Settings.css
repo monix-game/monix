@@ -41,3 +41,10 @@
   border-radius: var(--border-radius);
   transition: all 0.2s;
 }
+
+.settings-version-info {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
