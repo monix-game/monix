@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
+import { IFish } from './fish';
 import type { IPunishment } from './punishment';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 
@@ -17,6 +18,17 @@ export interface IUser {
   setup_totp?: boolean;
   avatar_data_uri?: string;
   resources: { [key: string]: number };
+  fishing?: {
+    equipped_rod?: string;
+    rods_owned?: string[];
+    equipped_bait?: string;
+    bait_owned?: { [key: string]: number };
+    fish_caught?: { [key: string]: number };
+    aquarium: {
+      capacity: number;
+      fish: IFish[];
+    };
+  };
   payment?: {
     current_subscription?: 'plus' | 'pro' | null;
     subscription_expires_at?: number;
@@ -38,6 +50,7 @@ export function userToDoc(u: IUser): IUser {
     setup_totp: u.setup_totp,
     avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
+    fishing: u.fishing,
     payment: u.payment,
     punishments: u.punishments,
   };
@@ -58,6 +71,7 @@ export function userFromDoc(doc: any): IUser {
     setup_totp: doc.setup_totp || false,
     avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
+    fishing: doc.fishing || undefined,
     payment: doc.payment || undefined,
     punishments: doc.punishments || [],
   };
