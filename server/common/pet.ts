@@ -117,9 +117,9 @@ export function dailySleepPeriod(dayDate: Date, uuid: string): PetSleepPeriod {
   const latestStartMinute = 24 * 60 - durationMinutes; // inclusive
   const startMinute = Math.floor(rng() * (latestStartMinute + 1));
 
-  // Build start Date at local midnight then add minutes
-  const start = new Date(year, month, day, 0, 0, 0, 0);
-  start.setMinutes(start.getMinutes() + startMinute);
+  // Build start Date at UTC midnight then add minutes
+  const start = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+  start.setUTCMinutes(start.getUTCMinutes() + startMinute);
 
   const end = new Date(start.getTime() + durationMinutes * 60_000);
 
@@ -129,7 +129,7 @@ export function dailySleepPeriod(dayDate: Date, uuid: string): PetSleepPeriod {
 export function formatSleepRemainder(sleepPeriod: PetSleepPeriod): string {
   const now = new Date();
 
-  // Return string like "12m30s remaining"
+  // Return string like "12m30s"
   const remainingMs = sleepPeriod.end.getTime() - now.getTime();
   const remainingMinutes = Math.floor(remainingMs / 60000);
   const remainingSeconds = Math.floor((remainingMs % 60000) / 1000);
@@ -153,10 +153,10 @@ export function formatTimeUntilSleep(uuid: string) {
     sleepPeriod = dailySleepPeriod(tomorrow, uuid);
   }
 
-  // Return string like "in 3h15m"
+  // Return string like "3h15m"
   const timeUntilMs = sleepPeriod.start.getTime() - now.getTime();
-  const hours = Math.floor(timeUntilMs / 3600000);
-  const minutes = Math.floor((timeUntilMs % 3600000) / 60000);
+  const hours = Math.floor(Math.max(0, timeUntilMs) / 3600000);
+  const minutes = Math.floor((Math.max(0, timeUntilMs) % 3600000) / 60000);
 
   let result = '';
   if (hours > 0) {
