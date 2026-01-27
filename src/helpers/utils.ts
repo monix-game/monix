@@ -12,11 +12,11 @@ export function smartFormatNumber(num: number, includeDollarSign = true): string
   }
 
   // round to 2 decimals
-  let rounded = parseFloat(absNum.toFixed(2));
+  let rounded = Number.parseFloat(absNum.toFixed(2));
 
   // if rounding pushed us to 1000 (e.g., 999.999 -> 1000.00K), move to next unit
   if (rounded >= 1000 && unitIndex < units.length - 1) {
-    rounded = parseFloat((rounded / 1000).toFixed(2));
+    rounded = Number.parseFloat((rounded / 1000).toFixed(2));
     unitIndex++;
   }
 

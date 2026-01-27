@@ -9,7 +9,7 @@ export async function userNeeds2FA(username: string, password: string): Promise<
       username,
       password,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
       if (payload && typeof payload.needs_2fa === 'boolean') {
         return payload.needs_2fa;
@@ -33,9 +33,9 @@ export async function login(
       password,
       token: twoFACode,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.session) {
+      if (payload?.session) {
         saveToken(payload.session);
         return true;
       }
@@ -63,11 +63,8 @@ export async function register(username: string, password: string): Promise<bool
 export async function fetchUser(): Promise<IUser | null> {
   try {
     const resp = await api.get<{ user: IUser }>('/user/user');
-    if (resp && resp.success) {
-      const payload = resp.data;
-      if (payload && payload.user) {
-        return payload.user;
-      }
+    if (resp?.success && resp.data) {
+      return resp.data.user;
     }
     return null;
   } catch (err) {
@@ -79,11 +76,8 @@ export async function fetchUser(): Promise<IUser | null> {
 export async function setup2FA(): Promise<string | null> {
   try {
     const resp = await api.post<{ uri: string }>('/user/setup-2fa');
-    if (resp && resp.success) {
-      const payload = resp.data;
-      if (payload && payload.uri) {
-        return payload.uri;
-      }
+    if (resp?.success && resp.data) {
+      return resp.data.uri;
     }
     return null;
   } catch (err) {
@@ -211,7 +205,7 @@ export function logOut() {
 export async function logoutEverywhere(): Promise<boolean> {
   try {
     const resp = await api.post('/user/logout');
-    if (resp && resp.success) {
+    if (resp?.success) {
       logOut();
       return true;
     }
@@ -225,7 +219,7 @@ export async function logoutEverywhere(): Promise<boolean> {
 export async function deleteAccount(): Promise<boolean> {
   try {
     const resp = await api.post('/user/delete');
-    if (resp && resp.success) {
+    if (resp?.success) {
       logOut();
       return true;
     }
@@ -265,7 +259,7 @@ export function isSignedIn(): boolean {
   const expiresAtNum = Number(expiresAt);
   const timeNow = Date.now() / 1000;
 
-  if (isNaN(expiresAtNum) || timeNow >= expiresAtNum) {
+  if (Number.isNaN(expiresAtNum) || timeNow >= expiresAtNum) {
     return false;
   }
 

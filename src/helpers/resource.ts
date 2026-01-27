@@ -32,9 +32,9 @@ export async function fetchAndCacheResources(): Promise<void> {
   try {
     const resp = await api.get<{ resources: { [key: string]: number } }>(`/resources/all`);
     const time = Date.now();
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.resources) {
+      if (payload?.resources) {
         for (const resourceId of Object.keys(payload.resources)) {
           resourceCache[resourceId] = {
             quantity: payload.resources[resourceId],
@@ -94,7 +94,7 @@ export async function buyResource(
     }>(`/resources/${resourceId}/buy`, {
       quantity,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       clearResourceCache(resourceId);
       resourceCache[resourceId] = {
         quantity: resp.data?.quantity || 0,
@@ -122,7 +122,7 @@ export async function sellResource(
     }>(`/resources/${resourceId}/sell`, {
       quantity,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       clearResourceCache(resourceId);
       resourceCache[resourceId] = {
         quantity: resp.data?.quantity || 0,

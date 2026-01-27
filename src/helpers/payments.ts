@@ -6,9 +6,9 @@ export async function createPaymentSession(item: string, username: string): Prom
       item,
       username,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.url) {
+      if (payload?.url) {
         return payload.url;
       }
     }

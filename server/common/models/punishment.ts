@@ -36,5 +36,5 @@ export function getRemainingDuration(punishment: IPunishment): number {
   const expiryTime = punishment.issued_at + punishment.duration * 60 * 1000;
   const remainingTime = expiryTime - Date.now();
 
-  return remainingTime > 0 ? remainingTime : 0;
+  return Math.max(remainingTime, 0);
 }

@@ -25,9 +25,9 @@ class ApiError extends Error {
 }
 
 class ApiHandler {
-  private baseUrl: string;
-  private defaultTimeout: number = 10000;
-  private defaultRetries: number = 3;
+  private readonly baseUrl: string;
+  private readonly defaultTimeout: number = 10000;
+  private readonly defaultRetries: number = 3;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;

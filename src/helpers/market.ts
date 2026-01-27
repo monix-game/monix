@@ -11,7 +11,7 @@ export async function getCurrentPrice(resourceId: string, timestamp?: number): P
   let time = Math.floor(Date.now() / 1000);
   if (timestamp) {
     const tsNum = Number(timestamp);
-    if (!isNaN(tsNum)) {
+    if (!Number.isNaN(tsNum)) {
       time = tsNum;
     }
   }
@@ -31,7 +31,7 @@ export async function getCurrentPrice(resourceId: string, timestamp?: number): P
     const resp = await api.get<{ resource_id: string; price: number }>(
       `/market/price/${resourceId}?timestamp=${time}`
     );
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
       if (payload && typeof payload.price === 'number') {
         // Cache the price
@@ -53,7 +53,7 @@ export async function getPrices(timestamp?: number): Promise<{ [resourceId: stri
   let time = Math.floor(Date.now() / 1000);
   if (timestamp) {
     const tsNum = Number(timestamp);
-    if (!isNaN(tsNum)) {
+    if (!Number.isNaN(tsNum)) {
       time = tsNum;
     }
   }
@@ -87,7 +87,7 @@ export async function getPrices(timestamp?: number): Promise<{ [resourceId: stri
     const resp = await api.get<{ data: Array<{ resource_id: string; price: number }> }>(
       `/market/prices?timestamp=${time}`
     );
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
       if (payload && Array.isArray(payload.data)) {
         for (const entry of payload.data) {
@@ -129,7 +129,7 @@ export async function getPriceHistory(
     const resp = await api.get<{
       data: Array<{ time?: number; timestamp?: number; price?: number; value?: number }>;
     }>(`/market/history/${resourceId}?hoursBack=${hoursBack}`);
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
 
       let entries: Array<{ time?: number; timestamp?: number; price?: number; value?: number }> =

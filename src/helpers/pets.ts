@@ -4,7 +4,7 @@ import { api } from './api';
 export async function getAllPets(): Promise<IPet[]> {
   try {
     const resp = await api.get<{ pets: IPet[] }>('/pets/all');
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
       if (payload && payload.pets) {
         return payload.pets;
@@ -20,7 +20,7 @@ export async function getAllPets(): Promise<IPet[]> {
 export async function adoptPet(): Promise<IPet | null> {
   try {
     const resp = await api.post<{ pet: IPet }>('/pets/adopt');
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
       if (payload && payload.pet) {
         return payload.pet;
@@ -38,7 +38,7 @@ export async function buyPet(petTypeId: string): Promise<IPet | null> {
     const resp = await api.post<{ pet: IPet }>('/pets/shop', {
       pet_type_id: petTypeId,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
       if (payload && payload.pet) {
         return payload.pet;
@@ -57,7 +57,7 @@ export async function namePet(petId: string, name: string): Promise<boolean> {
       pet_uuid: petId,
       name,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     }
     return false;
@@ -73,7 +73,7 @@ export async function feedPet(petId: string, type: 'standard' | 'premium'): Prom
       pet_uuid: petId,
       feed_type: type,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     }
     return false;
@@ -88,7 +88,7 @@ export async function playWithPet(petId: string): Promise<boolean> {
     const resp = await api.post<{ success: boolean }>('/pets/play', {
       pet_uuid: petId,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     }
     return false;
@@ -103,7 +103,7 @@ export async function releasePet(petId: string): Promise<boolean> {
     const resp = await api.post<{ success: boolean }>('/pets/release', {
       pet_uuid: petId,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     }
     return false;
@@ -118,7 +118,7 @@ export async function levelUpPet(petId: string): Promise<boolean> {
     const resp = await api.post<{ success: boolean }>('/pets/levelup', {
       pet_uuid: petId,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     }
     return false;
@@ -133,7 +133,7 @@ export async function revivePet(petId: string): Promise<boolean> {
     const resp = await api.post<{ success: boolean }>('/pets/revive', {
       pet_uuid: petId,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     }
     return false;

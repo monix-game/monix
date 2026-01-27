@@ -4,12 +4,10 @@ import { Position } from './position';
 
 export class Board {
   board: (Piece | null)[];
-  rows: number;
-  cols: number;
+  rows: number = 8;
+  cols: number = 8;
 
   constructor() {
-    this.rows = 8;
-    this.cols = 8;
     this.board = [];
 
     this.reset();
@@ -89,7 +87,7 @@ export class Board {
     }
 
     // Move rules: Must be adjacent (including diagonals) to an existing piece
-    if (this.board.every((piece) => piece === null)) {
+    if (this.board.every(piece => piece === null)) {
       // If board is empty, any move is valid
       return true;
     }
@@ -108,7 +106,10 @@ export class Board {
     for (const [dRow, dCol] of directions) {
       const newRow = move.positions[0].row + dRow;
       const newCol = move.positions[0].col + dCol;
-      if (this.isValidPosition({ row: newRow, col: newCol }) && this.positionFilled({ row: newRow, col: newCol })) {
+      if (
+        this.isValidPosition({ row: newRow, col: newCol }) &&
+        this.positionFilled({ row: newRow, col: newCol })
+      ) {
         return true;
       }
     }

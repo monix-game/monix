@@ -10,7 +10,7 @@ export interface LeaderboardEntry {
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[] | null> {
   try {
     const resp = await api.get<{ leaderboard: LeaderboardEntry[] }>('/leaderboard');
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.leaderboard || null;
     } else {
       return null;

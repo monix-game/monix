@@ -33,7 +33,10 @@ export const actionCards: ActionCard[] = [
       const piecesToRemove: { row: number; col: number }[] = [];
       for (let r = target.row - 1; r <= target.row + 1; r++) {
         for (let c = target.col - 1; c <= target.col + 1; c++) {
-          if (board.isValidPosition({ row: r, col: c }) && board.positionFilled({ row: r, col: c })) {
+          if (
+            board.isValidPosition({ row: r, col: c }) &&
+            board.positionFilled({ row: r, col: c })
+          ) {
             piecesToRemove.push({ row: r, col: c });
           }
         }
@@ -59,7 +62,8 @@ export const actionCards: ActionCard[] = [
   {
     id: 'hammer',
     name: 'Hammer',
-    description: "Removes your opponent's pieces 3 squares in the four orthogonal directions from the target position.",
+    description:
+      "Removes your opponent's pieces 3 squares in the four orthogonal directions from the target position.",
     type: 'action',
     execute: (target: Position, board: Board, piecePlayer: Player, defense?: DefenseCard): void => {
       const directions = [
@@ -74,7 +78,10 @@ export const actionCards: ActionCard[] = [
           const r = target.row + dr * i;
           const c = target.col + dc * i;
 
-          if (!board.isValidPosition({ row: r, col: c }) || !board.positionFilled({ row: r, col: c })) {
+          if (
+            !board.isValidPosition({ row: r, col: c }) ||
+            !board.positionFilled({ row: r, col: c })
+          ) {
             break; // Stop if out of bounds or no piece
           }
 
@@ -98,7 +105,8 @@ export const actionCards: ActionCard[] = [
   {
     id: 'splinter',
     name: 'Splinter',
-    description: "Removes your opponent's pieces 3 squares in the four diagonal directions from the target position.",
+    description:
+      "Removes your opponent's pieces 3 squares in the four diagonal directions from the target position.",
     type: 'action',
     execute: (target: Position, board: Board, piecePlayer: Player, defense?: DefenseCard): void => {
       const directions = [
@@ -112,7 +120,10 @@ export const actionCards: ActionCard[] = [
         const r = target.row + dr * 3;
         const c = target.col + dc * 3;
 
-        if (!board.isValidPosition({ row: r, col: c }) || !board.positionFilled({ row: r, col: c })) {
+        if (
+          !board.isValidPosition({ row: r, col: c }) ||
+          !board.positionFilled({ row: r, col: c })
+        ) {
           return; // Skip if out of bounds or no piece
         }
 
@@ -155,7 +166,7 @@ export const defenseCards: DefenseCard[] = [
     name: 'Armoured Pieces',
     description: 'The action card you use this against cannot remove your pieces.',
     type: 'defense',
-    defendedAgainst: actionCards.filter((card) => ['bomb', 'hammer', 'splinter'].includes(card.id)) as ActionCard[],
+    defendedAgainst: actionCards.filter(card => ['bomb', 'hammer', 'splinter'].includes(card.id)),
   },
   {
     id: 'splash-zone',

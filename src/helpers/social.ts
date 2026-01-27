@@ -5,9 +5,9 @@ import { api } from './api';
 export async function getAllRooms(): Promise<IRoom[]> {
   try {
     const resp = await api.get<{ rooms: IRoom[] }>('/social/rooms');
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.rooms) {
+      if (payload?.rooms) {
         return payload.rooms;
       }
     }
@@ -21,9 +21,9 @@ export async function getAllRooms(): Promise<IRoom[]> {
 export async function getRoomMessages(room_uuid: string): Promise<IMessage[]> {
   try {
     const resp = await api.get<{ messages: IMessage[] }>(`/social/room/${room_uuid}/messages`);
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.messages) {
+      if (payload?.messages) {
         return payload.messages;
       }
     }
@@ -40,9 +40,9 @@ export async function sendMessage(room_uuid: string, content: string): Promise<I
       room_uuid,
       content,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.message) {
+      if (payload?.message) {
         return payload.message;
       }
     }
@@ -58,9 +58,9 @@ export async function editMessage(message_uuid: string, content: string): Promis
     const resp = await api.post<{ message: IMessage }>(`/social/edit/${message_uuid}`, {
       content,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.message) {
+      if (payload?.message) {
         return payload.message;
       }
     }
@@ -74,7 +74,7 @@ export async function editMessage(message_uuid: string, content: string): Promis
 export async function deleteMessage(message_uuid: string): Promise<boolean> {
   try {
     const resp = await api.post('/social/delete/' + message_uuid, {});
-    return resp && resp.success;
+    return resp?.success;
   } catch (err) {
     console.error('Error deleting message', err);
     return false;
@@ -84,7 +84,7 @@ export async function deleteMessage(message_uuid: string): Promise<boolean> {
 export async function dismissEphemeralMessage(message_uuid: string): Promise<boolean> {
   try {
     const resp = await api.post('/social/ephemeral/dismiss/' + message_uuid, {});
-    return resp && resp.success;
+    return resp?.success;
   } catch (err) {
     console.error('Error dismissing ephemeral message', err);
     return false;
@@ -102,7 +102,7 @@ export async function reportMessage(
       reason,
       details,
     });
-    return resp && resp.success;
+    return resp?.success;
   } catch (err) {
     console.error('Error reporting message', err);
     return false;

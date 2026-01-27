@@ -12,7 +12,7 @@ router.get('/price/:resourceId', requireActive, (req: Request, res: Response) =>
   let time = Math.floor(Date.now() / 1000);
   if (timestamp) {
     const tsNum = Number(timestamp);
-    if (!isNaN(tsNum)) {
+    if (!Number.isNaN(tsNum)) {
       time = tsNum;
     }
   }
@@ -28,7 +28,7 @@ router.get('/prices', requireActive, (req: Request, res: Response) => {
   let time = Math.floor(Date.now() / 1000);
   if (timestamp) {
     const tsNum = Number(timestamp);
-    if (!isNaN(tsNum)) {
+    if (!Number.isNaN(tsNum)) {
       time = tsNum;
     }
   }

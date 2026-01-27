@@ -70,7 +70,7 @@ export function requireSubscription(subscription: 'plus' | 'pro') {
     const currentTime = Date.now() / 1000;
     const payment = user.payment;
 
-    if (!payment || !payment.current_subscription || !payment.subscription_expires_at) {
+    if (!payment?.current_subscription || !payment.subscription_expires_at) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }

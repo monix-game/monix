@@ -4,9 +4,9 @@ import wordlistText from './words';
 type CharSubs = Record<string, string[]>;
 
 export default class ProfanityFilter {
-  private profaneWords: Set<string>;
-  private charSubstitutions: CharSubs;
-  private normalizeMap: Map<string, string>;
+  private readonly profaneWords: Set<string>;
+  private readonly charSubstitutions: CharSubs;
+  private readonly normalizeMap: Map<string, string>;
 
   constructor(wordlistOverride?: string, subsOverride?: CharSubs) {
     const wordlistSource = wordlistOverride ?? wordlistText;
@@ -45,7 +45,7 @@ export default class ProfanityFilter {
       const ch = lower[i];
 
       // Remove diacritics via Unicode NFD and strip combining marks
-      const decomposed = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const decomposed = ch.normalize('NFD').replaceAll(/[\u0300-\u036f]/g, '');
 
       // Map lookalike chars if present
       const mapped = this.normalizeMap.get(decomposed) ?? this.normalizeMap.get(ch) ?? decomposed;
@@ -70,7 +70,7 @@ export default class ProfanityFilter {
 
   removeSeparators(text: string): string {
     // Remove spaces, dots, dashes, underscores, asterisks between letters
-    return text.replace(/([a-z])[.\-_*\s]+([a-z])/g, '$1$2');
+    return text.replaceAll(/([a-z])[.\-_*\s]+([a-z])/g, '$1$2');
   }
 
   generateVariants(word: string): string[] {
@@ -80,7 +80,7 @@ export default class ProfanityFilter {
     const noSep = this.removeSeparators(word);
     if (noSep !== word) variants.add(noSep);
 
-    const dedupe = word.replace(/(.)\1+/g, '$1');
+    const dedupe = word.replaceAll(/(.)\1+/g, '$1');
     if (dedupe !== word) variants.add(dedupe);
 
     return Array.from(variants);

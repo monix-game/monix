@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import {
   PRICE_ID_GEMS_PACK_100,
   PRICE_ID_GEMS_PACK_1000,
@@ -8,7 +8,6 @@ import {
 } from '../index';
 import { getUserByUsername, updateUser } from '../db';
 import Stripe from 'stripe';
-import express from 'express';
 
 const router = Router();
 

@@ -74,7 +74,7 @@ router.post('/send', requireActive, async (req, res) => {
   const censoredContent = profanityFilter.censorText(content);
 
   // Check if the censored content is empty
-  if (censoredContent.trim() === '' || censoredContent.replace(/\*+/g, '').trim() === '') {
+  if (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '') {
     await sendNyxMessage(
       user.uuid,
       'Your message was not sent because it contains only profanity. Please adhere to our community guidelines.',
@@ -256,7 +256,7 @@ router.get('/rooms', requireActive, async (req, res) => {
   const filteredRooms = rooms.filter(r => {
     if (r.type === 'public') return true;
     if (r.type === 'staff' && user.role !== 'user') return true;
-    if (r.type === 'private' && r.members && r.members.includes(user_uuid)) return true;
+    if (r.type === 'private' && r.members?.includes(user_uuid)) return true;
     return false;
   });
 

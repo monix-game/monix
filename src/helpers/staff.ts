@@ -6,7 +6,7 @@ import type { DashboardInfo } from '../../server/common/models/dashboardInfo';
 export async function getDashboardInfo(): Promise<DashboardInfo | null> {
   try {
     const resp = await api.get<{ info: DashboardInfo }>('/staff/dashboard');
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.info || null;
     } else {
       return null;
@@ -19,7 +19,7 @@ export async function getDashboardInfo(): Promise<DashboardInfo | null> {
 export async function getUserByUUID(uuid: string): Promise<IUser | null> {
   try {
     const resp = await api.get<{ user: IUser }>(`/staff/user/${uuid}`);
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.user || null;
     } else {
       return null;
@@ -34,7 +34,7 @@ export async function getAllUsers(filter?: string): Promise<IUser[]> {
     const resp = await api.post<{ users: IUser[] }>('/staff/users', {
       filter,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.users || [];
     } else {
       return [];
@@ -55,7 +55,7 @@ export async function punishUser(
       category_id,
       reason,
     });
-    return resp && resp.success;
+    return resp?.success;
   } catch {
     return false;
   }
@@ -67,7 +67,7 @@ export async function pardonUser(uuid: string, punishment_id: string): Promise<b
       target_user_uuid: uuid,
       punishment_id,
     });
-    return resp && resp.success;
+    return resp?.success;
   } catch {
     return false;
   }
@@ -76,7 +76,7 @@ export async function pardonUser(uuid: string, punishment_id: string): Promise<b
 export async function getAllReports(): Promise<IReport[]> {
   try {
     const resp = await api.get<{ reports: IReport[] }>('/staff/reports');
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.reports || [];
     } else {
       return [];
@@ -94,7 +94,7 @@ export async function reviewReport(
     const resp = await api.post(`/staff/reports/${report_uuid}/review`, {
       action,
     });
-    return resp && resp.success;
+    return resp?.success;
   } catch (err) {
     console.error('Error reviewing report', err);
     return false;
@@ -109,7 +109,7 @@ export async function changeReportCategory(
     const resp = await api.post(`/staff/reports/${report_uuid}/change-category`, {
       new_category_id,
     });
-    return resp && resp.success;
+    return resp?.success;
   } catch (err) {
     console.error('Error changing report category', err);
     return false;

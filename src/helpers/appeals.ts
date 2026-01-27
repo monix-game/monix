@@ -7,7 +7,7 @@ export async function submitAppeal(punishment_uuid: string, reason: string): Pro
       punishment_uuid,
       reason,
     });
-    if (resp && resp.success) {
+    if (resp?.success) {
       return true;
     } else {
       return false;
@@ -20,7 +20,7 @@ export async function submitAppeal(punishment_uuid: string, reason: string): Pro
 export async function getMyAppeals(): Promise<IAppeal[]> {
   try {
     const resp = await api.get<{ appeals: IAppeal[] }>('/appeals/my-appeals');
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.appeals || [];
     } else {
       return [];
@@ -33,7 +33,7 @@ export async function getMyAppeals(): Promise<IAppeal[]> {
 export async function getAllAppeals(): Promise<IAppeal[]> {
   try {
     const resp = await api.get<{ appeals: IAppeal[] }>('/appeals/appeals');
-    if (resp && resp.success) {
+    if (resp?.success) {
       return resp.data?.appeals || [];
     } else {
       return [];

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { IFish } from './fish';
+import type { IFish } from './fish';
 import type { IPunishment } from './punishment';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 

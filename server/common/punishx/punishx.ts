@@ -117,9 +117,7 @@ export function punishUser(
 ): IPunishment {
   const punishment = getPunishment(user, category, issuedBy, reason);
 
-  if (!user.punishments) {
-    user.punishments = [];
-  }
+  user.punishments ??= [];
 
   user.punishments.push(punishment);
   return punishment;

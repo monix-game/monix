@@ -228,7 +228,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 <IconClipboard />
                 <span>Copy text</span>
               </div>
-              {!contextMenu.message.ephemeral && (
+              {!contextMenu.message.ephemeral && contextMenu.message.sender_uuid !== 'nyx' && (
                 <>
                   <div
                     className="context-menu-item"

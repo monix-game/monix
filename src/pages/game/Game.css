@@ -156,7 +156,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1>* {
+.money-tab-content h1 > * {
   vertical-align: middle;
 }
 
