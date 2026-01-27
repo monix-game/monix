@@ -27,6 +27,16 @@ interface SocialProps {
   rooms: IRoom[];
 }
 
+const areMessagesEqual = (msgs1: IMessage[], msgs2: IMessage[]) => {
+  if (msgs1.length !== msgs2.length) return false;
+  for (let i = 0; i < msgs1.length; i++) {
+    if (msgs1[i].uuid !== msgs2[i].uuid) return false;
+    if (msgs1[i].content !== msgs2[i].content) return false;
+    if (msgs1[i].time_sent !== msgs2[i].time_sent) return false;
+  }
+  return true;
+};
+
 export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) => {
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
@@ -61,7 +71,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const fetchMessages = useCallback(
     async (roomUUID?: string) => {
       const msgs = await getRoomMessages(roomUUID || room.uuid);
-      if (messages.length !== msgs.length) setMessages(msgs);
+      if (!areMessagesEqual(messages, msgs)) setMessages(msgs);
     },
     [room.uuid, messages]
   );
@@ -78,6 +88,12 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
 
   const sendMessageClick = async () => {
     if (messageInput.trim() === '') return;
+    if (!room) return;
+    if (room.restrict_send) {
+      if (!room.sender_required_role || !hasRole(user.role, room.sender_required_role)) {
+        return;
+      }
+    }
 
     // Send message to server
     await sendMessage(room.uuid, messageInput.trim());
@@ -255,26 +271,28 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                     <IconArrowBack />
                     <span>Reply</span>
                   </div>
-                  <div
-                    className="context-menu-item"
-                    onClick={() => {
-                      setReportedMessage(contextMenu.message!);
-                      setIsReportModalOpen(true);
-                      hideContextMenu();
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
+                  {contextMenu.message.sender_uuid !== user.uuid && (
+                    <div
+                      className="context-menu-item"
+                      onClick={() => {
                         setReportedMessage(contextMenu.message!);
                         setIsReportModalOpen(true);
                         hideContextMenu();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <IconFlag />
-                    <span>Report</span>
-                  </div>
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          setReportedMessage(contextMenu.message!);
+                          setIsReportModalOpen(true);
+                          hideContextMenu();
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <IconFlag />
+                      <span>Report</span>
+                    </div>
+                  )}
                   {(hasRole(user.role, 'helper') ||
                     user.uuid === contextMenu.message.sender_uuid) && (
                     <div
@@ -328,17 +346,26 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           )}
         </div>
         <div className="social-main-bottom">
-          <Input
-            placeholder="Type a message..."
-            onValueChange={value => setMessageInput(value)}
-            value={messageInput}
-            className="social-message-input"
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                void sendMessageClick();
-              }
-            }}
-          />
+          {!room.restrict_send ||
+          (room.restrict_send &&
+            room.sender_required_role &&
+            hasRole(user.role, room.sender_required_role)) ? (
+            <Input
+              placeholder="Type a message..."
+              onValueChange={value => setMessageInput(value)}
+              value={messageInput}
+              className="social-message-input"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  void sendMessageClick();
+                }
+              }}
+            />
+          ) : (
+            <div className="social-restricted-notice">
+              You do not have permission to send messages in this room.
+            </div>
+          )}
         </div>
       </div>
 

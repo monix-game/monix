@@ -7,6 +7,8 @@ export interface IRoom {
   name: string;
   time_created: number;
   members?: string[];
+  restrict_send?: boolean;
+  sender_required_role?: 'owner' | 'admin' | 'mod' | 'helper';
 }
 
 export function roomToDoc(m: IRoom): IRoom {
@@ -16,6 +18,8 @@ export function roomToDoc(m: IRoom): IRoom {
     name: m.name,
     time_created: m.time_created,
     members: m.members,
+    restrict_send: m.restrict_send,
+    sender_required_role: m.sender_required_role,
   };
 }
 
@@ -27,5 +31,7 @@ export function roomFromDoc(doc: any): IRoom {
     name: doc.name || '',
     time_created: doc.time_created || 0,
     members: doc.members || [],
+    restrict_send: doc.restrict_send || false,
+    sender_required_role: doc.sender_required_role || undefined,
   };
 }

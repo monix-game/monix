@@ -28,6 +28,14 @@ export async function connectDB(uri: string) {
   // Ensure default rooms exist
   const defaultRooms: IRoom[] = [
     { uuid: 'general', type: 'public', name: '💬 General', time_created: 0 },
+    {
+      uuid: 'updates',
+      type: 'public',
+      name: '📢 Updates',
+      time_created: 0,
+      restrict_send: true,
+      sender_required_role: 'admin',
+    },
     { uuid: 'staff', type: 'staff', name: '🛠️ Staff', time_created: 0 },
   ];
 

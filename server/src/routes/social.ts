@@ -19,6 +19,7 @@ import { IReport } from '../../common/models/report';
 import { getCategoryById } from '../../common/punishx/categories';
 import { sendNyxMessage } from '../helpers/nyx';
 import { handleCommand } from '../helpers/commands';
+import { hasRole } from '../../common/roles';
 
 const router = Router();
 
@@ -52,6 +53,14 @@ router.post('/send', requireActive, async (req, res) => {
   }
 
   if (room.type === 'private' && room.members && !room.members.includes(user_uuid)) {
+    return res.status(403).json({ error: 'You are not allowed to send messages in this room' });
+  }
+
+  if (
+    room.restrict_send &&
+    room.sender_required_role &&
+    !hasRole(user.role, room.sender_required_role)
+  ) {
     return res.status(403).json({ error: 'You are not allowed to send messages in this room' });
   }
 
@@ -153,6 +162,17 @@ router.post('/edit/:message_uuid', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to edit this message' });
   }
 
+  const room = await getRoomByUUID(message.room_uuid);
+
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+
+  // Check if user is allowed to edit message in the room
+  if (room.type === 'private' && !hasRole(user.role, 'admin')) {
+    return res.status(403).json({ error: 'You are not allowed to edit messages in this room' });
+  }
+
   // Make sure the content is not empty after trimming
   if (content.trim() === '') {
     return res.status(400).json({ error: 'Message content cannot be empty' });
@@ -203,6 +223,17 @@ router.post('/delete/:message_uuid', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to delete this message' });
   }
 
+  const room = await getRoomByUUID(message.room_uuid);
+
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+
+  // Check if user is allowed to edit message in the room
+  if (room.type === 'private' && !hasRole(user.role, 'admin')) {
+    return res.status(403).json({ error: 'You are not allowed to delete messages in this room' });
+  }
+
   await deleteMessageByUUID(message.uuid);
 
   res.status(200).json({ success: true });
@@ -221,6 +252,26 @@ router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
   }
 
   const { room_uuid } = req.params;
+
+  const room = await getRoomByUUID(room_uuid as string);
+
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+
+  // Check if user is allowed to view messages in the room
+  if (room.type === 'staff' && user.role === 'user') {
+    return res.status(403).json({ error: 'You are not allowed to view messages in this room' });
+  }
+
+  if (
+    room.type === 'private' &&
+    room.members &&
+    !room.members.includes(user_uuid) &&
+    !hasRole(user.role, 'admin')
+  ) {
+    return res.status(403).json({ error: 'You are not allowed to view messages in this room' });
+  }
 
   const messages = await getMessagesByRoomUUID(room_uuid as string);
 
@@ -324,6 +375,10 @@ router.post('/report', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to report this message' });
   }
 
+  if (message.sender_uuid === user.uuid) {
+    return res.status(403).json({ error: 'You cannot report your own message' });
+  }
+
   const reportedUser = await getUserByUUID(message.sender_uuid);
 
   if (!reportedUser) {
@@ -340,7 +395,7 @@ router.post('/report', requireActive, async (req, res) => {
     return res.status(400).json({ error: 'Report reason is not valid for social reports' });
   }
 
-  if (['owner', 'admin'].includes(reportedUser.role)) {
+  if (hasRole(reportedUser.role, 'admin')) {
     return res.status(400).json({ error: 'Cannot report this message' });
   }
 
