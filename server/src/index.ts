@@ -37,6 +37,7 @@ import hooksRouter from './routes/hooks';
 import socialRouter from './routes/social';
 import staffRouter from './routes/staff';
 import appealRouter from './routes/appeals';
+import fishingRouter from './routes/fishing';
 
 const app = express();
 
@@ -85,6 +86,7 @@ app.use('/api/hooks', hooksRouter);
 app.use('/api/social', socialRouter);
 app.use('/api/staff', staffRouter);
 app.use('/api/appeals', appealRouter);
+app.use('/api/fishing', fishingRouter);
 
 async function start() {
   await connectDB(MONGO_URI);
