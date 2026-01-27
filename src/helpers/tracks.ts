@@ -1,4 +1,5 @@
 import schemes from '../assets/music/schemes.mp3';
+import midnightEchoes from '../assets/music/midnight-echoes.mp3';
 import monixCover from '../assets/covers/monix.png';
 
 export type Track = {
@@ -15,6 +16,13 @@ export const tracks: Track[] = [
     src: schemes,
     coverSrc: monixCover,
     title: 'Schemes',
+    artist: 'Ferretosan',
+  },
+  {
+    id: 'midnight-echoes',
+    src: midnightEchoes,
+    coverSrc: monixCover,
+    title: 'Midnight Echoes',
     artist: 'Ferretosan',
   },
 ];
