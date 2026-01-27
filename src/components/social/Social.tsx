@@ -58,10 +58,13 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     }
   }, [messages]);
 
-  const fetchMessages = useCallback(async () => {
-    const msgs = await getRoomMessages(room.uuid);
-    if (messages.length !== msgs.length) setMessages(msgs);
-  }, [room.uuid, messages]);
+  const fetchMessages = useCallback(
+    async (roomUUID?: string) => {
+      const msgs = await getRoomMessages(roomUUID || room.uuid);
+      if (messages.length !== msgs.length) setMessages(msgs);
+    },
+    [room.uuid, messages]
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -169,13 +172,13 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 className={`social-room-item ${r.uuid === room.uuid ? 'active' : ''}`}
                 onClick={() => {
                   setRoom(r);
-                  void fetchMessages();
+                  void fetchMessages(r.uuid);
                   hideContextMenu();
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     setRoom(r);
-                    void fetchMessages();
+                    void fetchMessages(r.uuid);
                     hideContextMenu();
                   }
                 }}
