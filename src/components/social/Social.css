@@ -90,6 +90,13 @@
   min-height: 0;
 }
 
+.no-messages {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  margin-top: 20px;
+}
+
 .context-menu {
   z-index: 9999;
   background: var(--bg);
@@ -113,7 +120,7 @@
   margin-right: 8px;
 }
 
-.context-menu-item > * {
+.context-menu-item>* {
   vertical-align: middle;
 }
 

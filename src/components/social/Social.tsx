@@ -193,17 +193,21 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           <EmojiText>{room.name}</EmojiText>
         </h2>
         <div className="message-container" ref={messageContainerRef}>
-          {messages.map(msg => (
-            <Message
-              key={msg.uuid}
-              user={user}
-              message={msg}
-              onContextMenu={e => {
-                onMessageContextMenu(e.nativeEvent, msg);
-              }}
-              updateMessages={() => void fetchMessages()}
-            />
-          ))}
+          {messages.length === 0 && (
+            <div className="no-messages">No messages yet. Start the conversation!</div>
+          )}
+          {messages.length > 0 &&
+            messages.map(msg => (
+              <Message
+                key={msg.uuid}
+                user={user}
+                message={msg}
+                onContextMenu={e => {
+                  onMessageContextMenu(e.nativeEvent, msg);
+                }}
+                updateMessages={() => void fetchMessages()}
+              />
+            ))}
           {contextMenu.visible && contextMenu.message && (
             <div
               className="context-menu"
