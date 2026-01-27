@@ -421,7 +421,14 @@ export default function Game() {
                     <EmojiText>🔠 WordGrid</EmojiText>
                   </h3>
                   <p>Beat the daily puzzle in this exciting game of vocabulary and word skills.</p>
-                  <Button className="game-button">Play WordGrid</Button>
+                  <Button
+                    className="game-button"
+                    onClick={() => {
+                      globalThis.open('https://wordgrid.proplayer919.dev', '_blank');
+                    }}
+                  >
+                    Play WordGrid
+                  </Button>
                 </div>
               </div>
             </div>
