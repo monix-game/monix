@@ -10,7 +10,7 @@ export interface IClientSettings {
 
 export const defaultSettings: IClientSettings = {
   theme: 'light',
-  musicVolume: 30,
+  musicVolume: 10,
   motionReduction: false,
 };
 

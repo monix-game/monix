@@ -31,6 +31,7 @@ import { getRemainingDuration, type IPunishment } from '../../../server/common/m
 import { submitAppeal } from '../../helpers/appeals';
 import { useMusic } from '../../providers/music';
 import { tracks } from '../../helpers/tracks';
+import { loadSettings } from '../../helpers/settings';
 
 export default function Game() {
   // Net worth states
@@ -95,8 +96,17 @@ export default function Game() {
   const [appealModalContent, setAppealModalContent] = useState<string>('');
 
   // Radio
-  const { enqueue, pause, resume, currentTrack, isPlaying, queue, currentIndex, playNext } =
-    useMusic();
+  const {
+    enqueue,
+    pause,
+    resume,
+    currentTrack,
+    isPlaying,
+    queue,
+    currentIndex,
+    playNext,
+    setVolume,
+  } = useMusic();
 
   const getRandomTrack = useCallback(() => tracks[Math.floor(Math.random() * tracks.length)], []);
 
@@ -162,11 +172,15 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateEverything().then(() => setGameHydrated(true));
 
+    // Set radio volume based on settings
+    const settings = loadSettings();
+    setVolume(settings.musicVolume / 100);
+
     const interval = setInterval(async () => {
       await updateEverything();
     }, 1000);
     return () => clearInterval(interval);
-  }, [updateEverything]);
+  }, [updateEverything, setVolume]);
 
   useEffect(() => {
     let mounted = true;
