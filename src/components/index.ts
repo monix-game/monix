@@ -18,3 +18,4 @@ export { GemCard } from './gemcard/GemCard';
 export { Social } from './social/Social';
 export { Message } from './message/Message';
 export { PunishModal } from './punishmodal/PunishModal';
+export { Slider } from './slider/Slider';

@@ -4,11 +4,13 @@ import { localStorageKey } from './constants';
 
 export interface IClientSettings {
   theme: 'light' | 'dark' | 'system';
+  musicVolume: number;
   motionReduction: boolean;
 }
 
 export const defaultSettings: IClientSettings = {
   theme: 'light',
+  musicVolume: 30,
   motionReduction: false,
 };
 

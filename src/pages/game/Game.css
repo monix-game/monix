@@ -156,7 +156,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 
@@ -332,6 +332,87 @@ html[data-theme='dark'] .app-logo-light {
 
 .game-button {
   margin-top: auto;
+}
+
+.now-playing-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  min-height: 200px;
+  max-width: 600px;
+}
+
+.now-playing-card .spacer {
+  flex-grow: 1;
+}
+
+.song-cover {
+  width: 150px;
+  height: 150px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.song-cover.placeholder-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.song-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-left: 10px;
+}
+
+.song-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.song-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+.song-artist {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.song-artist span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.song-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.song-control {
+  background-color: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 /* Mobile Responsiveness */

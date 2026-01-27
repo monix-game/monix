@@ -16,7 +16,7 @@ import {
   Social,
   Modal,
 } from '../../components';
-import { IconUser } from '@tabler/icons-react';
+import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
@@ -29,6 +29,8 @@ import { getAllRooms } from '../../helpers/social';
 import { getCurrentPunishment, isUserBanned } from '../../../server/common/punishx/punishx';
 import { getRemainingDuration, type IPunishment } from '../../../server/common/models/punishment';
 import { submitAppeal } from '../../helpers/appeals';
+import { useMusic } from '../../providers/music';
+import { tracks } from '../../helpers/tracks';
 
 export default function Game() {
   // Net worth states
@@ -91,6 +93,43 @@ export default function Game() {
   // Appeal states
   const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
   const [appealModalContent, setAppealModalContent] = useState<string>('');
+
+  // Radio
+  const { enqueue, pause, resume, currentTrack, isPlaying, queue, currentIndex, playNext } =
+    useMusic();
+
+  const getRandomTrack = useCallback(() => tracks[Math.floor(Math.random() * tracks.length)], []);
+
+  const ensureQueueSeeded = useCallback(() => {
+    if (queue.length === 0) {
+      enqueue(getRandomTrack());
+      return true;
+    }
+    return false;
+  }, [enqueue, getRandomTrack, queue.length]);
+
+  const handlePlay = useCallback(() => {
+    const added = ensureQueueSeeded();
+    // If we just added and autoplay failed, resume will try again on user gesture
+    if (!isPlaying || added) {
+      playNext();
+      resume();
+    }
+  }, [ensureQueueSeeded, isPlaying, playNext, resume]);
+
+  const handlePause = useCallback(() => {
+    if (isPlaying) pause();
+  }, [isPlaying, pause]);
+
+  useEffect(() => {
+    if (tab !== 'radio') return;
+    const desiredLength = Math.max(currentIndex + 2, 3);
+    if (queue.length < desiredLength) {
+      const toAdd = desiredLength - queue.length;
+      const newTracks = Array.from({ length: toAdd }, () => getRandomTrack());
+      enqueue(newTracks);
+    }
+  }, [tab, queue.length, currentIndex, enqueue, getRandomTrack]);
 
   const updateEverything = useCallback(async () => {
     const jailTabs = ['jail', 'settings', 'appeals'];
@@ -435,8 +474,55 @@ export default function Game() {
           )}
           {tab === 'radio' && (
             <div className="tab-content">
-              <h2>Radio Tab</h2>
-              <p>Content for Radio will go here.</p>
+              <h2>Monix Radio</h2>
+              <div className="now-playing-card">
+                {currentTrack && (
+                  <img
+                    src={currentTrack?.coverSrc || undefined}
+                    alt="Current Track Artwork"
+                    className="song-cover"
+                  />
+                )}
+                {!currentTrack && (
+                  <div className="song-cover placeholder-cover">
+                    <IconMusic size={64} />
+                  </div>
+                )}
+                <div className="song-info">
+                  {currentTrack && (
+                    <>
+                      <span className="song-subtitle">Now Playing</span>
+                      <span className="song-name">{currentTrack?.title || 'Nothing'}</span>
+                      <span className="song-artist">
+                        by <span>{currentTrack?.artist || 'Nobody'}</span>
+                      </span>
+                    </>
+                  )}
+                  {!currentTrack && <span className="song-subtitle">Nothing is playing</span>}
+                </div>
+                <div className="spacer"></div>
+                <div className="song-controls">
+                  {!isPlaying ? (
+                    <button
+                      className="song-control"
+                      aria-label="Play"
+                      onClick={handlePlay}
+                      disabled={isPlaying}
+                    >
+                      <IconPlayerPlay size={20} />
+                    </button>
+                  ) : (
+                    <button
+                      className="song-control"
+                      aria-label="Pause"
+                      onClick={handlePause}
+                      disabled={!isPlaying}
+                    >
+                      <IconPlayerPause size={20} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           {tab === 'leaderboard' && (

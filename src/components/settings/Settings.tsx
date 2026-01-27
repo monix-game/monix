@@ -12,6 +12,7 @@ import {
   IconLogout2,
   IconTrash,
   IconUserCircle,
+  IconVolume,
 } from '@tabler/icons-react';
 import { applyTheme } from '../../helpers/theme';
 import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/settings';
@@ -31,6 +32,7 @@ import { Button } from '../button/Button';
 import { QRCodeSVG } from 'qrcode.react';
 import { Input } from '../input/Input';
 import packageJson from '../../../package.json';
+import { useMusic } from '../../providers/music';
 
 interface SettingsProps {
   user: IUser;
@@ -53,17 +55,21 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
 
   // State for various settings
   const [theme, setTheme] = React.useState<ThemeOption>('light');
+  const [musicVolume, setMusicVolume] = React.useState<number>(70);
   const [motionReduction, setMotionReduction] = React.useState<boolean>(false);
 
   // Server settings
   const [privacyMode, setPrivacyMode] = React.useState<boolean>(false);
   const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
 
+  const { setVolume } = useMusic();
+
   useEffect(() => {
     const loadStates = () => {
       const settings = loadSettings();
 
       setTheme(settings.theme);
+      setMusicVolume(settings.musicVolume);
       setMotionReduction(settings.motionReduction);
 
       setPrivacyMode(user.settings.privacy_mode);
@@ -88,11 +94,24 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             { label: 'System Default', value: 'system' },
           ]}
           value={theme}
-          onChange={(newValue: string | boolean) => {
+          onChange={(newValue: string | boolean | number) => {
             console.log('Theme changed to:', newValue);
             applyTheme(newValue as ThemeOption);
             setTheme(newValue as ThemeOption);
             updateSetting('theme', newValue as ThemeOption);
+          }}
+        />
+        <SettingsOption
+          type="slider"
+          icon={<IconVolume />}
+          label="Music Volume"
+          description="Adjust the radio music volume"
+          value={musicVolume}
+          onChange={(newValue: string | boolean | number) => {
+            console.log('Music Volume changed to:', newValue);
+            setMusicVolume(newValue as number);
+            setVolume((newValue as number) / 100);
+            updateSetting('musicVolume', newValue as number);
           }}
         />
         <SettingsOption
@@ -101,7 +120,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           label="Motion Reduction"
           description="Reduce motion effects to minimize motion sickness"
           value={motionReduction}
-          onChange={(newValue: string | boolean) => {
+          onChange={(newValue: string | boolean | number) => {
             console.log('Motion Reduction changed to:', newValue);
             setMotionReduction(newValue as boolean);
             updateSetting('motionReduction', newValue as boolean);
@@ -137,7 +156,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           label="Privacy Mode"
           description="Enable privacy mode to hide your activity from others"
           value={privacyMode}
-          onChange={(newValue: string | boolean) => {
+          onChange={(newValue: string | boolean | number) => {
             console.log('Privacy Mode changed to:', newValue);
             setPrivacyMode(newValue as boolean);
             void updateServerSetting('privacy_mode', newValue as boolean);
