@@ -142,12 +142,11 @@ export default function Game() {
 
       // Get the quantities for all resources
       const quantitiesMap: { [key: string]: number } = {};
-      await Promise.all(
-        resourcesCopy.map(async resource => {
-          const qty = await getResourceQuantity(resource.id);
-          quantitiesMap[resource.id] = qty || 0;
-        })
-      );
+      for (const resource of resourcesCopy) {
+        const qty = await getResourceQuantity(resource.id);
+        quantitiesMap[resource.id] = qty || 0;
+      }
+
       setResourceQuantities(quantitiesMap);
 
       // Calculate values for each resource
