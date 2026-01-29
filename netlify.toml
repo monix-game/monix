@@ -1,9 +1,9 @@
 [build]
-	command = "npm run build"
+	command = "npm run build:full"
 	publish = "dist"
 
+# Redirect all requests to index.html
 [[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
-# do not force the redirect — allow Netlify to serve existing static files (assets) first

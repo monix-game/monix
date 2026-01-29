@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:full": "bash gen_version.sh && tsc -b && vite build",
     "test": "npm run build && rm -rf dist",
     "preview": "vite preview",
     "lint": "eslint 'src/**/*.{ts,tsx,js,jsx}' 'server/**/*.{ts,tsx,js,jsx}' --fix",

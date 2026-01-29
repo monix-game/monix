@@ -6,6 +6,7 @@ import {
   IconBrush,
   IconEyeClosed,
   IconFaceMask,
+  IconGitCommit,
   IconLock,
   IconLockOpen,
   IconLogout,
@@ -31,7 +32,7 @@ import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
 import { QRCodeSVG } from 'qrcode.react';
 import { Input } from '../input/Input';
-import packageJson from '../../../package.json';
+import { COMMIT, COMMIT_NUMBER_THIS_MONTH, BUILD_TIMESTAMP } from '../../version';
 import { useMusic } from '../../providers/music';
 
 interface SettingsProps {
@@ -237,8 +238,29 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           />
         </div>
         <p className="settings-version-info">
-          You are playing Monix on branch <span className="mono">BETA</span> on version{' '}
-          <span className="mono">{packageJson.version}</span>
+          You are playing Monix on version{' '}
+          <span className="mono">
+            {
+              // Generate a version string from the commit hash
+              // It will be YEAR.MONTH.COMMITNUMBER
+              (() => {
+                if (BUILD_TIMESTAMP === '$TIMESTAMP') {
+                  return `dev-build`;
+                }
+
+                const date = new Date(BUILD_TIMESTAMP);
+                const year = date.getUTCFullYear();
+                const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+                return `${year}.${month}.${COMMIT_NUMBER_THIS_MONTH}`;
+              })()
+            }
+          </span>
+          {COMMIT !== '$COMMIT_HASH' && (
+            <>
+              , <IconGitCommit size={14} style={{ verticalAlign: 'middle' }} /> commit{' '}
+              <span className="mono">{COMMIT.substring(0, 7)}</span>
+            </>
+          )}
         </p>
       </div>
       <Modal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)}>
