@@ -102,19 +102,21 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     setMessageInput('');
 
     // Optimistically add message to UI (will be replaced on next fetch)
-    setMessages(prev => [
-      ...prev,
-      {
-        uuid: 'temp-' + Date.now(),
-        room_uuid: room.uuid,
-        sender_uuid: user.uuid,
-        sender_username: user.username,
-        content: messageInput.trim(),
-        time_sent: Date.now(),
-        ephemeral: false,
-        edited: false,
-      } as IMessage,
-    ]);
+    if (!messageInput.trim().startsWith('/')) {
+      setMessages(prev => [
+        ...prev,
+        {
+          uuid: 'temp-' + Date.now(),
+          room_uuid: room.uuid,
+          sender_uuid: user.uuid,
+          sender_username: user.username,
+          content: messageInput.trim(),
+          time_sent: Date.now(),
+          ephemeral: false,
+          edited: false,
+        } as IMessage,
+      ]);
+    }
 
     // Refresh messages
     await fetchMessages();
