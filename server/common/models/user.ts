@@ -29,10 +29,6 @@ export interface IUser {
       fish: IFish[];
     };
   };
-  payment?: {
-    current_subscription?: 'plus' | 'pro' | null;
-    subscription_expires_at?: number;
-  };
   punishments?: IPunishment[];
 }
 
@@ -51,7 +47,6 @@ export function userToDoc(u: IUser): IUser {
     avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
     fishing: u.fishing,
-    payment: u.payment,
     punishments: u.punishments,
   };
 }
@@ -76,7 +71,6 @@ export function userFromDoc(doc: any): IUser {
       rods_owned: ['damaged-rod'],
       aquarium: { capacity: 10, fish: [] },
     },
-    payment: doc.payment || undefined,
     punishments: doc.punishments || [],
   };
 }

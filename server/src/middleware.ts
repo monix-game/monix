@@ -3,8 +3,6 @@ import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
 import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
 
-const SUBSCRIPTION_HIERARCHY = ['pro', 'plus'];
-
 async function authenticateRequest(req: Request, res: Response) {
   const unauthorized = () => {
     res.status(401).json({ message: 'Unauthorized' });
@@ -60,36 +58,6 @@ export async function requireActive(req: Request, res: Response, next: NextFunct
   }
 
   next();
-}
-
-export function requireSubscription(subscription: 'plus' | 'pro') {
-  return async function (req: Request, res: Response, next: NextFunction) {
-    const user = await authenticateRequest(req, res);
-    if (!user) return;
-
-    const currentTime = Date.now() / 1000;
-    const payment = user.payment;
-
-    if (!payment?.current_subscription || !payment.subscription_expires_at) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    if (payment.subscription_expires_at < currentTime) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    const userSubscriptionIndex = SUBSCRIPTION_HIERARCHY.indexOf(payment.current_subscription);
-    const requiredSubscriptionIndex = SUBSCRIPTION_HIERARCHY.indexOf(subscription);
-
-    if (userSubscriptionIndex < requiredSubscriptionIndex) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    next();
-  };
 }
 
 export function requireRole(role: 'admin' | 'mod' | 'helper') {
