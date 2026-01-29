@@ -48,3 +48,11 @@
   font-size: 0.9rem;
   color: var(--text-muted);
 }
+
+.settings-clickable {
+  cursor: pointer;
+}
+
+.settings-clickable:hover {
+  text-decoration: underline;
+}

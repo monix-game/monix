@@ -258,7 +258,14 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           {COMMIT !== '$COMMIT_HASH' && (
             <>
               , <IconGitCommit size={14} style={{ verticalAlign: 'middle' }} /> commit{' '}
-              <span className="mono">{COMMIT.substring(0, 7)}</span>
+              <span
+                className="mono settings-clickable"
+                onClick={() => {
+                  window.open(`https://github.com/monix-game/monix/commit/${COMMIT}`, '_blank');
+                }}
+              >
+                {COMMIT.substring(0, 7)}
+              </span>
             </>
           )}
         </p>
