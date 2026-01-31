@@ -21,6 +21,13 @@
   margin-bottom: 5px;
 }
 
+.message-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .message-sender {
   font-weight: 600;
   display: flex;

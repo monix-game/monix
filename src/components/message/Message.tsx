@@ -215,6 +215,7 @@ export const Message: React.FC<MessageProps> = ({
     >
       <div className="message-header">
         <span className="message-sender">
+          <img src={message.sender_avatar_url} alt="" className="message-avatar" />
           <span className="message-username">
             <EmojiText>{message.sender_username}</EmojiText>
           </span>
