@@ -209,7 +209,10 @@ export const Message: React.FC<MessageProps> = ({
   };
 
   return (
-    <div className={`message-item ${self ? 'self' : ''}`} onContextMenu={onContextMenu}>
+    <div
+      className={`message-item ${self ? 'self' : ''} ${message.ephemeral ? 'ephemeral' : ''}`}
+      onContextMenu={onContextMenu}
+    >
       <div className="message-header">
         <span className="message-sender">
           <span className="message-username">

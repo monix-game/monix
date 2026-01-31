@@ -11,6 +11,10 @@
   align-self: flex-end;
 }
 
+.message-item.ephemeral {
+  border: 2px dashed var(--primary-2);
+}
+
 .message-header {
   display: flex;
   justify-content: space-between;
