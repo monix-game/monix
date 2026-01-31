@@ -2,7 +2,8 @@ import { sendNyxMessage } from './nyx';
 import { IMessage } from '../../common/models/message';
 import { IUser } from '../../common/models/user';
 import { hasRole } from '../../common/roles';
-import { deleteMessagesByRoomUUID } from '../db';
+import { deleteMessagesByRoomUUID, getUserByUsername } from '../db';
+import { v4 } from 'uuid';
 
 export interface CommandResult {
   message: IMessage | null;
@@ -80,6 +81,50 @@ const commands: Command[] = [
       );
 
       return { message: null };
+    },
+  },
+  {
+    name: 'sudo',
+    requiredRole: 'admin',
+    execute: async (args, message, user, room_uuid) => {
+      // Args: target_username message...
+      if (args.length < 2) {
+        await sendNyxMessage(user.uuid, 'Usage: /sudo <target_username> <message>', room_uuid);
+        return { message, error: 'Insufficient arguments for sudo command.' };
+      }
+
+      const targetUsername = args[0];
+      const sudoMessageContent = args.slice(1).join(' ').trim();
+
+      if (sudoMessageContent === '') {
+        await sendNyxMessage(user.uuid, 'Sudo message cannot be empty.', room_uuid);
+        return { message, error: 'Sudo message cannot be empty.' };
+      }
+
+      const targetUser = await getUserByUsername(targetUsername);
+      if (!targetUser) {
+        await sendNyxMessage(
+          user.uuid,
+          `User with username "${targetUsername}" not found.`,
+          room_uuid
+        );
+        return { message, error: 'Target user not found for sudo command.' };
+      }
+
+      // Create a new message as the target user
+      const sudoMessage: IMessage = {
+        uuid: v4(),
+        sender_uuid: targetUser.uuid,
+        sender_username: targetUser.username,
+        sender_avatar_url: targetUser.avatar_data_uri,
+        sender_badge: targetUser.role !== 'user' ? targetUser.role : undefined,
+        room_uuid,
+        content: sudoMessageContent,
+        time_sent: Date.now(),
+        edited: false,
+      };
+
+      return { message: sudoMessage };
     },
   },
 ];
