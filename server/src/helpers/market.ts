@@ -16,7 +16,7 @@ function pseudoRandomFraction(seed: string): number {
 }
 
 /**
- * Generate a price for a resource at a given timestamp.
+ * Generate a price for a resource at a given timestamp (rounded down to the nearest 5 seconds).
  * @param resourceId - The ID of the resource to generate the price for
  * @param timestamp - The timestamp to use as part of the seed for price generation
  * @returns The generated price for the resource at the given timestamp
@@ -27,6 +27,9 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   if (resource === undefined) return 0;
 
   const resourceBase = resource.basePrice;
+
+  const interval = 5; // seconds
+  timestamp = Math.floor(timestamp / interval) * interval;
 
   let frac = pseudoRandomFraction(`${resourceId}-${timestamp}`);
   frac = Number(frac.toFixed(4));

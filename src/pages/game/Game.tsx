@@ -228,7 +228,7 @@ export default function Game() {
 
       intervalId = setInterval(async () => {
         await updateResource();
-      }, 2000);
+      }, 5000);
     };
 
     void init();
