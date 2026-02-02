@@ -23,6 +23,7 @@ router.get('/', requireActive, async (req, res) => {
         rank: index + 1,
         username: userData ? userData.username : 'Unknown',
         avatar: userData ? userData.avatar_data_uri : undefined,
+        role: userData ? userData.role : 'user',
         money: user.money || 0,
       };
     })

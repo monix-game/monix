@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import './Leaderboard.css';
 import { fetchLeaderboard, type LeaderboardEntry } from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
-import { getOrdinalSuffix, getPodiumLevel } from '../../helpers/utils';
+import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../helpers/utils';
 import { IconUser } from '@tabler/icons-react';
 
 export const Leaderboard: React.FC = () => {
@@ -49,7 +49,12 @@ export const Leaderboard: React.FC = () => {
                   <img src={entry.avatar} alt="User Avatar" className="podium-avatar" />
                 )}
                 {!entry.avatar && <IconUser size={64} className="podium-avatar-placeholder" />}
-                <span className="podium-user">{entry.username}</span>
+                <span className="podium-user">
+                  {entry.username}
+                  {entry.role !== 'user' && (
+                    <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
+                  )}
+                </span>
                 <span className="podium-money">${entry.money.toLocaleString()}</span>
               </div>
             ))}

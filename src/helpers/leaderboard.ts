@@ -5,6 +5,7 @@ export interface LeaderboardEntry {
   username: string;
   money: number;
   avatar?: string;
+  role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[] | null> {
