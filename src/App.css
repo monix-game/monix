@@ -23,12 +23,12 @@ img.emoji {
   font-weight: 600;
 }
 
-.user-badge.social-mod {
+.user-badge.helper {
   background-color: var(--primary-1);
   border: 2px solid var(--primary-2);
 }
 
-.user-badge.game-mod {
+.user-badge.mod {
   background-color: var(--blue-1);
   border: 2px solid var(--blue-2);
 }
