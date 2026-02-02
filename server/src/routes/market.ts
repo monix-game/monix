@@ -46,9 +46,9 @@ router.get('/history/:resourceId', requireActive, (req: Request, res: Response) 
   const currentTime = Math.floor(Date.now() / 1000);
   const history: Array<{ time: number; price: number }> = [];
 
-  const totalPoints = Math.max(0, Math.floor(hoursBack) * 1800);
+  const totalPoints = Math.max(0, Math.floor(hoursBack) * 720);
   for (let i = 0; i < totalPoints; i++) {
-    const timestamp = currentTime - i * 2;
+    const timestamp = currentTime - i * 5;
 
     history.push({ time: timestamp, price: generatePrice(resourceId as string, timestamp) });
   }
