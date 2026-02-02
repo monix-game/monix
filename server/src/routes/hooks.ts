@@ -93,8 +93,8 @@ router.post('/session', async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: 'https://monix.proplayer919.dev/payment/success',
-      cancel_url: 'https://monix.proplayer919.dev/payment/cancel',
+      success_url: 'https://monixga.me/payment/success',
+      cancel_url: 'https://monixga.me/payment/cancel',
       metadata: { username, item },
     });
 
