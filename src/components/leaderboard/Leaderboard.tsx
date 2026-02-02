@@ -63,8 +63,14 @@ export const Leaderboard: React.FC = () => {
             {listData.map(entry => (
               <div key={entry.rank} className="leaderboard-entry">
                 <span className="leaderboard-user-info">
-                  {entry.rank}
-                  {getOrdinalSuffix(entry.rank)}: {entry.username}
+                  <b>
+                    {entry.rank}
+                    {getOrdinalSuffix(entry.rank)}:
+                  </b>{' '}
+                  {entry.username}
+                  {entry.role !== 'user' && (
+                    <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
+                  )}
                 </span>
                 <span className="leaderboard-money">${entry.money.toLocaleString()}</span>
               </div>
