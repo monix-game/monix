@@ -5,6 +5,7 @@ import { EmojiText } from '../EmojiText';
 import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';
 import { dismissEphemeralMessage } from '../../helpers/social';
+import { IconUser } from '@tabler/icons-react';
 
 interface MessageProps {
   user?: IUser;
@@ -215,7 +216,14 @@ export const Message: React.FC<MessageProps> = ({
     >
       <div className="message-header">
         <span className="message-sender">
-          <img src={message.sender_avatar_url} alt="" className="message-avatar" />
+          {message.sender_avatar_url && (
+            <img src={message.sender_avatar_url} alt="" className="message-avatar" />
+          )}
+          {!message.sender_avatar_url && (
+            <div className="message-avatar placeholder">
+              <IconUser />
+            </div>
+          )}
           <span className="message-username">
             <EmojiText>{message.sender_username}</EmojiText>
           </span>
