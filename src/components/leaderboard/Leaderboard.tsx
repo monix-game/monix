@@ -4,21 +4,31 @@ import { fetchLeaderboard, type LeaderboardEntry } from '../../helpers/leaderboa
 import { Spinner } from '../spinner/Spinner';
 import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../helpers/utils';
 import { IconUser } from '@tabler/icons-react';
+import { Checkbox } from '../checkbox/Checkbox';
+import { hasRole } from '../../../server/common/roles';
 
 export const Leaderboard: React.FC = () => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
   const [podiumData, setPodiumData] = React.useState<LeaderboardEntry[]>([]);
   const [listData, setListData] = React.useState<LeaderboardEntry[]>([]);
+  const [hideStaff, setHideStaff] = React.useState<boolean>(false);
 
   useEffect(() => {
     async function loadLeaderboard() {
       const data = await fetchLeaderboard();
       if (data) {
-        const podium = data.slice(0, 3);
+        let filteredData = data;
+        if (hideStaff) {
+          filteredData = data.filter(entry => {
+            return !hasRole(entry.role, 'mod');
+          });
+        }
+
+        const podium = filteredData.slice(0, 3);
         // Make the podium order be 2nd, 1st, 3rd
         setPodiumData([podium[1], podium[0], podium[2]].filter(entry => entry !== undefined));
 
-        setListData(data.slice(3, 10));
+        setListData(filteredData.slice(3, 10));
 
         setHydrated(true);
       }
@@ -31,12 +41,16 @@ export const Leaderboard: React.FC = () => {
     }, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [hideStaff]);
 
   return (
     <div className="leaderboard-container">
+      <div className="leaderboard-filters">
+        <span className="leaderboard-filters-label">Filters:</span>
+        <Checkbox label="Hide Staff" checked={hideStaff} onClick={value => setHideStaff(value)} />
+      </div>
       {!hydrated && <Spinner className="leaderboard-spinner" size={48} />}
-      {hydrated && (
+      {hydrated && podiumData.length > 0 && (
         <>
           <div className="podium">
             {podiumData.map(entry => (
@@ -77,6 +91,11 @@ export const Leaderboard: React.FC = () => {
             ))}
           </div>
         </>
+      )}
+      {hydrated && podiumData.length === 0 && (
+        <div className="leaderboard-no-data">
+          No leaderboard data available. Try removing filters or refreshing the page.
+        </div>
       )}
     </div>
   );

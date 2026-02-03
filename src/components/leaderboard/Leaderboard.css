@@ -5,6 +5,17 @@
   gap: 20px;
 }
 
+.leaderboard-filters {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.leaderboard-filters-label {
+  font-size: 1em;
+  font-weight: 600;
+}
+
 .podium {
   display: flex;
   flex-direction: row;
@@ -129,4 +140,11 @@
 .leaderboard-spinner {
   justify-self: center;
   align-self: center;
+}
+
+.leaderboard-no-data {
+  text-align: center;
+  color: var(--text);
+  font-size: 1.2em;
+  padding: 20px;
 }
