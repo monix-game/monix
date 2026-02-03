@@ -22,6 +22,12 @@ export const Leaderboard: React.FC = () => {
           filteredData = data.filter(entry => {
             return !hasRole(entry.role, 'mod');
           });
+
+          // Re-rank the filtered data
+          filteredData = filteredData.map((entry, index) => ({
+            ...entry,
+            rank: index + 1,
+          }));
         }
 
         const podium = filteredData.slice(0, 3);
