@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import { resources } from '../../common/resources';
 
+const TAU = Math.PI * 2;
+
 /**
  * Generates a pseudo-random fraction based on a seed string.
  * @param seed - The seed string to generate the pseudo-random number
@@ -15,6 +17,21 @@ function pseudoRandomFraction(seed: string): number {
   return int / 0xffffffff;
 }
 
+function normalizedNoise(seed: string): number {
+  return pseudoRandomFraction(seed) * 2 - 1;
+}
+
+function smoothedNoise(seedBase: string, bucket: number): number {
+  const prev = normalizedNoise(`${seedBase}-${bucket - 1}`);
+  const curr = normalizedNoise(`${seedBase}-${bucket}`);
+  const next = normalizedNoise(`${seedBase}-${bucket + 1}`);
+  return (prev + curr * 2 + next) / 4;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
 /**
  * Generate a price for a resource at a given timestamp (rounded down to the nearest 5 seconds).
  * @param resourceId - The ID of the resource to generate the price for
@@ -26,21 +43,32 @@ export function generatePrice(resourceId: string, timestamp: number): number {
 
   if (resource === undefined) return 0;
 
-  const resourceBase = resource.basePrice;
+  const resourceBase = Math.max(resource.basePrice, 0.01);
 
   const interval = 5; // seconds
   timestamp = Math.floor(timestamp / interval) * interval;
 
-  let frac = pseudoRandomFraction(`${resourceId}-${timestamp}`);
-  frac = Number(frac.toFixed(4));
+  const time = timestamp;
+  const baseFloor = Math.max(resourceBase, 1);
 
-  let randomness = Math.round((90 + frac * 20) * 100) / 2000 - 5; // Centered around 0, range -4.5 to +4.5
+  const trendPeriodSeconds = 6 * 60 * 60; // 6 hours
+  const trendPhase = pseudoRandomFraction(`${resourceId}-trend-phase`) * TAU;
+  const trendStrength = 0.05 + pseudoRandomFraction(`${resourceId}-trend-strength`) * 0.1; // 5% to 15%
+  const trend = Math.sin((time / trendPeriodSeconds) * TAU + trendPhase) * trendStrength;
 
-  const multiplier = Math.round(resourceBase / 20);
-  randomness *= Math.max(multiplier, 1);
-  randomness = Number(randomness.toFixed(2));
+  const driftBucket = Math.floor(time / (12 * 60 * 60));
+  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.04; // up to ±4%
 
-  let price = resourceBase + randomness;
+  const microBucket = Math.floor(time / interval);
+  const microStrength = 0.005 + 0.02 * Math.exp(-baseFloor / 200); // 0.5% to 2.5%
+  const micro = smoothedNoise(`${resourceId}-micro`, microBucket) * microStrength;
+
+  let deviation = trend + drift + micro;
+
+  const maxDeviation = 0.1 + 0.08 * Math.exp(-baseFloor / 150); // 10% to 18%
+  deviation = clamp(deviation, -maxDeviation, maxDeviation);
+
+  let price = resourceBase * (1 + deviation);
   price = Number(price.toFixed(2));
   price = Math.max(price, 0.01); // Minimum price of 0.01
 

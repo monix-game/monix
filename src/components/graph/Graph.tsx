@@ -23,7 +23,19 @@ export const Graph: React.FC<GraphProps> = ({
   const len = data.length;
   const min = Math.min(...data);
   const max = Math.max(...data);
-  const range = max - min || 1;
+  const avg = (min + max) / 2;
+  let range = max - min || 1;
+
+  // Ensure a minimum zoom level to center small fluctuations
+  // Keep at least ±10% of the average as the visible range
+  const minRangePercent = avg * 0.2; // ±10% of average
+  if (range < minRangePercent) {
+    range = minRangePercent;
+  }
+
+  // Center the range around the average
+  const scaledMin = avg - range / 2;
+  const scaledMax = avg + range / 2;
 
   // remove left and right
   const leftPad = 0;
@@ -35,7 +47,7 @@ export const Graph: React.FC<GraphProps> = ({
   const innerH = height - topPad - bottomPad;
 
   const x = (i: number) => leftPad + (innerW * i) / Math.max(1, len - 1);
-  const y = (v: number) => topPad + innerH - ((v - min) / range) * innerH;
+  const y = (v: number) => topPad + innerH - ((v - scaledMin) / (scaledMax - scaledMin)) * innerH;
 
   const points = data.map((v, i) => [x(i), y(v)] as const);
 
