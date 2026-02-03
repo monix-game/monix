@@ -268,7 +268,7 @@ export default function Staff() {
                   </div>
                   <div className="dashboard-card">
                     <h3>
-                      <EmojiText>🛡️ Total Punishments</EmojiText>
+                      <EmojiText>🛡️ Active Punishments</EmojiText>
                     </h3>
                     <span className="big-number">{dashboardData?.totalPunishments}</span>
                   </div>
