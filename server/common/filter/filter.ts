@@ -69,19 +69,27 @@ export default class ProfanityFilter {
   }
 
   removeSeparators(text: string): string {
-    // Remove spaces, dots, dashes, underscores, asterisks between letters
-    return text.replaceAll(/([a-z])[.\-_*\s]+([a-z])/g, '$1$2');
+    // Remove all spaces, dots, dashes, underscores, asterisks
+    return text.replaceAll(/[.\-_*\s]+/g, '');
   }
 
   generateVariants(word: string): string[] {
     const variants = new Set<string>();
     variants.add(word);
 
+    // Remove all separators
     const noSep = this.removeSeparators(word);
     if (noSep !== word) variants.add(noSep);
 
+    // Deduplicate repeated characters
     const dedupe = word.replaceAll(/(.)\1+/g, '$1');
     if (dedupe !== word) variants.add(dedupe);
+
+    // Combine both: remove separators then dedupe
+    const noSepDedupe = this.removeSeparators(dedupe);
+    if (noSepDedupe !== word && noSepDedupe !== noSep && noSepDedupe !== dedupe) {
+      variants.add(noSepDedupe);
+    }
 
     return Array.from(variants);
   }
@@ -93,13 +101,19 @@ export default class ProfanityFilter {
     const variants = this.generateVariants(normalized);
 
     for (const variant of variants) {
+      // Check whole words first
       const wordsInText = variant.match(/\b\w+\b/g) ?? [];
       for (const w of wordsInText) {
         if (this.profaneWords.has(w.toLowerCase())) return true;
       }
 
+      // Only check substrings for longer profane words (6+ chars) to avoid false positives
       for (const profaneWord of this.profaneWords) {
-        if (profaneWord.length > 2 && variant.includes(profaneWord)) return true;
+        if (profaneWord.length >= 6) {
+          // Only match if it's a complete word or at word boundaries
+          const regex = new RegExp(String.raw`\b${profaneWord}\b`, 'i');
+          if (regex.test(variant)) return true;
+        }
       }
     }
 
@@ -120,8 +134,10 @@ export default class ProfanityFilter {
       }
 
       for (const profaneWord of this.profaneWords) {
-        if (profaneWord.length > 2 && variant.includes(profaneWord))
-          resultsSet.add(`${text}||${profaneWord}`);
+        if (profaneWord.length >= 6) {
+          const regex = new RegExp(String.raw`\b${profaneWord}\b`, 'i');
+          if (regex.test(variant)) resultsSet.add(`${text}||${profaneWord}`);
+        }
       }
     }
 
@@ -135,32 +151,40 @@ export default class ProfanityFilter {
     if (!text || this.profaneWords.size === 0) return text;
 
     const { normalized, indexMap } = this.normalizeWithMap(text);
+    const variants = this.generateVariants(normalized);
 
     const profaneRanges: Array<[number, number, string]> = [];
 
-    // Whole word matches
-    const wordRegex = /\b\w+\b/g;
-    let m: RegExpExecArray | null;
-    while ((m = wordRegex.exec(normalized))) {
-      const w = m[0].toLowerCase();
-      if (this.profaneWords.has(w)) {
-        profaneRanges.push([m.index, m.index + m[0].length, w]);
-      }
-    }
-
-    // Substring matches
-    for (const profaneWord of this.profaneWords) {
-      if (profaneWord.length > 3) {
-        let start = 0;
-        while (true) {
-          const pos = normalized.indexOf(profaneWord, start);
-          if (pos === -1) break;
-
-          const overlap = profaneRanges.some(([s, e]) => pos < e && pos + profaneWord.length > s);
-          if (!overlap) profaneRanges.push([pos, pos + profaneWord.length, profaneWord]);
-          start = pos + 1;
+    // Check each variant for matches
+    for (const variant of variants) {
+      // Whole word matches
+      const wordRegex = /\b\w+\b/g;
+      let m: RegExpExecArray | null;
+      while ((m = wordRegex.exec(variant))) {
+        const w = m[0].toLowerCase();
+        if (this.profaneWords.has(w)) {
+          profaneRanges.push([m.index, m.index + m[0].length, w]);
         }
       }
+
+      // Only check substring matches for longer profane words (6+ chars)
+      for (const profaneWord of this.profaneWords) {
+        if (profaneWord.length >= 6) {
+          const regex = new RegExp(String.raw`\b${profaneWord}\b`, 'gi');
+          let match: RegExpExecArray | null;
+          while ((match = regex.exec(variant))) {
+            const overlap = profaneRanges.some(
+              ([s, e]) => match!.index < e && match!.index + profaneWord.length > s
+            );
+            if (!overlap) {
+              profaneRanges.push([match.index, match.index + profaneWord.length, profaneWord]);
+            }
+          }
+        }
+      }
+
+      // If we found matches in this variant, use it
+      if (profaneRanges.length > 0) break;
     }
 
     if (profaneRanges.length === 0) return text;
