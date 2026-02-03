@@ -6,7 +6,7 @@ export async function getAllPets(): Promise<IPet[]> {
     const resp = await api.get<{ pets: IPet[] }>('/pets/all');
     if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.pets) {
+      if (payload?.pets) {
         return payload.pets;
       }
     }
@@ -22,7 +22,7 @@ export async function adoptPet(): Promise<IPet | null> {
     const resp = await api.post<{ pet: IPet }>('/pets/adopt');
     if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.pet) {
+      if (payload?.pet) {
         return payload.pet;
       }
     }
@@ -40,7 +40,7 @@ export async function buyPet(petTypeId: string): Promise<IPet | null> {
     });
     if (resp?.success) {
       const payload = resp.data;
-      if (payload && payload.pet) {
+      if (payload?.pet) {
         return payload.pet;
       }
     }

@@ -87,7 +87,7 @@ export default function Staff() {
     const reports = await getAllReports();
     const appeals = await getAllAppeals();
 
-    if (!userData || userData.role === 'user') window.location.href = '/auth/login';
+    if (!userData || userData.role === 'user') globalThis.location.href = '/auth/login';
 
     setUser(userData);
     setUserRole(userData ? userData.role : 'user');
@@ -237,7 +237,7 @@ export default function Staff() {
             <span
               className="username clickable"
               onClick={() => {
-                window.location.href = '/game';
+                globalThis.location.href = '/game';
               }}
             >
               {user ? user.username : 'User'}

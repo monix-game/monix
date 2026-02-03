@@ -13,6 +13,7 @@ export default function Cancel() {
           <div className="payment-logo-container">
             <img
               className="payment-logo"
+              alt="Monix Logo"
               src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
             />
           </div>
@@ -21,7 +22,7 @@ export default function Cancel() {
 
         <div className="payment-island-main">
           <h2 className="payment-subtitle">Your payment was cancelled.</h2>
-          <Button onClick={() => (window.location.href = '/game')}>Go to Game</Button>
+          <Button onClick={() => (globalThis.location.href = '/game')}>Go to Game</Button>
         </div>
       </div>
 

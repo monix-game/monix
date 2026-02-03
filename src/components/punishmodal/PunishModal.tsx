@@ -33,7 +33,7 @@ export const PunishModal: React.FC<PunishModalProps> = ({ userToPunish, isOpen, 
         </div>
         <div className="punish-content">
           <div className="punish-category">
-            <label>Category</label>
+            <p>Category</p>
             <Select
               value={category}
               onChange={value => setCategory(value)}
@@ -44,7 +44,7 @@ export const PunishModal: React.FC<PunishModalProps> = ({ userToPunish, isOpen, 
             />
           </div>
           <div className="punish-reason">
-            <label>Reason</label>
+            <p>Reason</p>
             <Input
               value={reason}
               onValueChange={value => setReason(value)}

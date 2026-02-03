@@ -41,7 +41,7 @@ export default function Register() {
     setLoading(false);
 
     if (success) {
-      window.location.href = '/auth/login';
+      globalThis.location.href = '/auth/login';
     } else {
       setPassword('');
       setPassword2('');
@@ -64,6 +64,7 @@ export default function Register() {
           <div className="logo-container">
             <img
               className="auth-logo"
+              alt="Monix Logo"
               src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
             />
           </div>
@@ -73,7 +74,7 @@ export default function Register() {
         {signedIn && (
           <div className="island-main signed-in">
             <h2 className="auth-subtitle">You are already signed in!</h2>
-            <Button onClick={() => (window.location.href = '/game')}>Go to Game</Button>
+            <Button onClick={() => (globalThis.location.href = '/game')}>Go to Game</Button>
           </div>
         )}
 
@@ -87,7 +88,7 @@ export default function Register() {
                 value={username}
                 predicates={[
                   {
-                    isValid: text => /^[a-zA-Z0-9_]{3,15}$/.test(text),
+                    isValid: text => /^\w{3,15}$/.test(text),
                     message:
                       'Username must be 3-15 characters and can only contain letters, numbers, and underscores',
                   },

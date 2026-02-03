@@ -129,6 +129,13 @@ const commands: Command[] = [
   },
 ];
 
+/**
+ * Handles a chat command if the message starts with a '/'.
+ * @param message - The original message
+ * @param user - The user who sent the message
+ * @param room_uuid - The UUID of the room where the message was sent
+ * @returns The result of the command execution
+ */
 export async function handleCommand(
   message: IMessage,
   user: IUser,

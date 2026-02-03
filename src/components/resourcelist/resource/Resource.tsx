@@ -40,30 +40,28 @@ export const Resource: React.FC<ResourceProps> = ({
   }
 
   return (
-    <>
-      <div
-        className="resource"
-        onClick={() => {
-          setMarketModalResource(info);
-          setMarketModalOpen(true);
-        }}
-        {...props}
-      >
-        <div className="resource-info">
-          <span className="resource-icon">
-            <EmojiText>{info.icon}</EmojiText>
-          </span>
-          <span className="resource-name">{info.name}</span>
-        </div>
-        <div className="resource-amount">
-          <span className="resource-quantity">{quantityShort}</span>
-          <span className="resource-unit">{unit}</span>
-        </div>
-        <div className="resource-value">
-          <small>VALUE</small>
-          <span className="mono">{valueShort}</span>
-        </div>
+    <div
+      className="resource"
+      onClick={() => {
+        setMarketModalResource(info);
+        setMarketModalOpen(true);
+      }}
+      {...props}
+    >
+      <div className="resource-info">
+        <span className="resource-icon">
+          <EmojiText>{info.icon}</EmojiText>
+        </span>
+        <span className="resource-name">{info.name}</span>
       </div>
-    </>
+      <div className="resource-amount">
+        <span className="resource-quantity">{quantityShort}</span>
+        <span className="resource-unit">{unit}</span>
+      </div>
+      <div className="resource-value">
+        <small>VALUE</small>
+        <span className="mono">{valueShort}</span>
+      </div>
+    </div>
   );
 };

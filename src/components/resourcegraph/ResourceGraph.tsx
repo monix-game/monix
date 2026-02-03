@@ -64,7 +64,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
                 <span>
                   Current Price:{' '}
                   <span className="mono">
-                    ${data.length > 0 ? data[data.length - 1].toFixed(2) : 'N/A'}
+                    ${data.length > 0 ? data.at(-1)?.toFixed(2) : 'N/A'}
                   </span>{' '}
                   per {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                 </span>

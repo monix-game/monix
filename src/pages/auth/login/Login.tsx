@@ -30,7 +30,7 @@ export default function Login() {
         if (user) {
           setLoading(false);
           // eslint-disable-next-line react-hooks/immutability
-          window.location.href = '/game';
+          globalThis.location.href = '/game';
           return;
         }
       }
@@ -59,7 +59,7 @@ export default function Login() {
         if (user) {
           setLoading(false);
           // eslint-disable-next-line react-hooks/immutability
-          window.location.href = '/game';
+          globalThis.location.href = '/game';
         }
       } else {
         message = 'Username/password incorrect';
@@ -92,6 +92,7 @@ export default function Login() {
           <div className="logo-container">
             <img
               className="auth-logo"
+              alt="Monix Logo"
               src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
             />
           </div>
@@ -101,7 +102,7 @@ export default function Login() {
         {signedIn && (
           <div className="island-main signed-in">
             <h2 className="auth-subtitle">You are already signed in!</h2>
-            <Button onClick={() => (window.location.href = '/game')}>Go to Game</Button>
+            <Button onClick={() => (globalThis.location.href = '/game')}>Go to Game</Button>
           </div>
         )}
 
