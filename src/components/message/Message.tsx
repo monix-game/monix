@@ -236,7 +236,7 @@ export const Message: React.FC<MessageProps> = ({
         <span className="message-timestamp">
           {message.ephemeral ? (
             <span
-              className="message-clickable"
+              className="message-clickable message-metadata"
               onClick={handleEphemeralClick}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -253,7 +253,7 @@ export const Message: React.FC<MessageProps> = ({
           ) : (
             ''
           )}
-          {message.edited ? '(Edited) ' : ''}
+          {message.edited ? <span className="message-metadata">(Edited) </span> : ''}
           {formatRelativeTime(new Date(message.time_sent))}
         </span>
       </div>
