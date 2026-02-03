@@ -137,7 +137,33 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   // Context menu handlers
   const onMessageContextMenu = (e: MouseEvent, msg: IMessage) => {
     e.preventDefault();
-    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, message: msg });
+
+    // Calculate adjusted position to prevent offscreen rendering
+    // Estimate menu dimensions (can be refined based on content)
+    const estimatedMenuWidth = 200; // Approximate width based on CSS min-width + padding
+    const estimatedMenuHeight = 200; // Approximate height for typical menu
+    const viewportWidth = globalThis.innerWidth;
+    const viewportHeight = globalThis.innerHeight;
+    const padding = 10;
+
+    let x = e.clientX;
+    let y = e.clientY;
+
+    // Adjust horizontal position if menu would overflow right edge
+    if (x + estimatedMenuWidth > viewportWidth) {
+      x = viewportWidth - estimatedMenuWidth - padding;
+    }
+
+    // Adjust vertical position if menu would overflow bottom edge
+    if (y + estimatedMenuHeight > viewportHeight) {
+      y = viewportHeight - estimatedMenuHeight - padding;
+    }
+
+    // Ensure menu doesn't go off left or top edge
+    if (x < padding) x = padding;
+    if (y < padding) y = padding;
+
+    setContextMenu({ visible: true, x, y, message: msg });
   };
 
   const hideContextMenu = () => setContextMenu({ visible: false, x: 0, y: 0, message: null });
