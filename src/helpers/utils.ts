@@ -1,4 +1,11 @@
-export function smartFormatNumber(num: number, includeDollarSign = true): string {
+export function smartFormatNumber(
+  num: number,
+  includeDollarSign = true,
+  canBeInfinity = false
+): string {
+  if (canBeInfinity && num === -1) return '∞';
+  if (num === 0) return includeDollarSign ? '$0.00' : '0.00';
+
   const isNegative = num < 0;
   let absNum = Math.abs(num);
 

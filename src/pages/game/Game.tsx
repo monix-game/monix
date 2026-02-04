@@ -355,7 +355,7 @@ export default function Game() {
               <div>
                 <EmojiText>💎 </EmojiText>
                 <span className="money-amount mono">
-                  {smartFormatNumber(user?.gems || 0, false)}
+                  {smartFormatNumber(user?.gems || 0, false, true)}
                 </span>
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function Game() {
                   </span>
                   <span className="money-info-line">
                     <EmojiText>💎 Gems: </EmojiText>
-                    <span className="mono">{smartFormatNumber(user?.gems || 0, false)}</span>
+                    <span className="mono">{smartFormatNumber(user?.gems || 0, false, true)}</span>
                   </span>
                   <span className="money-info-line">
                     <EmojiText>📈 Resources: </EmojiText>
