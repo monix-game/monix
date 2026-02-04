@@ -53,19 +53,19 @@ export function generatePrice(resourceId: string, timestamp: number): number {
 
   const trendPeriodSeconds = 6 * 60 * 60; // 6 hours
   const trendPhase = pseudoRandomFraction(`${resourceId}-trend-phase`) * TAU;
-  const trendStrength = 0.05 + pseudoRandomFraction(`${resourceId}-trend-strength`) * 0.1; // 5% to 15%
+  const trendStrength = 0.1 + pseudoRandomFraction(`${resourceId}-trend-strength`) * 0.25; // 10% to 35%
   const trend = Math.sin((time / trendPeriodSeconds) * TAU + trendPhase) * trendStrength;
 
   const driftBucket = Math.floor(time / (12 * 60 * 60));
-  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.04; // up to ±4%
+  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.12; // up to ±12%
 
   const microBucket = Math.floor(time / interval);
-  const microStrength = 0.005 + 0.02 * Math.exp(-baseFloor / 200); // 0.5% to 2.5%
+  const microStrength = 0.015 + 0.06 * Math.exp(-baseFloor / 200); // 1.5% to 7.5%
   const micro = smoothedNoise(`${resourceId}-micro`, microBucket) * microStrength;
 
   let deviation = trend + drift + micro;
 
-  const maxDeviation = 0.1 + 0.08 * Math.exp(-baseFloor / 150); // 10% to 18%
+  const maxDeviation = 0.25 + 0.25 * Math.exp(-baseFloor / 150); // 25% to 50%
   deviation = clamp(deviation, -maxDeviation, maxDeviation);
 
   let price = resourceBase * (1 + deviation);
