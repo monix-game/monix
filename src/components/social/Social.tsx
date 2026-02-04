@@ -49,7 +49,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
 
   const [isReportModalOpen, setIsReportModalOpen] = React.useState<boolean>(false);
   const [reportedMessage, setReportedMessage] = React.useState<IMessage | null>(null);
-  const [reportReason, setReportReason] = React.useState<string>('');
+  const [reportReason, setReportReason] = React.useState<string>('social/chat/general');
   const [reportDetails, setReportDetails] = React.useState<string>('');
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState<boolean>(false);
@@ -125,14 +125,14 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   };
 
   const reportMessageClick = async () => {
-    if (!reportedMessage) return;
+    if (!reportedMessage || !reportReason) return;
 
     await reportMessage(reportedMessage.uuid, reportReason, reportDetails);
 
     // Close modal and clear state
     setIsReportModalOpen(false);
     setReportedMessage(null);
-    setReportReason('');
+    setReportReason('social/chat/general');
     setReportDetails('');
   };
 
