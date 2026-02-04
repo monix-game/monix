@@ -181,10 +181,10 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
           )}
           {confirmingRelease && pet.name === '' && (
             <>
+              <Button onClickAsync={confirmReleasePetClick}>Confirm Release</Button>
               <Button secondary onClick={() => setConfirmingRelease(false)}>
                 Cancel Release
               </Button>
-              <Button onClickAsync={confirmReleasePetClick}>Confirm Release</Button>
             </>
           )}
           {canLevelUpPet(pet) && !pet.is_dead && (
