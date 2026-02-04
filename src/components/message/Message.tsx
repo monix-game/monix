@@ -119,9 +119,23 @@ export const Message: React.FC<MessageProps> = ({
       if (currentChar === '@') {
         const mentionContent: string[] = [];
         consume(); // consume '@'
-        while (i < text.length && /\w/.test(peek())) {
-          mentionContent.push(consume());
+
+        // Collect username characters (a-z, A-Z, 0-9, _, -)
+        while (i < text.length) {
+          const char = peek();
+          if (
+            (char >= 'a' && char <= 'z') ||
+            (char >= 'A' && char <= 'Z') ||
+            (char >= '0' && char <= '9') ||
+            char === '_' ||
+            char === '-'
+          ) {
+            mentionContent.push(consume());
+          } else {
+            break;
+          }
         }
+
         if (mentionContent.length > 0) {
           tokens.push({ type: 'mention', content: '@' + mentionContent.join('') });
           continue;
@@ -134,7 +148,7 @@ export const Message: React.FC<MessageProps> = ({
 
       // Regular text
       const textContent: string[] = [];
-      while (i < text.length && !isMarkupChar(peek()) && peek() !== '\n') {
+      while (i < text.length && !isMarkupChar(peek()) && peek() !== '\n' && peek() !== '@') {
         textContent.push(consume());
       }
       if (textContent.length > 0) {
