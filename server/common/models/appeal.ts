@@ -5,6 +5,7 @@ export interface IAppeal {
   uuid: string;
   user_uuid: string;
   punishment_uuid: string;
+  punishment_category_id: string;
   reason: string;
   time_submitted: number;
   status: 'pending' | 'approved' | 'denied';
@@ -18,6 +19,7 @@ export function appealToDoc(m: IAppeal): IAppeal {
     uuid: m.uuid,
     user_uuid: m.user_uuid,
     punishment_uuid: m.punishment_uuid,
+    punishment_category_id: m.punishment_category_id,
     reason: m.reason,
     time_submitted: m.time_submitted,
     status: m.status,
@@ -33,6 +35,7 @@ export function appealFromDoc(doc: any): IAppeal {
     uuid: doc.uuid || '',
     user_uuid: doc.user_uuid || '',
     punishment_uuid: doc.punishment_uuid || '',
+    punishment_category_id: doc.punishment_category_id || '',
     reason: doc.reason || '',
     time_submitted: doc.time_submitted || 0,
     status: doc.status || 'pending',

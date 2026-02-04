@@ -457,7 +457,9 @@ export default function Staff() {
                         <div className="staff-info-list">
                           <div className="staff-info-line">
                             <span>Punishment Category</span>
-                            <span className="mono">{getCategoryById(a.reason)?.name}</span>
+                            <span className="mono">
+                              {getCategoryById(a.punishment_category_id)?.name}
+                            </span>
                           </div>
                           <div className="staff-info-line">
                             <span>Appeal Text</span>

@@ -28,10 +28,11 @@ import type { IRoom } from '../../../server/common/models/room';
 import { getAllRooms } from '../../helpers/social';
 import { getCurrentPunishment, isUserBanned } from '../../../server/common/punishx/punishx';
 import { getRemainingDuration, type IPunishment } from '../../../server/common/models/punishment';
-import { submitAppeal } from '../../helpers/appeals';
+import { getMyAppeals, submitAppeal } from '../../helpers/appeals';
 import { useMusic } from '../../providers/music';
 import { tracks } from '../../helpers/tracks';
 import { loadSettings } from '../../helpers/settings';
+import type { IAppeal } from '../../../server/common/models/appeal';
 
 export default function Game() {
   // Net worth states
@@ -75,6 +76,7 @@ export default function Game() {
   const [user, setUser] = useState<IUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [currentPunishment, setCurrentPunishment] = useState<IPunishment | null>(null);
+  const [myAppeals, setMyAppeals] = useState<IAppeal[]>([]);
 
   // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
@@ -149,6 +151,9 @@ export default function Game() {
 
     setUser(userData);
     setUserRole(userData ? userData.role : 'user');
+
+    const myAppeals = await getMyAppeals();
+    setMyAppeals(myAppeals);
 
     if (isUserBanned(userData!)) {
       setBanned(true);
@@ -636,8 +641,20 @@ export default function Game() {
                 <h2>
                   <EmojiText>📋 Appeals</EmojiText>
                 </h2>
-                <p>If you believe this ban was a mistake, you can submit an appeal.</p>
-                <Button onClick={() => setAppealModalOpen(true)}>Submit Appeal</Button>
+                {myAppeals.filter(a => {
+                  const punishment = getCurrentPunishment(user!);
+                  return a.punishment_uuid === punishment?.uuid;
+                }).length === 0 ? (
+                  <>
+                    <p>If you believe this ban was a mistake, you can submit an appeal.</p>
+                    <Button onClick={() => setAppealModalOpen(true)}>Submit Appeal</Button>
+                  </>
+                ) : (
+                  <p>
+                    You have already submitted an appeal for this punishment. You cannot submit
+                    another one.
+                  </p>
+                )}
               </div>
             </div>
           )}

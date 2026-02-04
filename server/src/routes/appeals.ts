@@ -32,10 +32,31 @@ router.post('/submit', requireAuth, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Missing punishment_uuid or reason' });
   }
 
+  const punishment = user.punishments?.find(p => p.uuid === punishment_uuid);
+
+  if (!punishment) {
+    return res.status(404).json({ error: 'Punishment not found' });
+  }
+
+  if (punishment.lifted_at) {
+    return res.status(400).json({ error: 'Punishment has already been lifted' });
+  }
+
+  // Check if an appeal already exists for this punishment
+  const existingAppeals = await getAppealsByUserUUID(user.uuid);
+  const alreadyAppealed = existingAppeals.find(a => a.punishment_uuid === punishment_uuid);
+
+  if (alreadyAppealed) {
+    return res
+      .status(400)
+      .json({ error: 'An appeal for this punishment has already been submitted' });
+  }
+
   const appeal: IAppeal = {
     uuid: v4(),
     user_uuid: user.uuid,
     punishment_uuid,
+    punishment_category_id: punishment.category.id,
     reason,
     time_submitted: Date.now(),
     status: 'pending',
