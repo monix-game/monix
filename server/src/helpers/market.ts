@@ -51,25 +51,24 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   const time = timestamp;
   const baseFloor = Math.max(resourceBase, 1);
 
-  const trendPeriodSeconds = 6 * 60 * 60; // 6 hours
+  const trendPeriodSeconds = 15 * 60; // 15 minutes
   const trendPhase = pseudoRandomFraction(`${resourceId}-trend-phase`) * TAU;
   const trendStrength = 0.1 + pseudoRandomFraction(`${resourceId}-trend-strength`) * 0.25; // 10% to 35%
   const trend = Math.sin((time / trendPeriodSeconds) * TAU + trendPhase) * trendStrength;
 
   const driftBucket = Math.floor(time / (12 * 60 * 60));
-  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.12; // up to ±12%
+  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.15; // up to ±15%
 
   const microBucket = Math.floor(time / interval);
-  const microStrength = 0.015 + 0.06 * Math.exp(-baseFloor / 200); // 1.5% to 7.5%
+  const microStrength = 0.025 + 0.08 * Math.exp(-baseFloor / 200); // 2.5% to ~8%
   const micro = smoothedNoise(`${resourceId}-micro`, microBucket) * microStrength;
 
   let deviation = trend + drift + micro;
 
-  const maxDeviation = 0.25 + 0.25 * Math.exp(-baseFloor / 150); // 25% to 50%
+  const maxDeviation = 0.25 + 0.25 * Math.exp(-baseFloor / 150); // 25% to ~50%
   deviation = clamp(deviation, -maxDeviation, maxDeviation);
 
   let price = resourceBase * (1 + deviation);
-  price = Number(price.toFixed(2));
   price = Math.max(price, 0.01); // Minimum price of 0.01
 
   return price;

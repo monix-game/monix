@@ -17,7 +17,7 @@ router.get('/price/:resourceId', requireActive, (req: Request, res: Response) =>
     }
   }
 
-  const price = Number(generatePrice(resourceId as string, time).toFixed(2));
+  const price = generatePrice(resourceId as string, time);
   const price_data = { resource_id: resourceId, price };
   return res.status(200).json({ success: true, data: price_data });
 });
@@ -34,7 +34,7 @@ router.get('/prices', requireActive, (req: Request, res: Response) => {
   }
 
   const prices = resources.map(r => {
-    const price = Number(generatePrice(r.id, time).toFixed(2));
+    const price = generatePrice(r.id, time);
     return { resource_id: r.id, price };
   });
   return res.status(200).json({ success: true, data: prices });

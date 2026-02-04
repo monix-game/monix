@@ -6,6 +6,7 @@ import type { ResourceInfo } from '../../../server/common/resources';
 import { EmojiText } from '../EmojiText';
 import { Spinner } from '../spinner/Spinner';
 import { Button } from '../button/Button';
+import { smartFormatNumber } from '../../helpers/utils';
 
 interface ResourceGraphProps {
   resource: ResourceInfo;
@@ -64,7 +65,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
                 <span>
                   Current Price:{' '}
                   <span className="mono">
-                    ${data.length > 0 ? data.at(-1)?.toFixed(2) : 'N/A'}
+                    {data.length > 0 ? smartFormatNumber(data.at(-1) || 0) : 'N/A'}
                   </span>{' '}
                   per {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                 </span>

@@ -78,7 +78,7 @@ export async function getTotalResourceValue(): Promise<number> {
     }
   }
 
-  return Number(totalValue.toFixed(2));
+  return Number(totalValue);
 }
 
 export async function buyResource(

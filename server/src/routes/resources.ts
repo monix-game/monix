@@ -74,7 +74,7 @@ router.post('/:resourceId/buy', requireActive, async (req, res) => {
   }
 
   // Deduct balance and add resources
-  user.money -= Number(totalCost.toFixed(2));
+  user.money -= totalCost;
   if (!user.resources) {
     user.resources = {};
   }
@@ -122,7 +122,7 @@ router.post('/:resourceId/sell', requireActive, async (req, res) => {
   // Deduct resources and add balance
 
   user.resources[resourceId as string] = currentQuantity - quantityToSell;
-  user.money = (user.money || 0) + Number(totalValue.toFixed(2));
+  user.money = (user.money || 0) + Number(totalValue);
 
   await updateUser(user);
 
