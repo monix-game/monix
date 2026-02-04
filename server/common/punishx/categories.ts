@@ -47,7 +47,16 @@ export const punishXCategories: PunishXCategory[] = [
   },
   {
     id: 'game/systems/false-reporting',
-    name: 'Game Systems - False Reporting',
+    name: 'Game Systems - Report Abuse',
+    levels: [
+      10080, // 7 days
+      40320, // 28 days
+      -1, // Permanent
+    ],
+  },
+  {
+    id: 'game/systems/appeal-abuse',
+    name: 'Game Systems - Appeal Abuse',
     levels: [
       10080, // 7 days
       40320, // 28 days
