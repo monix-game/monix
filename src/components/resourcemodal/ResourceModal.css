@@ -5,7 +5,7 @@
   text-align: center;
 }
 
-.market-title > * {
+.market-title>* {
   vertical-align: middle;
 }
 
@@ -61,6 +61,17 @@
 .market-input {
   width: 100%;
   margin-bottom: 12px;
+}
+
+.market-quantity-controls {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.market-quantity-button {
+  flex-grow: 1;
 }
 
 .market-total-cost {

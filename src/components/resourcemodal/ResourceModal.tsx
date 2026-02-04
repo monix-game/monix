@@ -88,6 +88,40 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                 className="market-input"
                 onValueChange={value => setMarketQuantity(Number(value))}
               />
+              <div className="market-quantity-controls">
+                <Button
+                  className="market-quantity-button"
+                  onClick={() => {
+                    // Calculate 10% of affordable quantity
+                    const affordableQuantity = Math.floor(money / resourcePrice);
+                    const tenPercent = Math.max(1, Math.floor(affordableQuantity * 0.1));
+                    setMarketQuantity(marketQuantity + tenPercent);
+                  }}
+                >
+                  10% of money
+                </Button>
+                <Button
+                  className="market-quantity-button"
+                  onClick={() => {
+                    // Calculate 50% of affordable quantity
+                    const affordableQuantity = Math.floor(money / resourcePrice);
+                    const fiftyPercent = Math.max(1, Math.floor(affordableQuantity * 0.5));
+                    setMarketQuantity(marketQuantity + fiftyPercent);
+                  }}
+                >
+                  50% of money
+                </Button>
+                <Button
+                  className="market-quantity-button"
+                  onClick={() => {
+                    // Calculate 100% of affordable quantity
+                    const affordableQuantity = Math.floor(money / resourcePrice);
+                    setMarketQuantity(affordableQuantity);
+                  }}
+                >
+                  All
+                </Button>
+              </div>
               {marketQuantity > 0 && (
                 <p className="market-total-cost">
                   Total Cost:{' '}
@@ -145,6 +179,37 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     className="market-input"
                     onValueChange={value => setMarketQuantity(Number(value))}
                   />
+                  <div className="market-quantity-controls">
+                    <Button
+                      className="market-quantity-button"
+                      onClick={() => {
+                        // Calculate 10% of available quantity
+                        const tenPercent = Math.max(1, Math.floor(quantity * 0.1));
+                        setMarketQuantity(marketQuantity + tenPercent);
+                      }}
+                    >
+                      10% of quantity
+                    </Button>
+                    <Button
+                      className="market-quantity-button"
+                      onClick={() => {
+                        // Calculate 50% of available quantity
+                        const fiftyPercent = Math.max(1, Math.floor(quantity * 0.5));
+                        setMarketQuantity(marketQuantity + fiftyPercent);
+                      }}
+                    >
+                      50% of quantity
+                    </Button>
+                    <Button
+                      className="market-quantity-button"
+                      onClick={() => {
+                        // Calculate 100% of available quantity
+                        setMarketQuantity(quantity);
+                      }}
+                    >
+                      All
+                    </Button>
+                  </div>
                   {marketQuantity > 0 && (
                     <p className="market-total-cost">
                       Total Value:{' '}
