@@ -9,3 +9,13 @@ export function hasRole(
 
   return userRoleIndex <= requiredRoleIndex;
 }
+
+export function hasPowerOver(
+  userRole: 'owner' | 'admin' | 'mod' | 'helper' | 'user',
+  targetRole: 'owner' | 'admin' | 'mod' | 'helper' | 'user'
+): boolean {
+  const userRoleIndex = ROLE_HIERARCHY.indexOf(userRole);
+  const targetRoleIndex = ROLE_HIERARCHY.indexOf(targetRole);
+
+  return userRoleIndex < targetRoleIndex;
+}

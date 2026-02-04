@@ -13,6 +13,7 @@ import { getActivePunishments, punishUser } from '../../common/punishx/punishx';
 import { getCategoryById } from '../../common/punishx/categories';
 import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
+import { hasPowerOver } from '../../common/roles';
 
 const router = Router();
 
@@ -101,6 +102,10 @@ router.post('/punish', requireRole('mod'), async (req: Request, res: Response) =
     return res.status(404).json({ error: 'Target user not found' });
   }
 
+  if (!hasPowerOver(user.role, targetUser.role)) {
+    return res.status(403).json({ error: 'You do not have permission to punish this user' });
+  }
+
   const category = getCategoryById(category_id);
 
   if (!category) {
@@ -142,6 +147,10 @@ router.post('/pardon', requireRole('mod'), async (req: Request, res: Response) =
 
   if (!targetUser.punishments) {
     return res.status(400).json({ error: 'Target user has no punishments' });
+  }
+
+  if (!hasPowerOver(user.role, targetUser.role)) {
+    return res.status(403).json({ error: 'You do not have permission to pardon this user' });
   }
 
   const punishment = targetUser.punishments.find(p => p.uuid === punishment_uuid);
