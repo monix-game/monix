@@ -156,3 +156,22 @@ export function formatRemainingTime(seconds: number): string {
 
   return parts.join(' ');
 }
+
+export function getRarityEmoji(rarity: string): string {
+  switch (rarity) {
+    case 'common':
+      return '⚪';
+    case 'uncommon':
+      return '🟢';
+    case 'rare':
+      return '🔵';
+    case 'epic':
+      return '🟣';
+    case 'legendary':
+      return '🟠';
+    case 'godlike':
+      return '🔶';
+    default:
+      return '';
+  }
+}

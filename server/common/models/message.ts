@@ -9,7 +9,7 @@ export interface IMessage {
   sender_avatar_url?: string;
   room_uuid: string;
   content: string;
-  time_sent: number;
+  time_sent?: number;
   nameplate?: string;
   messageplate?: string;
   user_tag?: string;
@@ -51,7 +51,7 @@ export function messageFromDoc(doc: any): IMessage {
     sender_avatar_url: doc.sender_avatar_url || undefined,
     room_uuid: doc.room_uuid || '',
     content: doc.content || '',
-    time_sent: doc.time_sent || 0,
+    time_sent: doc.time_sent || undefined,
     nameplate: doc.nameplate || undefined,
     messageplate: doc.messageplate || undefined,
     user_tag: doc.user_tag || undefined,

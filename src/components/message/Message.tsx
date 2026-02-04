@@ -6,12 +6,13 @@ import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';
 import { dismissEphemeralMessage } from '../../helpers/social';
 import { IconUser } from '@tabler/icons-react';
+import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 
 interface MessageProps {
   user?: IUser;
   message: IMessage;
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  updateMessages: () => void;
+  updateMessages?: () => void;
 }
 
 export const Message: React.FC<MessageProps> = ({
@@ -220,7 +221,9 @@ export const Message: React.FC<MessageProps> = ({
   const handleEphemeralClick = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     e.preventDefault();
     void dismissEphemeralMessage(message.uuid);
-    updateMessages();
+    if (updateMessages) {
+      updateMessages();
+    }
   };
 
   return (
@@ -241,6 +244,14 @@ export const Message: React.FC<MessageProps> = ({
           <span className="message-username">
             <EmojiText>{message.sender_username}</EmojiText>
           </span>
+          {message.user_tag && (
+            <span
+              className={`user-tag tag-colour-${cosmetics.find(c => c.id === message.user_tag)?.tagColour}`}
+            >
+              {cosmetics.find(c => c.id === message.user_tag)?.tagIcon}{' '}
+              {cosmetics.find(c => c.id === message.user_tag)?.tagName}
+            </span>
+          )}
           {message.sender_badge && (
             <span className={`message-badge ${message.sender_badge.toLowerCase()}`}>
               {titleCase(message.sender_badge)}
@@ -268,7 +279,7 @@ export const Message: React.FC<MessageProps> = ({
             ''
           )}
           {message.edited ? <span className="message-metadata">(Edited) </span> : ''}
-          {formatRelativeTime(new Date(message.time_sent))}
+          {message.time_sent && formatRelativeTime(new Date(message.time_sent))}
         </span>
       </div>
       <div className={`message-content ${message.shouted ? 'shouted' : ''}`}>

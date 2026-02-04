@@ -15,14 +15,20 @@ import {
   GemCard,
   Social,
   Modal,
+  Message,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
-import { fetchUser } from '../../helpers/auth';
+import { equipCosmetic, fetchUser } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
-import { formatRemainingTime, smartFormatNumber, titleCase } from '../../helpers/utils';
+import {
+  formatRemainingTime,
+  getRarityEmoji,
+  smartFormatNumber,
+  titleCase,
+} from '../../helpers/utils';
 import { createPaymentSession } from '../../helpers/payments';
 import type { IRoom } from '../../../server/common/models/room';
 import { getAllRooms } from '../../helpers/social';
@@ -33,6 +39,7 @@ import { useMusic } from '../../providers/music';
 import { tracks } from '../../helpers/tracks';
 import { loadSettings } from '../../helpers/settings';
 import type { IAppeal } from '../../../server/common/models/appeal';
+import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 
 export default function Game() {
   // Net worth states
@@ -56,6 +63,7 @@ export default function Game() {
     | 'leaderboard'
     | 'gems'
     | 'store'
+    | 'cosmetics'
     | 'settings'
     | 'jail'
     | 'appeals'
@@ -277,16 +285,13 @@ export default function Game() {
                     { key: 'money', label: '💰 Money' },
                     { key: 'resources', label: '🪙 Resources' },
                     { key: 'market', label: '🏪 Market' },
-                    { key: 'fishing', label: '🎣 Fishing' },
                     { key: 'pets', label: '🐶 Pets' },
-                    { key: 'relics', label: '🦴 Relics' },
-                    { key: 'council', label: '🏛️ Council' },
                     { key: 'social', label: '💬 Social' },
                     { key: 'games', label: '🎮 Games' },
                     { key: 'radio', label: '📻 Radio' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'gems', label: '💎 Gems' },
-                    { key: 'store', label: '🏬 Store' },
+                    { key: 'cosmetics', label: '🎨 Cosmetics' },
                     { key: 'settings', label: '⚙️ Settings' },
                   ] as const);
 
@@ -590,6 +595,66 @@ export default function Game() {
             <div className="tab-content">
               <h2>Store Tab</h2>
               <p>Content for Store will go here.</p>
+            </div>
+          )}
+          {tab === 'cosmetics' && (
+            <div className="tab-content">
+              <h2>Cosmetics</h2>
+              <div className="cosmetics-grid">
+                {(!user?.cosmetics_unlocked || user?.cosmetics_unlocked.length === 0) && (
+                  <p>
+                    You have not unlocked any cosmetics yet. Try earning some gems to unlock
+                    cosmetics!
+                  </p>
+                )}
+                {user
+                  ?.cosmetics_unlocked!.map(cosmetic => cosmetics.find(c => c.id === cosmetic))
+                  .map(cosmetic => (
+                    <div key={cosmetic!.id} className="cosmetic-card">
+                      <h2 className="cosmetic-name">{cosmetic!.name}</h2>
+                      <span className="cosmetic-rarity">
+                        {getRarityEmoji(cosmetic!.rarity)} {titleCase(cosmetic!.rarity)} Rarity
+                      </span>
+                      <div className="cosmetic-preview">
+                        {cosmetic!.type === 'nameplate' && (
+                          <span className={`nameplate-text ${cosmetic!.id}`}>Monix User</span>
+                        )}
+                        {cosmetic!.type === 'messageplate' && (
+                          <Message
+                            message={{
+                              uuid: 'preview',
+                              sender_uuid: 'preview',
+                              sender_username: 'Monix User',
+                              messageplate: cosmetic!.id,
+                              room_uuid: 'preview',
+                              edited: false,
+                              content: 'This is a messageplate preview!',
+                            }}
+                          />
+                        )}
+                        {cosmetic!.type === 'tag' && (
+                          <span
+                            className={`user-tag user-tag-large tag-colour-${cosmetic!.tagColour}`}
+                          >
+                            {cosmetic!.tagIcon} {cosmetic!.tagName}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        className="cosmetic-equip"
+                        disabled={user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id}
+                        onClickAsync={async () => {
+                          await equipCosmetic(cosmetic!.id);
+                          await updateEverything();
+                        }}
+                      >
+                        {user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id
+                          ? 'Equipped'
+                          : 'Equip'}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
             </div>
           )}
           {tab === 'settings' && (

@@ -18,7 +18,7 @@ export interface IUser {
   setup_totp?: boolean;
   avatar_data_uri?: string;
   resources: { [key: string]: number };
-  cosmetics_unlocked?: { [id: string]: boolean };
+  cosmetics_unlocked?: string[];
   equipped_cosmetics?: {
     nameplate?: string;
     messageplate?: string;
@@ -52,7 +52,7 @@ export function userToDoc(u: IUser): IUser {
     setup_totp: u.setup_totp,
     avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
-    cosmetics_unlocked: u.cosmetics_unlocked || {},
+    cosmetics_unlocked: u.cosmetics_unlocked || [],
     equipped_cosmetics: u.equipped_cosmetics || {},
     fishing: u.fishing,
     punishments: u.punishments,
@@ -74,7 +74,7 @@ export function userFromDoc(doc: any): IUser {
     setup_totp: doc.setup_totp || false,
     avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
-    cosmetics_unlocked: doc.cosmetics_unlocked || {},
+    cosmetics_unlocked: doc.cosmetics_unlocked || [],
     equipped_cosmetics: doc.equipped_cosmetics || {},
     fishing: doc.fishing || {
       equipped_rod: 'damaged-rod',
