@@ -248,7 +248,7 @@ export const Message: React.FC<MessageProps> = ({
             <span
               className={`user-tag tag-colour-${cosmetics.find(c => c.id === message.user_tag)?.tagColour}`}
             >
-              {cosmetics.find(c => c.id === message.user_tag)?.tagIcon}{' '}
+              <EmojiText>{cosmetics.find(c => c.id === message.user_tag)?.tagIcon}</EmojiText>{' '}
               {cosmetics.find(c => c.id === message.user_tag)?.tagName}
             </span>
           )}

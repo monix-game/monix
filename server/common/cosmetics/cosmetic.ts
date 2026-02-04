@@ -1,9 +1,10 @@
 export interface Cosmetic {
   id: string;
   name: string;
-  type: 'nameplate' | 'messageplate' | 'tag';
+  type: 'nameplate' | 'messageplate' | 'tag' | 'frame';
   nameplateStyle?: string;
   messageplateStyle?: string;
+  frameStyle?: string;
   tagIcon?: string;
   tagName?: string;
   tagColour?: 'primary' | 'red' | 'blue' | 'purple';

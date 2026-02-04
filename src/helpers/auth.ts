@@ -253,6 +253,16 @@ export async function equipCosmetic(cosmeticId: string): Promise<boolean> {
   }
 }
 
+export async function buyCosmetic(cosmeticId: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/cosmetics/buy', { cosmetic_id: cosmeticId });
+    return resp.success;
+  } catch (err) {
+    console.error('Error buying cosmetic', err);
+    return false;
+  }
+}
+
 function saveToken(session: ISession) {
   localStorage.setItem(localStorageKey('session_token'), session.token);
   localStorage.setItem(localStorageKey('session_user_uuid'), session.user_uuid);

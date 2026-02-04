@@ -288,7 +288,10 @@ router.post('/change/password', requireAuth, async (req: Request, res: Response)
   return res.status(200).json({ message: 'Password changed successfully' });
 });
 
-router.get('/cosmetics', requireAuth, async (req: Request, res: Response) => {
+router.post('/cosmetics/buy', requireAuth, async (req: Request, res: Response) => {
+  const { cosmetic_id } = (req.body as { cosmetic_id?: string }) || {};
+  if (!cosmetic_id) return res.status(400).json({ error: 'Missing cosmetic ID' });
+
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
 
@@ -296,10 +299,31 @@ router.get('/cosmetics', requireAuth, async (req: Request, res: Response) => {
 
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  return res.status(200).json({
-    cosmetics_unlocked: user.cosmetics_unlocked || [],
-    equipped_cosmetics: user.equipped_cosmetics || {},
-  });
+  const cosmetic = cosmetics.find(c => c.id === cosmetic_id && c.buyable);
+  if (!cosmetic) return res.status(404).json({ error: 'Cosmetic not found or not buyable' });
+
+  if (user.cosmetics_unlocked?.includes(cosmetic_id)) {
+    return res.status(400).json({ error: 'Cosmetic already unlocked' });
+  }
+
+  if (!cosmetic.price) {
+    return res.status(400).json({ error: 'Cosmetic has no price' });
+  }
+
+  if (user.gems !== -1 && user.gems < cosmetic.price) {
+    return res.status(400).json({ error: 'Insufficient gems' });
+  }
+
+  if (user.gems !== -1) {
+    user.gems -= cosmetic.price;
+  }
+
+  user.cosmetics_unlocked = user.cosmetics_unlocked || [];
+  user.cosmetics_unlocked.push(cosmetic_id);
+
+  await updateUser(user);
+
+  return res.status(200).json({ message: 'Cosmetic purchased successfully' });
 });
 
 router.post('/cosmetics/equip', requireAuth, async (req: Request, res: Response) => {
@@ -328,6 +352,10 @@ router.post('/cosmetics/equip', requireAuth, async (req: Request, res: Response)
     user.equipped_cosmetics.messageplate = cosmetic.id;
   } else if (cosmetic.type === 'tag') {
     user.equipped_cosmetics.tag = cosmetic.id;
+  } else if (cosmetic.type === 'frame') {
+    user.equipped_cosmetics.frame = cosmetic.id;
+  } else {
+    return res.status(400).json({ error: 'Invalid cosmetic type' });
   }
 
   await updateUser(user);

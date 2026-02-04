@@ -19,7 +19,7 @@ import {
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
-import { equipCosmetic, fetchUser } from '../../helpers/auth';
+import { buyCosmetic, equipCosmetic, fetchUser } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
@@ -291,6 +291,7 @@ export default function Game() {
                     { key: 'radio', label: '📻 Radio' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'gems', label: '💎 Gems' },
+                    { key: 'store', label: '🛒 Store' },
                     { key: 'cosmetics', label: '🎨 Cosmetics' },
                     { key: 'settings', label: '⚙️ Settings' },
                   ] as const);
@@ -593,8 +594,69 @@ export default function Game() {
           )}
           {tab === 'store' && (
             <div className="tab-content">
-              <h2>Store Tab</h2>
-              <p>Content for Store will go here.</p>
+              <h2>Cosmetic Store</h2>
+              <div className="cosmetics-grid">
+                {cosmetics.filter(c => c.buyable).length === 0 && (
+                  <p>
+                    No cosmetics are available for purchase at this time. Please check back later.
+                  </p>
+                )}
+                {cosmetics
+                  .filter(c => c.buyable)
+                  .map(cosmetic => (
+                    <div key={cosmetic.id} className="cosmetic-card">
+                      <h2 className="cosmetic-name">{cosmetic.name}</h2>
+                      <span className="cosmetic-rarity">
+                        <EmojiText>{getRarityEmoji(cosmetic.rarity)}</EmojiText>{' '}
+                        {titleCase(cosmetic.rarity)} Rarity
+                      </span>
+                      <div className="cosmetic-preview">
+                        {cosmetic.type === 'nameplate' && (
+                          <span className={`nameplate-text ${cosmetic.id}`}>Monix User</span>
+                        )}
+                        {cosmetic.type === 'messageplate' && (
+                          <Message
+                            message={{
+                              uuid: 'preview',
+                              sender_uuid: 'preview',
+                              sender_username: 'Monix User',
+                              messageplate: cosmetic.id,
+                              room_uuid: 'preview',
+                              edited: false,
+                              content: 'This is a messageplate preview!',
+                            }}
+                          />
+                        )}
+                        {cosmetic.type === 'tag' && (
+                          <span
+                            className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
+                          >
+                            <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        className="cosmetic-action"
+                        disabled={
+                          user?.cosmetics_unlocked?.includes(cosmetic.id) ||
+                          ((user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1)
+                        }
+                        onClickAsync={async () => {
+                          await buyCosmetic(cosmetic.id);
+                          await updateEverything();
+                        }}
+                      >
+                        {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
+                        {user?.gems !== -1 &&
+                          (user?.gems || 0) < (cosmetic.price || 0) &&
+                          'Insufficient Gems'}
+                        {!user?.cosmetics_unlocked?.includes(cosmetic.id) &&
+                          (user?.gems === -1 || (user?.gems || 0) >= (cosmetic.price || 0)) &&
+                          `Buy for ${smartFormatNumber(cosmetic.price || 0, false, true)} Gems`}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
             </div>
           )}
           {tab === 'cosmetics' && (
@@ -613,7 +675,8 @@ export default function Game() {
                     <div key={cosmetic!.id} className="cosmetic-card">
                       <h2 className="cosmetic-name">{cosmetic!.name}</h2>
                       <span className="cosmetic-rarity">
-                        {getRarityEmoji(cosmetic!.rarity)} {titleCase(cosmetic!.rarity)} Rarity
+                        <EmojiText>{getRarityEmoji(cosmetic!.rarity)}</EmojiText>{' '}
+                        {titleCase(cosmetic!.rarity)} Rarity
                       </span>
                       <div className="cosmetic-preview">
                         {cosmetic!.type === 'nameplate' && (
@@ -636,12 +699,12 @@ export default function Game() {
                           <span
                             className={`user-tag user-tag-large tag-colour-${cosmetic!.tagColour}`}
                           >
-                            {cosmetic!.tagIcon} {cosmetic!.tagName}
+                            <EmojiText>{cosmetic!.tagIcon}</EmojiText> {cosmetic!.tagName}
                           </span>
                         )}
                       </div>
                       <Button
-                        className="cosmetic-equip"
+                        className="cosmetic-action"
                         disabled={user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id}
                         onClickAsync={async () => {
                           await equipCosmetic(cosmetic!.id);

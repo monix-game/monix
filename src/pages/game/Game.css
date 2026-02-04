@@ -156,7 +156,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1>* {
+.money-tab-content h1 > * {
   vertical-align: middle;
 }
 
@@ -443,15 +443,14 @@ html[data-theme='dark'] .app-logo-light {
   font-size: 0.9rem;
   color: var(--text-muted);
   user-select: none;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   border-radius: var(--border-radius);
   padding: 2px 6px;
   border: 2px solid var(--primary-2);
 }
 
-.cosmetic-equip {
+.cosmetic-action {
   margin-top: 10px;
-  width: 40%;
 }
 
 /* Mobile Responsiveness */

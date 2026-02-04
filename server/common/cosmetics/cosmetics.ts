@@ -21,4 +21,15 @@ export const cosmetics: Cosmetic[] = [
     rarity: 'godlike',
     buyable: false,
   },
+  {
+    id: 'cool-tag',
+    name: 'Cool Tag',
+    type: 'tag',
+    tagIcon: '😎',
+    tagName: 'Cool',
+    tagColour: 'purple',
+    rarity: 'uncommon',
+    buyable: true,
+    price: 100,
+  },
 ];

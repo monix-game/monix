@@ -23,6 +23,7 @@ export interface IUser {
     nameplate?: string;
     messageplate?: string;
     tag?: string;
+    frame?: string;
   };
   fishing?: {
     equipped_rod?: string;
