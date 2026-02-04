@@ -60,7 +60,7 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.15; // up to ±15%
 
   const microBucket = Math.floor(time / interval);
-  const microStrength = 0.025 + 0.08 * Math.exp(-baseFloor / 200); // 2.5% to ~8%
+  const microStrength = 0.025 + 0.055 * Math.exp(-baseFloor / 200); // 2.5% to ~5.5%
   const micro = smoothedNoise(`${resourceId}-micro`, microBucket) * microStrength;
 
   let deviation = trend + drift + micro;

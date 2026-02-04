@@ -23,19 +23,32 @@ export const Graph: React.FC<GraphProps> = ({
   const len = data.length;
   const min = Math.min(...data);
   const max = Math.max(...data);
+  const range = max - min || 1;
   const avg = (min + max) / 2;
-  let range = max - min || 1;
 
-  // Ensure a minimum zoom level to center small fluctuations
-  // Keep at least ±10% of the average as the visible range
-  const minRangePercent = avg * 0.2; // ±10% of average
-  if (range < minRangePercent) {
-    range = minRangePercent;
-  }
+  // Smoothly blend between centered and bottom-anchored views based on data variation
+  const centerThreshold = avg * 0.01; // Threshold for fully centered
+  const bottomThreshold = avg * 0.45; // Threshold for fully bottom-anchored
 
-  // Center the range around the average
-  const scaledMin = avg - range / 2;
-  const scaledMax = avg + range / 2;
+  // Smooth interpolation: 0 = fully centered, 1 = fully bottom-anchored
+  const blendFactor = Math.max(
+    0,
+    Math.min(1, (range - centerThreshold) / (bottomThreshold - centerThreshold))
+  );
+
+  // Calculate centered view bounds
+  const minRangePercent = avg * 0.2;
+  const expandedRange = Math.max(range, minRangePercent);
+  const centeredMin = avg - expandedRange / 2;
+  const centeredMax = avg + expandedRange / 2;
+
+  // Calculate bottom-anchored view bounds
+  const bottomMin = 0;
+  const bottomMax = max * 1.1;
+
+  // Blend between the two views
+  const scaledMin = centeredMin + (bottomMin - centeredMin) * blendFactor;
+  const scaledMax = centeredMax + (bottomMax - centeredMax) * blendFactor;
 
   // remove left and right
   const leftPad = 0;
