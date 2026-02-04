@@ -95,11 +95,11 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       }
     }
 
-    // Send message to server
-    await sendMessage(room.uuid, messageInput.trim());
-
     // Clear input
     setMessageInput('');
+
+    // Send message to server
+    await sendMessage(room.uuid, messageInput.trim());
 
     // Optimistically add message to UI (will be replaced on next fetch)
     if (!messageInput.trim().startsWith('/')) {
@@ -110,6 +110,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           room_uuid: room.uuid,
           sender_uuid: user.uuid,
           sender_username: user.username,
+          sender_badge: user.role,
+          sender_avatar_url: user.avatar_data_uri,
           content: messageInput.trim(),
           time_sent: Date.now(),
           ephemeral: false,
