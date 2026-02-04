@@ -363,47 +363,49 @@ export default function Staff() {
                             <span className="mono">{r.details || 'N/A'}</span>
                           </div>
                         </div>
-                        <div className="review-buttons">
-                          <Button
-                            color="blue"
-                            onClick={() => {
-                              setSelectedReport(r);
-                              setSelectedReportAction('punish_reported');
-                              setReportModalOpen(true);
-                            }}
-                          >
-                            Punish Reported
-                          </Button>
-                          <Button
-                            color="red"
-                            onClick={() => {
-                              setSelectedReport(r);
-                              setSelectedReportAction('punish_reporter');
-                              setReportModalOpen(true);
-                            }}
-                          >
-                            Punish Reporter
-                          </Button>
-                          <Button
-                            color="purple"
-                            onClick={() => {
-                              setSelectedReport(r);
-                              setSelectedReportAction('dismissed');
-                              setReportModalOpen(true);
-                            }}
-                          >
-                            Dismiss Report
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setSelectedReport(r);
-                              setSelectedReportAction('change_category');
-                              setReportModalOpen(true);
-                            }}
-                          >
-                            Change Category
-                          </Button>
-                        </div>
+                        {r.status === 'pending' && (
+                          <div className="review-buttons">
+                            <Button
+                              color="blue"
+                              onClick={() => {
+                                setSelectedReport(r);
+                                setSelectedReportAction('punish_reported');
+                                setReportModalOpen(true);
+                              }}
+                            >
+                              Punish Reported
+                            </Button>
+                            <Button
+                              color="red"
+                              onClick={() => {
+                                setSelectedReport(r);
+                                setSelectedReportAction('punish_reporter');
+                                setReportModalOpen(true);
+                              }}
+                            >
+                              Punish Reporter
+                            </Button>
+                            <Button
+                              color="purple"
+                              onClick={() => {
+                                setSelectedReport(r);
+                                setSelectedReportAction('dismissed');
+                                setReportModalOpen(true);
+                              }}
+                            >
+                              Dismiss Report
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setSelectedReport(r);
+                                setSelectedReportAction('change_category');
+                                setReportModalOpen(true);
+                              }}
+                            >
+                              Change Category
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -462,28 +464,30 @@ export default function Staff() {
                             <span className="mono">{a.reason}</span>
                           </div>
                         </div>
-                        <div className="review-buttons">
-                          <Button
-                            color="blue"
-                            onClick={() => {
-                              setSelectedAppeal(a);
-                              setSelectedAppealAction('approve');
-                              setAppealModalOpen(true);
-                            }}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            color="red"
-                            onClick={() => {
-                              setSelectedAppeal(a);
-                              setSelectedAppealAction('deny');
-                              setAppealModalOpen(true);
-                            }}
-                          >
-                            Deny
-                          </Button>
-                        </div>
+                        {a.status === 'pending' && (
+                          <div className="review-buttons">
+                            <Button
+                              color="blue"
+                              onClick={() => {
+                                setSelectedAppeal(a);
+                                setSelectedAppealAction('approve');
+                                setAppealModalOpen(true);
+                              }}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              color="red"
+                              onClick={() => {
+                                setSelectedAppeal(a);
+                                setSelectedAppealAction('deny');
+                                setAppealModalOpen(true);
+                              }}
+                            >
+                              Deny
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
