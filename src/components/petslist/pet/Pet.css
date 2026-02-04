@@ -50,6 +50,10 @@
 .pet-name {
   font-size: 1.25rem;
   font-weight: 600;
+  max-width: 150px;
+  text-align: center;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .pet-type {
