@@ -453,6 +453,10 @@ html[data-theme='dark'] .app-logo-light {
   margin-top: 10px;
 }
 
+.nameplate-preview {
+  font-weight: 600;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {

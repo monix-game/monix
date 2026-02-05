@@ -7,6 +7,7 @@ import type { IMessage } from '../../../server/common/models/message';
 import { dismissEphemeralMessage } from '../../helpers/social';
 import { IconUser } from '@tabler/icons-react';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
+import { Nameplate } from '../nameplate/Nameplate';
 
 interface MessageProps {
   user?: IUser;
@@ -242,7 +243,10 @@ export const Message: React.FC<MessageProps> = ({
             </div>
           )}
           <span className="message-username">
-            <EmojiText>{message.sender_username}</EmojiText>
+            <Nameplate
+              text={message.sender_username}
+              styleKey={cosmetics.find(c => c.id === message.nameplate)?.nameplateStyle || null}
+            />
           </span>
           {message.user_tag && (
             <span

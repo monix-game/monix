@@ -13,6 +13,7 @@ img.emoji {
   vertical-align: -0.1em;
 }
 
+/* User Badges */
 .user-badge {
   background-color: var(--primary-1);
   color: var(--text);
@@ -49,6 +50,7 @@ img.emoji {
   border: 2px solid var(--red-2);
 }
 
+/* User Tags */
 .user-tag {
   background-color: var(--primary-1);
   color: var(--text);

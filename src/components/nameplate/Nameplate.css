@@ -1,0 +1,20 @@
+.nameplate-svg {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.nameplate-svg__svg {
+  display: block;
+  height: 1em;
+  width: auto;
+}
+
+.nameplate-svg__text {
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: inherit;
+  dominant-baseline: alphabetic;
+  text-rendering: geometricPrecision;
+}

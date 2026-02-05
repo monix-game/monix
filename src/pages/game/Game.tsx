@@ -16,6 +16,7 @@ import {
   Social,
   Modal,
   Message,
+  Nameplate,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -195,6 +196,10 @@ export default function Game() {
     return () => clearInterval(interval);
   }, [updateEverything, setVolume]);
 
+  const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
+    ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
+    : null;
+
   useEffect(() => {
     let mounted = true;
     let intervalId: number | undefined;
@@ -341,22 +346,22 @@ export default function Game() {
                 <img src={user.avatar_data_uri} alt="User Avatar" className="user-avatar" />
               )}
               {!user?.avatar_data_uri && <IconUser size={24} />}
-              <span
-                className={`username ${user?.role !== 'user' ? 'clickable' : ''}`}
-                role="button"
+              <Nameplate
+                text={user ? user.username : 'User'}
+                styleKey={equippedNameplateStyle}
+                className={`username ${user?.role !== 'user' ? 'clickable' : ''}`.trim()}
+                role={user?.role !== 'user' ? 'button' : undefined}
                 onClick={() => {
                   if (user?.role !== 'user') {
                     globalThis.location.href = '/staff';
                   }
                 }}
-                onKeyDown={e => {
+                onKeyDown={(e: React.KeyboardEvent<HTMLSpanElement>) => {
                   if (user?.role !== 'user' && (e.key === 'Enter' || e.key === ' ')) {
                     globalThis.location.href = '/staff';
                   }
                 }}
-              >
-                {user ? user.username : 'User'}
-              </span>
+              />
               {userRole !== null && userRole !== 'user' && (
                 <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
               )}
@@ -615,7 +620,11 @@ export default function Game() {
                       </span>
                       <div className="cosmetic-preview">
                         {cosmetic.type === 'nameplate' && (
-                          <span className={`nameplate-text ${cosmetic.id}`}>Monix User</span>
+                          <Nameplate
+                            text="Monix User"
+                            styleKey={cosmetic.nameplateStyle}
+                            className="nameplate-preview"
+                          />
                         )}
                         {cosmetic.type === 'messageplate' && (
                           <Message
@@ -679,7 +688,11 @@ export default function Game() {
                       </span>
                       <div className="cosmetic-preview">
                         {cosmetic!.type === 'nameplate' && (
-                          <span className={`nameplate-text ${cosmetic!.id}`}>Monix User</span>
+                          <Nameplate
+                            text="Monix User"
+                            styleKey={cosmetic!.nameplateStyle}
+                            className="nameplate-preview"
+                          />
                         )}
                         {cosmetic!.type === 'messageplate' && (
                           <Message

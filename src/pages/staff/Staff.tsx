@@ -2,7 +2,16 @@ import './Staff.css';
 import { useCallback, useEffect, useState } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
-import { Button, EmojiText, Input, Modal, PunishModal, Select, Spinner } from '../../components';
+import {
+  Button,
+  EmojiText,
+  Input,
+  Modal,
+  Nameplate,
+  PunishModal,
+  Select,
+  Spinner,
+} from '../../components';
 import { IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
@@ -20,6 +29,7 @@ import { getCategoryById, punishXCategories } from '../../../server/common/punis
 import { hasPowerOver, hasRole } from '../../../server/common/roles';
 import type { IAppeal } from '../../../server/common/models/appeal';
 import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
+import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 
 export default function Staff() {
   // App states
@@ -234,14 +244,19 @@ export default function Staff() {
               <img src={user.avatar_data_uri} alt="User Avatar" className="user-avatar" />
             )}
             {!user?.avatar_data_uri && <IconUser size={24} />}
-            <span
+            <Nameplate
+              text={user ? user.username : 'User'}
+              styleKey={
+                user
+                  ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)
+                      ?.nameplateStyle || null
+                  : null
+              }
               className="username clickable"
               onClick={() => {
                 globalThis.location.href = '/game';
               }}
-            >
-              {user ? user.username : 'User'}
-            </span>
+            />
             {userRole !== null && userRole !== 'user' && (
               <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
             )}
