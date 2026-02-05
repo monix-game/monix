@@ -8,6 +8,7 @@ import { dismissEphemeralMessage } from '../../helpers/social';
 import { IconUser } from '@tabler/icons-react';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { Nameplate } from '../nameplate/Nameplate';
+import * as messageplates from '../../assets/cosmetics/messageplates';
 
 interface MessageProps {
   user?: IUser;
@@ -227,9 +228,20 @@ export const Message: React.FC<MessageProps> = ({
     }
   };
 
-  const messageStyle: React.CSSProperties = message.messageplate
+  const messageplateConfig = message.messageplate
+    ? cosmetics.find(c => c.id === message.messageplate)
+    : null;
+  const messageplateStyle = messageplateConfig?.messageplateStyle as
+    | keyof typeof messageplates
+    | undefined;
+  const messageplateImage =
+    messageplateStyle && messageplateStyle in messageplates
+      ? messageplates[messageplateStyle]
+      : null;
+
+  const messageStyle: React.CSSProperties = messageplateImage
     ? ({
-        '--messageplate-image': `url(/src/assets/cosmetics/messageplates/${cosmetics.find(c => c.id === message.messageplate)?.messageplateStyle}.webp)`,
+        '--messageplate-image': `url(${messageplateImage})`,
       } as React.CSSProperties)
     : {};
 
