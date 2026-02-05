@@ -340,6 +340,10 @@ export default function Staff() {
               {reportsHydrated &&
                 reports
                   .filter(r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter)
+                  .sort(
+                    (a, b) =>
+                      new Date(b.time_reported).getTime() - new Date(a.time_reported).getTime()
+                  )
                   .map(r => (
                     <div key={r.uuid} className="review-card">
                       <div className="review-header">
@@ -445,6 +449,10 @@ export default function Staff() {
               {appealsHydrated &&
                 appeals
                   .filter(a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter)
+                  .sort(
+                    (a, b) =>
+                      new Date(b.time_submitted).getTime() - new Date(a.time_submitted).getTime()
+                  )
                   .map(a => (
                     <div key={a.uuid} className="review-card">
                       <div className="review-header">
