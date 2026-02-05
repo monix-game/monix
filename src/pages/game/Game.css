@@ -156,7 +156,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1 > * {
+.money-tab-content h1>* {
   vertical-align: middle;
 }
 
@@ -449,12 +449,20 @@ html[data-theme='dark'] .app-logo-light {
   border: 2px solid var(--primary-2);
 }
 
+.cosmetic-card .spacer {
+  flex-grow: 1;
+}
+
 .cosmetic-action {
   margin-top: 10px;
 }
 
 .nameplate-preview {
   font-weight: 600;
+}
+
+.cosmetic-preview .message-item {
+  width: 100%;
 }
 
 /* Mobile Responsiveness */

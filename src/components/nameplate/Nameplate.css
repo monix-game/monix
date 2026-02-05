@@ -18,3 +18,7 @@
   dominant-baseline: alphabetic;
   text-rendering: geometricPrecision;
 }
+
+.nameplate-svg__text--shine {
+  opacity: 0.8;
+}

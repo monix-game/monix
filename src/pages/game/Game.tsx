@@ -20,7 +20,7 @@ import {
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
-import { buyCosmetic, equipCosmetic, fetchUser } from '../../helpers/auth';
+import { buyCosmetic, equipCosmetic, fetchUser, unequipCosmetic } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
@@ -647,6 +647,7 @@ export default function Game() {
                           </span>
                         )}
                       </div>
+                      <div className="spacer"></div>
                       <Button
                         className="cosmetic-action"
                         disabled={
@@ -715,16 +716,20 @@ export default function Game() {
                           </span>
                         )}
                       </div>
+                      <div className="spacer"></div>
                       <Button
                         className="cosmetic-action"
-                        disabled={user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id}
                         onClickAsync={async () => {
-                          await equipCosmetic(cosmetic!.id);
+                          if (user?.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id) {
+                            await unequipCosmetic(cosmetic!.type);
+                          } else {
+                            await equipCosmetic(cosmetic!.id);
+                          }
                           await updateEverything();
                         }}
                       >
                         {user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id
-                          ? 'Equipped'
+                          ? 'Unequip'
                           : 'Equip'}
                       </Button>
                     </div>

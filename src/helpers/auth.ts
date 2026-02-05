@@ -253,6 +253,16 @@ export async function equipCosmetic(cosmeticId: string): Promise<boolean> {
   }
 }
 
+export async function unequipCosmetic(cosmeticType: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/cosmetics/unequip', { cosmetic_type: cosmeticType });
+    return resp.success;
+  } catch (err) {
+    console.error('Error unequipping cosmetic', err);
+    return false;
+  }
+}
+
 export async function buyCosmetic(cosmeticId: string): Promise<boolean> {
   try {
     const resp = await api.post('/user/cosmetics/buy', { cosmetic_id: cosmeticId });

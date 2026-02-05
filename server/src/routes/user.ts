@@ -373,4 +373,34 @@ router.post('/cosmetics/equip', requireAuth, async (req: Request, res: Response)
   return res.status(200).json({ message: 'Cosmetic equipped successfully' });
 });
 
+router.post('/cosmetics/unequip', requireAuth, async (req: Request, res: Response) => {
+  const { cosmetic_type } = (req.body as { cosmetic_type?: string }) || {};
+  if (!cosmetic_type) return res.status(400).json({ error: 'Missing cosmetic type' });
+
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  const user = await getUserByUUID(authUser.uuid);
+
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  user.equipped_cosmetics ??= {};
+
+  if (cosmetic_type === 'nameplate') {
+    user.equipped_cosmetics.nameplate = undefined;
+  } else if (cosmetic_type === 'messageplate') {
+    user.equipped_cosmetics.messageplate = undefined;
+  } else if (cosmetic_type === 'tag') {
+    user.equipped_cosmetics.tag = undefined;
+  } else if (cosmetic_type === 'frame') {
+    user.equipped_cosmetics.frame = undefined;
+  } else {
+    return res.status(400).json({ error: 'Invalid cosmetic type' });
+  }
+
+  await updateUser(user);
+
+  return res.status(200).json({ message: 'Cosmetic unequipped successfully' });
+});
+
 export default router;
