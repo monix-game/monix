@@ -44,6 +44,11 @@ img.emoji {
   border: 2px solid var(--red-2);
 }
 
+.user-badge.system {
+  background-color: var(--red-1);
+  border: 2px solid var(--red-2);
+}
+
 .user-tag {
   background-color: var(--primary-1);
   color: var(--text);

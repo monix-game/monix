@@ -253,7 +253,7 @@ export const Message: React.FC<MessageProps> = ({
             </span>
           )}
           {message.sender_badge && (
-            <span className={`message-badge ${message.sender_badge.toLowerCase()}`}>
+            <span className={`user-badge message-badge ${message.sender_badge.toLowerCase()}`}>
               {titleCase(message.sender_badge)}
             </span>
           )}
