@@ -74,9 +74,9 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const fetchMessages = useCallback(
     async (roomUUID?: string) => {
       const msgs = await getRoomMessages(roomUUID || room.uuid);
+      setHydrated(true);
       if (!areMessagesEqual(messages, msgs)) {
         setMessages(msgs);
-        setHydrated(true);
       }
     },
     [room.uuid, messages]
