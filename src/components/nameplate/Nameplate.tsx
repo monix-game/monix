@@ -184,15 +184,17 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
         >
           {text}
         </text>
-        <text
-          x={1}
-          y={height * 0.8}
-          className="nameplate-svg__text nameplate-svg__text--shine"
-          fill="white"
-          mask={`url(#${maskId})`}
-        >
-          {text}
-        </text>
+        {styleKey && (
+          <text
+            x={1}
+            y={height * 0.8}
+            className="nameplate-svg__text nameplate-svg__text--shine"
+            fill="white"
+            mask={`url(#${maskId})`}
+          >
+            {text}
+          </text>
+        )}
       </svg>
     </span>
   );
