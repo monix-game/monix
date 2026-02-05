@@ -18,6 +18,7 @@ import { SESSION_EXPIRES_IN, profanityFilter } from '../index';
 import { DEFAULT_SETTINGS } from '../../common/models/settings';
 import { createSecret, getTOTPURI, verifyTOTPToken } from '../helpers/totp';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
+import { processAvatar } from '../helpers/avatar';
 
 const router = Router();
 
@@ -235,10 +236,18 @@ router.post('/upload/avatar', requireActive, async (req: Request, res: Response)
     return res.status(400).json({ error: 'Invalid avatar URL' });
   }
 
-  authUser.avatar_data_uri = avatar_url;
-  await updateUser(authUser);
+  // Process the avatar: crop to square if needed and convert to data URI
+  try {
+    const processedAvatar = await processAvatar(avatar_url);
+    authUser.avatar_data_uri = processedAvatar;
+    await updateUser(authUser);
 
-  return res.status(200).json({ message: 'Avatar updated successfully' });
+    return res.status(200).json({ message: 'Avatar updated successfully' });
+  } catch (error) {
+    return res.status(400).json({
+      error: error instanceof Error ? error.message : 'Failed to process avatar',
+    });
+  }
 });
 
 router.post('/remove/avatar', requireAuth, async (req: Request, res: Response) => {
