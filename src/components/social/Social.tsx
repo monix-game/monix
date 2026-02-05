@@ -121,7 +121,6 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           user_tag: user.equipped_cosmetics?.tag,
           nameplate: user.equipped_cosmetics?.nameplate,
           frame: user.equipped_cosmetics?.frame,
-          messageplate: user.equipped_cosmetics?.messageplate,
           content: messageInput.trim(),
           time_sent: Date.now(),
           ephemeral: false,

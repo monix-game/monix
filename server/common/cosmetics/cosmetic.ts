@@ -1,9 +1,8 @@
 export interface Cosmetic {
   id: string;
   name: string;
-  type: 'nameplate' | 'messageplate' | 'tag' | 'frame';
+  type: 'nameplate' | 'tag' | 'frame';
   nameplateStyle?: string;
-  messageplateStyle?: string;
   frameStyle?: string;
   tagIcon?: string;
   tagName?: string;

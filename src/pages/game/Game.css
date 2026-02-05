@@ -466,10 +466,6 @@ html[data-theme='dark'] .app-logo-light {
   font-weight: 600;
 }
 
-.cosmetic-preview .message-item {
-  width: 100%;
-}
-
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {

@@ -11,7 +11,6 @@ export interface IMessage {
   content: string;
   time_sent?: number;
   nameplate?: string;
-  messageplate?: string;
   user_tag?: string;
   time_edited?: number;
   edited: boolean;
@@ -31,7 +30,6 @@ export function messageToDoc(m: IMessage): IMessage {
     content: m.content,
     time_sent: m.time_sent,
     nameplate: m.nameplate,
-    messageplate: m.messageplate,
     user_tag: m.user_tag,
     time_edited: m.time_edited,
     edited: m.edited,
@@ -53,7 +51,6 @@ export function messageFromDoc(doc: any): IMessage {
     content: doc.content || '',
     time_sent: doc.time_sent || undefined,
     nameplate: doc.nameplate || undefined,
-    messageplate: doc.messageplate || undefined,
     user_tag: doc.user_tag || undefined,
     time_edited: doc.time_edited || undefined,
     edited: doc.edited || false,

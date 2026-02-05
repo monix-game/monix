@@ -8,7 +8,6 @@ import { dismissEphemeralMessage } from '../../helpers/social';
 import { IconUser } from '@tabler/icons-react';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { Nameplate } from '../nameplate/Nameplate';
-import * as messageplates from '../../assets/cosmetics/messageplates';
 
 interface MessageProps {
   user?: IUser;
@@ -228,28 +227,10 @@ export const Message: React.FC<MessageProps> = ({
     }
   };
 
-  const messageplateConfig = message.messageplate
-    ? cosmetics.find(c => c.id === message.messageplate)
-    : null;
-  const messageplateStyle = messageplateConfig?.messageplateStyle as
-    | keyof typeof messageplates
-    | undefined;
-  const messageplateImage =
-    messageplateStyle && messageplateStyle in messageplates
-      ? messageplates[messageplateStyle]
-      : null;
-
-  const messageStyle: React.CSSProperties = messageplateImage
-    ? ({
-        '--messageplate-image': `url(${messageplateImage})`,
-      } as React.CSSProperties)
-    : {};
-
   return (
     <div
-      className={`message-item ${self ? 'self' : ''} ${message.ephemeral ? 'ephemeral' : ''} ${message.messageplate ? 'messageplate' : ''}`}
+      className={`message-item ${self ? 'self' : ''} ${message.ephemeral ? 'ephemeral' : ''}`}
       onContextMenu={onContextMenu}
-      style={messageStyle}
     >
       <div className="message-header">
         <span className="message-sender">

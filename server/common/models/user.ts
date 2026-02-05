@@ -22,7 +22,6 @@ export interface IUser {
   cosmetics_unlocked?: string[];
   equipped_cosmetics?: {
     nameplate?: string;
-    messageplate?: string;
     tag?: string;
     frame?: string;
   };

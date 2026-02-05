@@ -112,7 +112,6 @@ router.post('/send', requireActive, async (req, res) => {
     room_uuid,
     content: censoredContent,
     nameplate: user.equipped_cosmetics?.nameplate,
-    messageplate: user.equipped_cosmetics?.messageplate,
     user_tag: user.equipped_cosmetics?.tag,
     time_sent: Date.now(),
     edited: false,

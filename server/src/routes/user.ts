@@ -358,8 +358,6 @@ router.post('/cosmetics/equip', requireAuth, async (req: Request, res: Response)
 
   if (cosmetic.type === 'nameplate') {
     user.equipped_cosmetics.nameplate = cosmetic.id;
-  } else if (cosmetic.type === 'messageplate') {
-    user.equipped_cosmetics.messageplate = cosmetic.id;
   } else if (cosmetic.type === 'tag') {
     user.equipped_cosmetics.tag = cosmetic.id;
   } else if (cosmetic.type === 'frame') {
@@ -388,8 +386,6 @@ router.post('/cosmetics/unequip', requireAuth, async (req: Request, res: Respons
 
   if (cosmetic_type === 'nameplate') {
     user.equipped_cosmetics.nameplate = undefined;
-  } else if (cosmetic_type === 'messageplate') {
-    user.equipped_cosmetics.messageplate = undefined;
   } else if (cosmetic_type === 'tag') {
     user.equipped_cosmetics.tag = undefined;
   } else if (cosmetic_type === 'frame') {

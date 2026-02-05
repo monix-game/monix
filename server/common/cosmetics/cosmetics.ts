@@ -153,15 +153,4 @@ export const cosmetics: Cosmetic[] = [
     buyable: true,
     price: 540,
   },
-
-  // Messageplates
-  {
-    id: 'sakura-messageplate',
-    name: 'Sakura Messageplate',
-    type: 'messageplate',
-    messageplateStyle: 'sakura',
-    rarity: 'epic',
-    buyable: true,
-    price: 500,
-  },
 ];

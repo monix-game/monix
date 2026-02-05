@@ -15,7 +15,6 @@ import {
   GemCard,
   Social,
   Modal,
-  Message,
   Nameplate,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
@@ -626,19 +625,6 @@ export default function Game() {
                             className="nameplate-preview"
                           />
                         )}
-                        {cosmetic.type === 'messageplate' && (
-                          <Message
-                            message={{
-                              uuid: 'preview',
-                              sender_uuid: 'preview',
-                              sender_username: 'Monix User',
-                              messageplate: cosmetic.id,
-                              room_uuid: 'preview',
-                              edited: false,
-                              content: 'This is a messageplate preview!',
-                            }}
-                          />
-                        )}
                         {cosmetic.type === 'tag' && (
                           <span
                             className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
@@ -705,19 +691,6 @@ export default function Game() {
                             text="Monix User"
                             styleKey={cosmetic!.nameplateStyle}
                             className="nameplate-preview"
-                          />
-                        )}
-                        {cosmetic!.type === 'messageplate' && (
-                          <Message
-                            message={{
-                              uuid: 'preview',
-                              sender_uuid: 'preview',
-                              sender_username: 'Monix User',
-                              messageplate: cosmetic!.id,
-                              room_uuid: 'preview',
-                              edited: false,
-                              content: 'This is a messageplate preview!',
-                            }}
                           />
                         )}
                         {cosmetic!.type === 'tag' && (
