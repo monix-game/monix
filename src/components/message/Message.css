@@ -42,10 +42,6 @@
   gap: 5px;
 }
 
-.message-badge {
-  font-size: 0.7rem;
-}
-
 .message-content {
   white-space: pre-wrap;
 }
