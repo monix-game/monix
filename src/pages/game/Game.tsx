@@ -650,11 +650,7 @@ export default function Game() {
                         }}
                       >
                         {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
-                        {user?.gems !== -1 &&
-                          (user?.gems || 0) < (cosmetic.price || 0) &&
-                          'Insufficient Gems'}
                         {!user?.cosmetics_unlocked?.includes(cosmetic.id) &&
-                          (user?.gems === -1 || (user?.gems || 0) >= (cosmetic.price || 0)) &&
                           `Buy for ${smartFormatNumber(cosmetic.price || 0, false, true)} Gems`}
                       </Button>
                     </div>
