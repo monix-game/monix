@@ -15,6 +15,51 @@
   border: 2px dashed var(--primary-2);
 }
 
+.message-item.messageplate {
+  background-image: var(--messageplate-image);
+  background-size: cover;
+  background-position: right;
+  position: relative;
+  overflow: hidden;
+}
+
+.message-item.messageplate::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background-image: var(--messageplate-image);
+  background-size: cover;
+  background-position: right;
+  filter: blur(25px) brightness(0.8);
+  z-index: -1;
+}
+
+.message-item.messageplate::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to right,
+      var(--bg) 0%,
+      var(--bg) 25%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.3) 100%);
+  pointer-events: none;
+}
+
+.message-item.messageplate .message-header,
+.message-item.messageplate .message-content,
+.message-item.messageplate .message-metadata {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
 .message-header {
   display: flex;
   justify-content: space-between;

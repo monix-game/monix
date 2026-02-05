@@ -227,10 +227,17 @@ export const Message: React.FC<MessageProps> = ({
     }
   };
 
+  const messageStyle: React.CSSProperties = message.messageplate
+    ? ({
+        '--messageplate-image': `url(/src/assets/cosmetics/messageplates/${cosmetics.find(c => c.id === message.messageplate)?.messageplateStyle}.webp)`,
+      } as React.CSSProperties)
+    : {};
+
   return (
     <div
-      className={`message-item ${self ? 'self' : ''} ${message.ephemeral ? 'ephemeral' : ''}`}
+      className={`message-item ${self ? 'self' : ''} ${message.ephemeral ? 'ephemeral' : ''} ${message.messageplate ? 'messageplate' : ''}`}
       onContextMenu={onContextMenu}
+      style={messageStyle}
     >
       <div className="message-header">
         <span className="message-sender">
