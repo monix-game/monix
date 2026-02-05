@@ -17,7 +17,7 @@ import {
   reviewReport,
 } from '../../helpers/staff';
 import { getCategoryById, punishXCategories } from '../../../server/common/punishx/categories';
-import { hasRole } from '../../../server/common/roles';
+import { hasPowerOver, hasRole } from '../../../server/common/roles';
 import type { IAppeal } from '../../../server/common/models/appeal';
 import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
 
@@ -551,8 +551,9 @@ export default function Staff() {
                             setSelectedUser(u);
                             setPunishModalOpen(true);
                           }}
+                          disabled={!hasPowerOver(user?.role || 'helper', u.role)}
                         >
-                          Punish
+                          {hasPowerOver(user?.role || 'helper', u.role) ? 'Punish' : "Can't Punish"}
                         </Button>
                       </div>
                     </div>
