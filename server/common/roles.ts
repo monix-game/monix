@@ -14,6 +14,8 @@ export function hasPowerOver(
   userRole: 'owner' | 'admin' | 'mod' | 'helper' | 'user',
   targetRole: 'owner' | 'admin' | 'mod' | 'helper' | 'user'
 ): boolean {
+  if (userRole === 'owner') return true;
+
   const userRoleIndex = ROLE_HIERARCHY.indexOf(userRole);
   const targetRoleIndex = ROLE_HIERARCHY.indexOf(targetRole);
 
