@@ -433,6 +433,11 @@ html[data-theme='dark'] .app-logo-light {
   gap: 5px;
 }
 
+.cosmetic-card.equipped {
+  background-color: var(--bg);
+  border: 2px solid var(--primary-3);
+}
+
 .cosmetic-card h2 {
   font-size: 1.4rem;
   user-select: none;

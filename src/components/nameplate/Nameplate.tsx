@@ -6,17 +6,91 @@ type GradientStop = {
   color: string;
 };
 
-const NAMEPLATE_GRADIENTS: Record<string, GradientStop[]> = {
-  gold: [
-    { offset: '27%', color: '#cfc09f' },
-    { offset: '40%', color: '#ffecb3' },
-    { offset: '78%', color: '#8d671b' },
-  ],
-  sakura: [
-    { offset: '0%', color: '#f8b4c9' },
-    { offset: '50%', color: '#fce1e7' },
-    { offset: '100%', color: '#f8b4c9' },
-  ],
+const NAMEPLATE_GRADIENTS: Record<string, { light: GradientStop[]; dark: GradientStop[] }> = {
+  gold: {
+    light: [
+      { offset: '27%', color: '#8d671b' },
+      { offset: '40%', color: '#c4a747' },
+      { offset: '78%', color: '#4a3d0f' },
+    ],
+    dark: [
+      { offset: '27%', color: '#cfc09f' },
+      { offset: '40%', color: '#ffecb3' },
+      { offset: '78%', color: '#8d671b' },
+    ],
+  },
+  sakura: {
+    light: [
+      { offset: '0%', color: '#c4567b' },
+      { offset: '50%', color: '#e8a8c9' },
+      { offset: '100%', color: '#9d3456' },
+    ],
+    dark: [
+      { offset: '0%', color: '#f8b4c9' },
+      { offset: '50%', color: '#fce1e7' },
+      { offset: '100%', color: '#f8b4c9' },
+    ],
+  },
+  ember: {
+    light: [
+      { offset: '0%', color: '#b85225' },
+      { offset: '45%', color: '#d97e50' },
+      { offset: '100%', color: '#6b2f0f' },
+    ],
+    dark: [
+      { offset: '0%', color: '#f29f58' },
+      { offset: '45%', color: '#fbe0c3' },
+      { offset: '100%', color: '#b63d1a' },
+    ],
+  },
+  glacier: {
+    light: [
+      { offset: '0%', color: '#2d7fa3' },
+      { offset: '50%', color: '#5ca8c9' },
+      { offset: '100%', color: '#1a4d73' },
+    ],
+    dark: [
+      { offset: '0%', color: '#8ee3ff' },
+      { offset: '50%', color: '#e8f8ff' },
+      { offset: '100%', color: '#4aa3c6' },
+    ],
+  },
+  verdant: {
+    light: [
+      { offset: '0%', color: '#3d8e51' },
+      { offset: '50%', color: '#69b385' },
+      { offset: '100%', color: '#1f5a32' },
+    ],
+    dark: [
+      { offset: '0%', color: '#7bd389' },
+      { offset: '50%', color: '#e3f9e5' },
+      { offset: '100%', color: '#2f8f4e' },
+    ],
+  },
+  nebula: {
+    light: [
+      { offset: '0%', color: '#6b4a99' },
+      { offset: '50%', color: '#9b7bc9' },
+      { offset: '100%', color: '#3d2957' },
+    ],
+    dark: [
+      { offset: '0%', color: '#a66bff' },
+      { offset: '50%', color: '#f2ddff' },
+      { offset: '100%', color: '#4b4fff' },
+    ],
+  },
+  citrine: {
+    light: [
+      { offset: '0%', color: '#b8941f' },
+      { offset: '45%', color: '#dab94d' },
+      { offset: '100%', color: '#7a6415' },
+    ],
+    dark: [
+      { offset: '0%', color: '#f5c26b' },
+      { offset: '45%', color: '#fff1cc' },
+      { offset: '100%', color: '#d38b2f' },
+    ],
+  },
 };
 
 interface NameplateProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -29,14 +103,24 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
   const textRef = useRef<SVGTextElement>(null);
   const [textWidth, setTextWidth] = useState(0);
   const [fontSize, setFontSize] = useState(16);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const gradientId = useId();
   const shineId = useId();
   const maskId = useId();
 
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const theme = root.dataset.theme as 'light' | 'dark' | undefined;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDarkMode(theme !== 'light');
+  }, []);
+
   const gradientStops = useMemo(() => {
     if (!styleKey) return null;
-    return NAMEPLATE_GRADIENTS[styleKey] || NAMEPLATE_GRADIENTS.gold;
-  }, [styleKey]);
+    const gradients = NAMEPLATE_GRADIENTS[styleKey];
+    if (!gradients) return NAMEPLATE_GRADIENTS.gold[isDarkMode ? 'dark' : 'light'];
+    return gradients[isDarkMode ? 'dark' : 'light'];
+  }, [styleKey, isDarkMode]);
 
   useLayoutEffect(() => {
     if (!wrapperRef.current || !textRef.current || !gradientStops) return;

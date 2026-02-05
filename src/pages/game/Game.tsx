@@ -616,7 +616,7 @@ export default function Game() {
                       <h2 className="cosmetic-name">{cosmetic.name}</h2>
                       <span className="cosmetic-rarity">
                         <EmojiText>{getRarityEmoji(cosmetic.rarity)}</EmojiText>{' '}
-                        {titleCase(cosmetic.rarity)} Rarity
+                        {titleCase(cosmetic.rarity)}
                       </span>
                       <div className="cosmetic-preview">
                         {cosmetic.type === 'nameplate' && (
@@ -680,12 +680,24 @@ export default function Game() {
                 )}
                 {user
                   ?.cosmetics_unlocked!.map(cosmetic => cosmetics.find(c => c.id === cosmetic))
+                  .sort((a, b) => {
+                    const equippedA = user.equipped_cosmetics?.[a!.type] === a!.id;
+                    const equippedB = user.equipped_cosmetics?.[b!.type] === b!.id;
+
+                    if (equippedA && !equippedB) return -1;
+                    if (!equippedA && equippedB) return 1;
+
+                    return 0;
+                  })
                   .map(cosmetic => (
-                    <div key={cosmetic!.id} className="cosmetic-card">
+                    <div
+                      key={cosmetic!.id}
+                      className={`cosmetic-card ${user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id ? 'equipped' : ''}`}
+                    >
                       <h2 className="cosmetic-name">{cosmetic!.name}</h2>
                       <span className="cosmetic-rarity">
                         <EmojiText>{getRarityEmoji(cosmetic!.rarity)}</EmojiText>{' '}
-                        {titleCase(cosmetic!.rarity)} Rarity
+                        {titleCase(cosmetic!.rarity)}
                       </span>
                       <div className="cosmetic-preview">
                         {cosmetic!.type === 'nameplate' && (
