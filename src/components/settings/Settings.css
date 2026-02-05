@@ -56,3 +56,8 @@
 .settings-clickable:hover {
   text-decoration: underline;
 }
+
+.settings-modal-error {
+  text-align: center;
+  font-size: 0.9rem;
+}

@@ -344,6 +344,11 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
               }
             }}
           />
+          {avatarFile?.type.split('/')[0] !== 'image' && (
+            <p className="settings-modal-error">
+              Selected file is not an image. Please select a valid image file.
+            </p>
+          )}
           <Button
             onClickAsync={async () => {
               if (avatarFile) {
@@ -356,6 +361,9 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
                 alert('Please select a file to upload.');
               }
             }}
+            disabled={
+              !avatarFile || avatarFile.size === 0 || avatarFile.type.split('/')[0] !== 'image'
+            }
             secondary
           >
             Upload Avatar
