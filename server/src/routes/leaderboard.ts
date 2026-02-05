@@ -24,8 +24,7 @@ router.get('/', requireActive, async (req, res) => {
           return (
             !isUserBanned(u) &&
             (u.money || 0) > 0 &&
-            u.last_seen &&
-            (u.last_seen === 0 || Date.now() - u.last_seen < SIX_MONTHS) &&
+            (!u.last_seen || Date.now() - u.last_seen < SIX_MONTHS) &&
             (!hideStaff || (u.role !== 'owner' && u.role !== 'admin' && u.role !== 'mod'))
           );
         })
