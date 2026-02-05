@@ -19,6 +19,7 @@ import { Button } from '../button/Button';
 import { punishXCategories } from '../../../server/common/punishx/categories';
 import { Message } from '../message/Message';
 import { hasRole } from '../../../server/common/roles';
+import { Spinner } from '../spinner/Spinner';
 
 interface SocialProps {
   user: IUser;
@@ -56,6 +57,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const [editedMessage, setEditedMessage] = React.useState<IMessage | null>(null);
   const [editContent, setEditContent] = React.useState<string>('');
 
+  const [hydrated, setHydrated] = React.useState<boolean>(false);
+
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +74,10 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const fetchMessages = useCallback(
     async (roomUUID?: string) => {
       const msgs = await getRoomMessages(roomUUID || room.uuid);
-      if (!areMessagesEqual(messages, msgs)) setMessages(msgs);
+      if (!areMessagesEqual(messages, msgs)) {
+        setMessages(msgs);
+        setHydrated(true);
+      }
     },
     [room.uuid, messages]
   );
@@ -257,10 +263,16 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           <EmojiText>{room.name}</EmojiText>
         </h2>
         <div className="message-container" ref={messageContainerRef}>
-          {messages.length === 0 && (
+          {!hydrated && (
+            <div className="loading-messages">
+              <Spinner size={48} />
+            </div>
+          )}
+          {hydrated && messages.length === 0 && (
             <div className="no-messages">No messages yet. Start the conversation!</div>
           )}
-          {messages.length > 0 &&
+          {hydrated &&
+            messages.length > 0 &&
             messages.map(msg => (
               <Message
                 key={msg.uuid}

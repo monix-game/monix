@@ -97,6 +97,14 @@
   margin-top: 20px;
 }
 
+.loading-messages {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
 .context-menu {
   z-index: 9999;
   background: var(--bg);
@@ -120,7 +128,7 @@
   margin-right: 8px;
 }
 
-.context-menu-item > * {
+.context-menu-item>* {
   vertical-align: middle;
 }
 
