@@ -355,7 +355,6 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
                 const success = await uploadAvatar(avatarFile);
                 if (success) {
                   setIsAvatarModalOpen(false);
-                  globalThis.location.reload();
                 }
               } else {
                 alert('Please select a file to upload.');
@@ -377,10 +376,7 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
           <Button onClick={() => setIsDeleteAvatarModalOpen(false)}>Cancel</Button>
           <Button
             onClickAsync={async () => {
-              const success = await removeAvatar();
-              if (success) {
-                setIsDeleteAvatarModalOpen(false);
-              }
+              await removeAvatar();
             }}
             secondary
           >
