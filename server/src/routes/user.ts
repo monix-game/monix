@@ -58,6 +58,7 @@ router.post('/register', async (req: Request, res: Response) => {
     gems: 0,
     role: 'user',
     time_created: Date.now() / 1000,
+    last_seen: Date.now() / 1000,
     settings: DEFAULT_SETTINGS,
     resources: {},
   };
