@@ -57,13 +57,12 @@ router.get('/', requireActive, async (req, res) => {
     );
 
     // Make it go 2nd, 1st, 3rd for the first three ranks
-    return leaderboard.sort((a, b) => {
-      if (a.rank === 1) return -1;
-      if (b.rank === 1) return 1;
-      if (a.rank === 2) return 1;
-      if (b.rank === 2) return -1;
-      return a.rank - b.rank;
-    });
+    return [
+      leaderboard[1] || null, // 2nd place
+      leaderboard[0] || null, // 1st place
+      leaderboard[2] || null, // 3rd place
+      ...(leaderboard.slice(3) || []), // The rest of the leaderboard
+    ];
   }
 
   return res
