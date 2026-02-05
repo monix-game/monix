@@ -12,13 +12,10 @@ router.get('/', requireActive, async (req, res) => {
   // Sort users by money in descending order
   allUsers.sort((a, b) => (b.money || 0) - (a.money || 0));
 
-  // Get the top 10 users
-  const topUsers = allUsers.slice(0, 10);
-
   // Prepare the leaderboard data
   async function getLeaderboard(hideStaff: boolean = false) {
     const leaderboard = await Promise.all(
-      topUsers
+      allUsers
         .filter(u => {
           const SIX_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000; // Approximate six months in milliseconds
 
@@ -56,12 +53,15 @@ router.get('/', requireActive, async (req, res) => {
         })
     );
 
+    // Limit to top 15
+    const limitedLeaderboard = leaderboard.slice(0, 15);
+
     // Make it go 2nd, 1st, 3rd for the first three ranks
     return [
-      leaderboard[1] || null, // 2nd place
-      leaderboard[0] || null, // 1st place
-      leaderboard[2] || null, // 3rd place
-      ...(leaderboard.slice(3) || []), // The rest of the leaderboard
+      limitedLeaderboard[1] || null, // 2nd place
+      limitedLeaderboard[0] || null, // 1st place
+      limitedLeaderboard[2] || null, // 3rd place
+      ...(limitedLeaderboard.slice(3) || []), // The rest of the leaderboard
     ];
   }
 
