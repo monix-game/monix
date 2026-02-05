@@ -5,37 +5,27 @@ import { Spinner } from '../spinner/Spinner';
 import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../helpers/utils';
 import { IconUser } from '@tabler/icons-react';
 import { Checkbox } from '../checkbox/Checkbox';
-import { hasRole } from '../../../server/common/roles';
+import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
+import { EmojiText } from '../EmojiText';
 
 export const Leaderboard: React.FC = () => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
-  const [podiumData, setPodiumData] = React.useState<LeaderboardEntry[]>([]);
-  const [listData, setListData] = React.useState<LeaderboardEntry[]>([]);
+
+  const [rawData, setRawData] = React.useState<{
+    normal: LeaderboardEntry[];
+    noStaff: LeaderboardEntry[];
+  }>({ normal: [], noStaff: [] });
   const [hideStaff, setHideStaff] = React.useState<boolean>(false);
+
+  const currentData = hideStaff ? rawData.noStaff : rawData.normal;
+  const podiumData = currentData.slice(0, 3);
+  const listData = currentData.slice(3);
 
   useEffect(() => {
     async function loadLeaderboard() {
       const data = await fetchLeaderboard();
       if (data) {
-        let filteredData = data;
-        if (hideStaff) {
-          filteredData = data.filter(entry => {
-            return !hasRole(entry.role, 'mod');
-          });
-
-          // Re-rank the filtered data
-          filteredData = filteredData.map((entry, index) => ({
-            ...entry,
-            rank: index + 1,
-          }));
-        }
-
-        const podium = filteredData.slice(0, 3);
-        // Make the podium order be 2nd, 1st, 3rd
-        setPodiumData([podium[1], podium[0], podium[2]].filter(entry => entry !== undefined));
-
-        setListData(filteredData.slice(3, 10));
-
+        setRawData(data);
         setHydrated(true);
       }
     }
@@ -71,6 +61,14 @@ export const Leaderboard: React.FC = () => {
                 {!entry.avatar && <IconUser size={64} className="podium-avatar-placeholder" />}
                 <span className="podium-user">
                   {entry.username}
+                  {entry.cosmetics.user_tag && (
+                    <span className="user-tag">
+                      <EmojiText>
+                        {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagIcon}
+                      </EmojiText>{' '}
+                      {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagName}
+                    </span>
+                  )}
                   {entry.role !== 'user' && (
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}

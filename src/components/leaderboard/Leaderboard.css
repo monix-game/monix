@@ -70,7 +70,8 @@
   align-items: center;
 }
 
-.podium-user .user-badge {
+.podium-user .user-badge,
+.user-tag {
   margin-left: 8px;
 }
 

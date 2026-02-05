@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { deleteSessionByToken, getSessionByToken, getUserByUUID } from './db';
+import { deleteSessionByToken, getSessionByToken, getUserByUUID, updateUser } from './db';
 import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
 
@@ -38,6 +38,10 @@ async function authenticateRequest(req: Request, res: Response) {
   req.authUser = user;
   // @ts-expect-error We are adding a custom property to the Request object
   req.authSession = session;
+
+  // Update last_seen timestamp
+  user.last_seen = Date.now();
+  await updateUser(user);
 
   return user;
 }

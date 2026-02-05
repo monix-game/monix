@@ -11,6 +11,7 @@ export interface IUser {
   password_hash: string;
   role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
   time_created: number;
+  last_seen: number;
   settings: ISettings;
   money: number;
   gems: number;
@@ -46,6 +47,7 @@ export function userToDoc(u: IUser): IUser {
     password_hash: u.password_hash,
     role: u.role,
     time_created: u.time_created,
+    last_seen: u.last_seen,
     settings: u.settings,
     money: u.money,
     gems: u.gems,
@@ -68,6 +70,7 @@ export function userFromDoc(doc: any): IUser {
     password_hash: doc.password_hash || '',
     role: doc.role || 'user',
     time_created: doc.time_created || 0,
+    last_seen: doc.last_seen || 0,
     settings: doc.settings || DEFAULT_SETTINGS,
     money: doc.money || 0,
     gems: doc.gems || 0,

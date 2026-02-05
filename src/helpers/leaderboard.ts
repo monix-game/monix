@@ -6,13 +6,26 @@ export interface LeaderboardEntry {
   money: number;
   avatar?: string;
   role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
+  cosmetics: {
+    nameplate?: string;
+    user_tag?: string;
+    frame?: string;
+  };
 }
 
-export async function fetchLeaderboard(): Promise<LeaderboardEntry[] | null> {
+export async function fetchLeaderboard(): Promise<{
+  normal: LeaderboardEntry[];
+  noStaff: LeaderboardEntry[];
+} | null> {
   try {
-    const resp = await api.get<{ leaderboard: LeaderboardEntry[] }>('/leaderboard');
+    const resp = await api.get<{ normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] }>(
+      '/leaderboard'
+    );
     if (resp?.success) {
-      return resp.data?.leaderboard || null;
+      return {
+        normal: resp.data?.normal || [],
+        noStaff: resp.data?.noStaff || [],
+      };
     } else {
       return null;
     }
