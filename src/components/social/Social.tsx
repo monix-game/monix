@@ -311,8 +311,9 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 <IconClipboard />
                 <span>Copy text</span>
               </div>
-              {!contextMenu.message.ephemeral && contextMenu.message.sender_uuid !== 'nyx' && (
-                <>
+
+              {contextMenu.message.sender_uuid !== user.uuid &&
+                contextMenu.message.sender_uuid !== 'nyx' && (
                   <div
                     className="context-menu-item"
                     onClick={() => {
@@ -331,56 +332,71 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                     <IconArrowBack />
                     <span>Reply</span>
                   </div>
-                  {contextMenu.message.sender_uuid !== user.uuid && (
-                    <div
-                      className="context-menu-item"
-                      onClick={() => {
+                )}
+              {contextMenu.message.sender_uuid !== user.uuid &&
+                contextMenu.message.sender_uuid !== 'nyx' &&
+                !hasRole(
+                  contextMenu.message.sender_badge as 'owner' | 'admin' | 'mod' | 'helper' | 'user',
+                  'admin'
+                ) && (
+                  <div
+                    className="context-menu-item"
+                    onClick={() => {
+                      setReportedMessage(contextMenu.message!);
+                      setIsReportModalOpen(true);
+                      hideContextMenu();
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
                         setReportedMessage(contextMenu.message!);
                         setIsReportModalOpen(true);
                         hideContextMenu();
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          setReportedMessage(contextMenu.message!);
-                          setIsReportModalOpen(true);
-                          hideContextMenu();
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <IconFlag />
-                      <span>Report</span>
-                    </div>
-                  )}
-                  {(hasRole(user.role, 'helper') ||
-                    user.uuid === contextMenu.message.sender_uuid) && (
-                    <div
-                      className="context-menu-item"
-                      onClick={() => {
-                        setEditedMessage(contextMenu.message!);
-                        setEditContent(contextMenu.message!.content);
-                        setIsEditModalOpen(true);
-                        hideContextMenu();
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          setEditedMessage(contextMenu.message!);
-                          setEditContent(contextMenu.message!.content);
-                          setIsEditModalOpen(true);
-                          hideContextMenu();
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <IconPencil />
-                      <span>Edit</span>
-                    </div>
-                  )}
-                </>
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <IconFlag />
+                    <span>Report</span>
+                  </div>
+                )}
+              {(contextMenu.message.sender_uuid === user.uuid ||
+                (hasRole(user.role, 'helper') &&
+                  (!contextMenu.message.sent_restricted ||
+                    hasRole(
+                      user.role,
+                      contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
+                    )))) && (
+                <div
+                  className="context-menu-item"
+                  onClick={() => {
+                    setEditedMessage(contextMenu.message!);
+                    setEditContent(contextMenu.message!.content);
+                    setIsEditModalOpen(true);
+                    hideContextMenu();
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      setEditedMessage(contextMenu.message!);
+                      setEditContent(contextMenu.message!.content);
+                      setIsEditModalOpen(true);
+                      hideContextMenu();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <IconPencil />
+                  <span>Edit</span>
+                </div>
               )}
-              {(hasRole(user.role, 'helper') || user.uuid === contextMenu.message.sender_uuid) && (
+              {(contextMenu.message.sender_uuid === user.uuid ||
+                (hasRole(user.role, 'helper') &&
+                  (!contextMenu.message.sent_restricted ||
+                    hasRole(
+                      user.role,
+                      contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
+                    )))) && (
                 <div
                   className="context-menu-item"
                   onClick={() => {

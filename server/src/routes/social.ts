@@ -111,6 +111,8 @@ router.post('/send', requireActive, async (req, res) => {
     sender_avatar_url: user.avatar_data_uri,
     room_uuid,
     content: censoredContent,
+    sent_restricted: room.restrict_send || false,
+    restricted_role: room.sender_required_role,
     nameplate: user.equipped_cosmetics?.nameplate,
     user_tag: user.equipped_cosmetics?.tag,
     time_sent: Date.now(),
@@ -175,6 +177,14 @@ router.post('/edit/:message_uuid', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to edit messages in this room' });
   }
 
+  if (
+    room.restrict_send &&
+    room.sender_required_role &&
+    !hasRole(user.role, room.sender_required_role)
+  ) {
+    return res.status(403).json({ error: 'You are not allowed to edit messages in this room' });
+  }
+
   // Make sure the content is not empty after trimming
   if (content.trim() === '') {
     return res.status(400).json({ error: 'Message content cannot be empty' });
@@ -231,8 +241,16 @@ router.post('/delete/:message_uuid', requireActive, async (req, res) => {
     return res.status(404).json({ error: 'Room not found' });
   }
 
-  // Check if user is allowed to edit message in the room
+  // Check if user is allowed to delete message in the room
   if (room.type === 'private' && !hasRole(user.role, 'admin')) {
+    return res.status(403).json({ error: 'You are not allowed to delete messages in this room' });
+  }
+
+  if (
+    room.restrict_send &&
+    room.sender_required_role &&
+    !hasRole(user.role, room.sender_required_role)
+  ) {
     return res.status(403).json({ error: 'You are not allowed to delete messages in this room' });
   }
 
