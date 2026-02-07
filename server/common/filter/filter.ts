@@ -110,9 +110,7 @@ export default class ProfanityFilter {
       // Only check substrings for longer profane words (6+ chars) to avoid false positives
       for (const profaneWord of this.profaneWords) {
         if (profaneWord.length >= 6) {
-          // Only match if it's a complete word or at word boundaries
-          const regex = new RegExp(String.raw`\b${profaneWord}\b`, 'i');
-          if (regex.test(variant)) return true;
+          if (variant.includes(profaneWord)) return true;
         }
       }
     }
@@ -134,9 +132,8 @@ export default class ProfanityFilter {
       }
 
       for (const profaneWord of this.profaneWords) {
-        if (profaneWord.length >= 6) {
-          const regex = new RegExp(String.raw`\b${profaneWord}\b`, 'i');
-          if (regex.test(variant)) resultsSet.add(`${text}||${profaneWord}`);
+        if (profaneWord.length >= 6 && variant.includes(profaneWord)) {
+          resultsSet.add(`${text}||${profaneWord}`);
         }
       }
     }
@@ -170,15 +167,17 @@ export default class ProfanityFilter {
       // Only check substring matches for longer profane words (6+ chars)
       for (const profaneWord of this.profaneWords) {
         if (profaneWord.length >= 6) {
-          const regex = new RegExp(String.raw`\b${profaneWord}\b`, 'gi');
-          let match: RegExpExecArray | null;
-          while ((match = regex.exec(variant))) {
+          let startIndex = 0;
+          while (startIndex <= variant.length - profaneWord.length) {
+            const matchIndex = variant.indexOf(profaneWord, startIndex);
+            if (matchIndex === -1) break;
             const overlap = profaneRanges.some(
-              ([s, e]) => match!.index < e && match!.index + profaneWord.length > s
+              ([s, e]) => matchIndex < e && matchIndex + profaneWord.length > s
             );
             if (!overlap) {
-              profaneRanges.push([match.index, match.index + profaneWord.length, profaneWord]);
+              profaneRanges.push([matchIndex, matchIndex + profaneWord.length, profaneWord]);
             }
+            startIndex = matchIndex + 1;
           }
         }
       }

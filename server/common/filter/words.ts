@@ -210,11 +210,17 @@ muff
 muffdive
 Munt
 munter
+nigga
+niggas
+niggahole
 nigger
 niggerhole
 niggers
+nlgga
 nlgger
 nlggor
+n1gga
+n1gger
 orgasim
 orgasm
 orgies
