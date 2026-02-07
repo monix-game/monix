@@ -7,6 +7,7 @@ import { IconUser } from '@tabler/icons-react';
 import { Checkbox } from '../checkbox/Checkbox';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { EmojiText } from '../EmojiText';
+import { Nameplate } from '../nameplate/Nameplate';
 
 export const Leaderboard: React.FC = () => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
@@ -60,9 +61,18 @@ export const Leaderboard: React.FC = () => {
                 )}
                 {!entry.avatar && <IconUser size={64} className="podium-avatar-placeholder" />}
                 <span className="podium-user">
-                  {entry.username}
+                  <Nameplate
+                    text={entry.username}
+                    styleKey={
+                      entry.cosmetics.nameplate
+                        ? cosmetics.find(c => c.id === entry.cosmetics.nameplate)?.nameplateStyle
+                        : undefined
+                    }
+                  />
                   {entry.cosmetics.user_tag && (
-                    <span className="user-tag">
+                    <span
+                      className={`user-tag tag-colour-${cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagColour}`}
+                    >
                       <EmojiText>
                         {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagIcon}
                       </EmojiText>{' '}
@@ -85,7 +95,14 @@ export const Leaderboard: React.FC = () => {
                     {entry.rank}
                     {getOrdinalSuffix(entry.rank)}:
                   </b>{' '}
-                  {entry.username}
+                  <Nameplate
+                    text={entry.username}
+                    styleKey={
+                      entry.cosmetics.nameplate
+                        ? cosmetics.find(c => c.id === entry.cosmetics.nameplate)?.nameplateStyle
+                        : undefined
+                    }
+                  />
                   {entry.role !== 'user' && (
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}

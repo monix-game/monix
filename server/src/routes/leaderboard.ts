@@ -57,12 +57,14 @@ router.get('/', requireActive, async (req, res) => {
     const limitedLeaderboard = leaderboard.slice(0, 15);
 
     // Make it go 2nd, 1st, 3rd for the first three ranks
-    return [
+    const reorderedLeaderboard = [
       limitedLeaderboard[1] || null, // 2nd place
       limitedLeaderboard[0] || null, // 1st place
       limitedLeaderboard[2] || null, // 3rd place
       ...(limitedLeaderboard.slice(3) || []), // The rest of the leaderboard
     ];
+
+    return reorderedLeaderboard.filter(entry => entry !== null);
   }
 
   return res
