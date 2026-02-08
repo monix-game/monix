@@ -5,7 +5,7 @@ import { EmojiText } from '../EmojiText';
 import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';
 import { dismissEphemeralMessage } from '../../helpers/social';
-import { IconUser } from '@tabler/icons-react';
+import { Avatar } from '../avatar/Avatar';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { Nameplate } from '../nameplate/Nameplate';
 
@@ -234,14 +234,15 @@ export const Message: React.FC<MessageProps> = ({
     >
       <div className="message-header">
         <span className="message-sender">
-          {message.sender_avatar_url && (
-            <img src={message.sender_avatar_url} alt="" className="message-avatar" />
-          )}
-          {!message.sender_avatar_url && (
-            <div className="message-avatar placeholder">
-              <IconUser />
-            </div>
-          )}
+          <Avatar
+            src={message.sender_avatar_url || undefined}
+            alt=""
+            className="message-avatar"
+            size={30}
+            styleKey={
+              message.frame ? cosmetics.find(c => c.id === message.frame)?.frameStyle : undefined
+            }
+          />
           <span className="message-username">
             <Nameplate
               text={message.sender_username}

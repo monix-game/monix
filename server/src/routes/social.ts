@@ -115,6 +115,7 @@ router.post('/send', requireActive, async (req, res) => {
     restricted_role: room.sender_required_role,
     nameplate: user.equipped_cosmetics?.nameplate,
     user_tag: user.equipped_cosmetics?.tag,
+    frame: user.equipped_cosmetics?.frame,
     time_sent: Date.now(),
     edited: false,
     shouted: false,

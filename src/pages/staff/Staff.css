@@ -140,13 +140,14 @@
 .user-card-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   margin-bottom: 10px;
 }
 
 .username {
   font-size: 1rem;
   font-weight: bold;
+  margin-right: -10px;
 }
 
 .user-card-buttons {

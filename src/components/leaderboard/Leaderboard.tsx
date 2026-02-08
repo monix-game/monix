@@ -3,7 +3,7 @@ import './Leaderboard.css';
 import { fetchLeaderboard, type LeaderboardEntry } from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
 import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../helpers/utils';
-import { IconUser } from '@tabler/icons-react';
+import { Avatar } from '../avatar/Avatar';
 import { Checkbox } from '../checkbox/Checkbox';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { EmojiText } from '../EmojiText';
@@ -56,10 +56,17 @@ export const Leaderboard: React.FC = () => {
                   {entry.rank}
                   {getOrdinalSuffix(entry.rank)}
                 </span>
-                {entry.avatar && (
-                  <img src={entry.avatar} alt="User Avatar" className="podium-avatar" />
-                )}
-                {!entry.avatar && <IconUser size={64} className="podium-avatar-placeholder" />}
+                <Avatar
+                  src={entry.avatar || undefined}
+                  alt="User Avatar"
+                  className="podium-avatar"
+                  size={50}
+                  styleKey={
+                    entry.cosmetics.frame
+                      ? cosmetics.find(c => c.id === entry.cosmetics.frame)?.frameStyle
+                      : undefined
+                  }
+                />
                 <span className="podium-user">
                   <Nameplate
                     text={entry.username}
@@ -103,6 +110,16 @@ export const Leaderboard: React.FC = () => {
                         : undefined
                     }
                   />
+                  {entry.cosmetics.user_tag && (
+                    <span
+                      className={`user-tag tag-colour-${cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagColour}`}
+                    >
+                      <EmojiText>
+                        {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagIcon}
+                      </EmojiText>{' '}
+                      {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagName}
+                    </span>
+                  )}
                   {entry.role !== 'user' && (
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}

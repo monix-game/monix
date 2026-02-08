@@ -16,8 +16,10 @@ import {
   Social,
   Modal,
   Nameplate,
+  Avatar,
+  Checkbox,
 } from '../../components';
-import { IconMusic, IconPlayerPause, IconPlayerPlay, IconUser } from '@tabler/icons-react';
+import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import { buyCosmetic, equipCosmetic, fetchUser, unequipCosmetic } from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
@@ -104,6 +106,9 @@ export default function Game() {
   // Appeal states
   const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
   const [appealModalContent, setAppealModalContent] = useState<string>('');
+
+  // Shop states
+  const [hideBoughtCosmetics, setHideBoughtCosmetics] = useState<boolean>(true);
 
   // Radio
   const {
@@ -341,10 +346,16 @@ export default function Game() {
           <div className="spacer" />
           <div className="user-info">
             <div className="username-info">
-              {user?.avatar_data_uri && (
-                <img src={user.avatar_data_uri} alt="User Avatar" className="user-avatar" />
-              )}
-              {!user?.avatar_data_uri && <IconUser size={24} />}
+              <Avatar
+                src={user?.avatar_data_uri}
+                size={24}
+                styleKey={
+                  user?.equipped_cosmetics?.frame
+                    ? cosmetics.find(c => c.id === user.equipped_cosmetics?.frame)?.frameStyle
+                    : undefined
+                }
+                className="user-avatar"
+              />
               <Nameplate
                 text={user ? user.username : 'User'}
                 styleKey={equippedNameplateStyle}
@@ -602,14 +613,27 @@ export default function Game() {
           {tab === 'store' && (
             <div className="tab-content">
               <h2>Cosmetic Store</h2>
+              <Checkbox
+                label="Hide already bought cosmetics"
+                checked={hideBoughtCosmetics}
+                onClick={setHideBoughtCosmetics}
+              />
               <div className="cosmetics-grid">
-                {cosmetics.filter(c => c.buyable).length === 0 && (
-                  <p>
-                    No cosmetics are available for purchase at this time. Please check back later.
+                {cosmetics.filter(
+                  c =>
+                    c.buyable && (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
+                ).length === 0 && (
+                  <p className="no-cosmetics-message">
+                    No cosmetics are available for purchase at this time. Please check back later or
+                    remove filters.
                   </p>
                 )}
                 {cosmetics
-                  .filter(c => c.buyable)
+                  .filter(
+                    c =>
+                      c.buyable &&
+                      (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
+                  )
                   .map(cosmetic => (
                     <div key={cosmetic.id} className="cosmetic-card">
                       <h2 className="cosmetic-name">{cosmetic.name}</h2>
@@ -631,6 +655,14 @@ export default function Game() {
                           >
                             <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
                           </span>
+                        )}
+                        {cosmetic.type === 'frame' && (
+                          <Avatar
+                            src={user?.avatar_data_uri}
+                            size={24}
+                            styleKey={cosmetic.frameStyle}
+                            className="avatar-preview"
+                          />
                         )}
                       </div>
                       <div className="spacer"></div>
@@ -664,11 +696,12 @@ export default function Game() {
                     cosmetics!
                   </p>
                 )}
-                {user
-                  ?.cosmetics_unlocked!.map(cosmetic => cosmetics.find(c => c.id === cosmetic))
+                {(user?.cosmetics_unlocked ?? [])
+                  .map(cosmeticId => cosmetics.find(c => c.id === cosmeticId))
+                  .filter((cosmetic): cosmetic is NonNullable<typeof cosmetic> => Boolean(cosmetic))
                   .sort((a, b) => {
-                    const equippedA = user.equipped_cosmetics?.[a!.type] === a!.id;
-                    const equippedB = user.equipped_cosmetics?.[b!.type] === b!.id;
+                    const equippedA = user?.equipped_cosmetics?.[a.type] === a.id;
+                    const equippedB = user?.equipped_cosmetics?.[b.type] === b.id;
 
                     if (equippedA && !equippedB) return -1;
                     if (!equippedA && equippedB) return 1;
@@ -677,43 +710,51 @@ export default function Game() {
                   })
                   .map(cosmetic => (
                     <div
-                      key={cosmetic!.id}
-                      className={`cosmetic-card ${user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id ? 'equipped' : ''}`}
+                      key={cosmetic.id}
+                      className={`cosmetic-card ${user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id ? 'equipped' : ''}`}
                     >
-                      <h2 className="cosmetic-name">{cosmetic!.name}</h2>
+                      <h2 className="cosmetic-name">{cosmetic.name}</h2>
                       <span className="cosmetic-rarity">
-                        <EmojiText>{getRarityEmoji(cosmetic!.rarity)}</EmojiText>{' '}
-                        {titleCase(cosmetic!.rarity)}
+                        <EmojiText>{getRarityEmoji(cosmetic.rarity)}</EmojiText>{' '}
+                        {titleCase(cosmetic.rarity)}
                       </span>
                       <div className="cosmetic-preview">
-                        {cosmetic!.type === 'nameplate' && (
+                        {cosmetic.type === 'nameplate' && (
                           <Nameplate
                             text="Monix User"
-                            styleKey={cosmetic!.nameplateStyle}
+                            styleKey={cosmetic.nameplateStyle}
                             className="nameplate-preview"
                           />
                         )}
-                        {cosmetic!.type === 'tag' && (
+                        {cosmetic.type === 'tag' && (
                           <span
-                            className={`user-tag user-tag-large tag-colour-${cosmetic!.tagColour}`}
+                            className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
                           >
-                            <EmojiText>{cosmetic!.tagIcon}</EmojiText> {cosmetic!.tagName}
+                            <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
                           </span>
+                        )}
+                        {cosmetic.type === 'frame' && (
+                          <Avatar
+                            src={user?.avatar_data_uri}
+                            size={24}
+                            styleKey={cosmetic.frameStyle}
+                            className="avatar-preview"
+                          />
                         )}
                       </div>
                       <div className="spacer"></div>
                       <Button
                         className="cosmetic-action"
                         onClickAsync={async () => {
-                          if (user?.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id) {
-                            await unequipCosmetic(cosmetic!.type);
+                          if (user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id) {
+                            await unequipCosmetic(cosmetic.type);
                           } else {
-                            await equipCosmetic(cosmetic!.id);
+                            await equipCosmetic(cosmetic.id);
                           }
                           await updateEverything();
                         }}
                       >
-                        {user.equipped_cosmetics?.[cosmetic!.type] === cosmetic!.id
+                        {user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id
                           ? 'Unequip'
                           : 'Equip'}
                       </Button>

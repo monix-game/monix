@@ -21,20 +21,6 @@
   margin-bottom: 5px;
 }
 
-.message-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.message-avatar.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
-}
-
 .message-sender {
   font-weight: 600;
   display: flex;

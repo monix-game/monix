@@ -98,10 +98,8 @@ html[data-theme='dark'] .app-logo-light {
 }
 
 .user-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
+  width: 34px;
+  height: 34px;
   vertical-align: middle;
 }
 
@@ -464,6 +462,18 @@ html[data-theme='dark'] .app-logo-light {
 
 .nameplate-preview {
   font-weight: 600;
+}
+
+.avatar-preview {
+  width: 48px;
+  height: 48px;
+}
+
+.no-cosmetics-message {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  user-select: none;
+  text-align: center;
 }
 
 /* Mobile Responsiveness */

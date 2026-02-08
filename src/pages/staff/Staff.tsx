@@ -12,7 +12,7 @@ import {
   Select,
   Spinner,
 } from '../../components';
-import { IconUser } from '@tabler/icons-react';
+import { Avatar } from '../../components/avatar/Avatar';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { formatRelativeTime, titleCase } from '../../helpers/utils';
@@ -240,10 +240,17 @@ export default function Staff() {
         <div className="spacer" />
         <div className="user-info">
           <div className="username-info">
-            {user?.avatar_data_uri && (
-              <img src={user.avatar_data_uri} alt="User Avatar" className="user-avatar" />
-            )}
-            {!user?.avatar_data_uri && <IconUser size={24} />}
+            <Avatar
+              src={user?.avatar_data_uri || undefined}
+              alt="User Avatar"
+              className="user-avatar"
+              size={34}
+              styleKey={
+                user?.equipped_cosmetics?.frame
+                  ? cosmetics.find(c => c.id === user.equipped_cosmetics?.frame)?.frameStyle
+                  : undefined
+              }
+            />
             <Nameplate
               text={user ? user.username : 'User'}
               styleKey={
@@ -541,12 +548,39 @@ export default function Staff() {
                   <div key={u.uuid} className="user-card">
                     <div className="user-card-header">
                       <div className="user-card-avatar">
-                        {u.avatar_data_uri && (
-                          <img src={u.avatar_data_uri} alt="User Avatar" className="user-avatar" />
-                        )}
-                        {!u.avatar_data_uri && <IconUser size={32} />}
+                        <Avatar
+                          src={u.avatar_data_uri || undefined}
+                          alt="User Avatar"
+                          className="user-avatar"
+                          size={34}
+                          styleKey={
+                            u.equipped_cosmetics?.frame
+                              ? cosmetics.find(c => c.id === u.equipped_cosmetics?.frame)
+                                  ?.frameStyle
+                              : undefined
+                          }
+                        />
                       </div>
-                      <span className="username">{u.username}</span>
+                      <Nameplate
+                        text={u.username}
+                        styleKey={
+                          u.equipped_cosmetics?.nameplate
+                            ? cosmetics.find(c => c.id === u.equipped_cosmetics?.nameplate)
+                                ?.nameplateStyle
+                            : null
+                        }
+                        className="username"
+                      />
+                      {u.equipped_cosmetics?.tag && (
+                        <span
+                          className={`user-tag tag-colour-${cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagColour}`}
+                        >
+                          <EmojiText>
+                            {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagIcon}
+                          </EmojiText>{' '}
+                          {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagName}
+                        </span>
+                      )}
                       {u.role !== 'user' && (
                         <span className={`user-badge ${u.role}`}>{titleCase(u.role)}</span>
                       )}

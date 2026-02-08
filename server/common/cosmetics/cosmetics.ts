@@ -153,4 +153,15 @@ export const cosmetics: Cosmetic[] = [
     buyable: true,
     price: 540,
   },
+
+  // Frames
+  {
+    id: 'dark-frame',
+    name: 'Dark Frame',
+    type: 'frame',
+    frameStyle: 'dark',
+    rarity: 'rare',
+    buyable: true,
+    price: 320,
+  },
 ];

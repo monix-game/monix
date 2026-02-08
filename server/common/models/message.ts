@@ -14,6 +14,7 @@ export interface IMessage {
   time_sent?: number;
   nameplate?: string;
   user_tag?: string;
+  frame?: string;
   time_edited?: number;
   edited: boolean;
   shouted?: boolean;
@@ -35,6 +36,7 @@ export function messageToDoc(m: IMessage): IMessage {
     time_sent: m.time_sent,
     nameplate: m.nameplate,
     user_tag: m.user_tag,
+    frame: m.frame,
     time_edited: m.time_edited,
     edited: m.edited,
     shouted: m.shouted,
@@ -58,6 +60,7 @@ export function messageFromDoc(doc: any): IMessage {
     time_sent: doc.time_sent || undefined,
     nameplate: doc.nameplate || undefined,
     user_tag: doc.user_tag || undefined,
+    frame: doc.frame || undefined,
     time_edited: doc.time_edited || undefined,
     edited: doc.edited || false,
     shouted: doc.shouted || false,
