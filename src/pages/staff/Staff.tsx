@@ -569,7 +569,7 @@ export default function Staff() {
                                 ?.nameplateStyle
                             : null
                         }
-                        className="username"
+                        className="staff-username"
                       />
                       {u.equipped_cosmetics?.tag && (
                         <span
