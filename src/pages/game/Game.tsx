@@ -162,26 +162,26 @@ export default function Game() {
       {
         id: 'starter',
         title: 'Starter',
-        subtitle: `Up to ${smartFormatNumber(1000)}`,
-        rods: buyableRods.filter(rod => rod.price <= 1000),
+        subtitle: `Up to ${smartFormatNumber(10000)}`,
+        rods: buyableRods.filter(rod => rod.price <= 10000),
       },
       {
         id: 'skilled',
         title: 'Skilled',
-        subtitle: `${smartFormatNumber(2500)} - ${smartFormatNumber(15000)}`,
-        rods: buyableRods.filter(rod => rod.price >= 2500 && rod.price <= 15000),
+        subtitle: `${smartFormatNumber(25000)} - ${smartFormatNumber(150000)}`,
+        rods: buyableRods.filter(rod => rod.price >= 25000 && rod.price <= 150000),
       },
       {
         id: 'elite',
         title: 'Elite',
-        subtitle: `${smartFormatNumber(40000)} - ${smartFormatNumber(100000)}`,
-        rods: buyableRods.filter(rod => rod.price >= 40000 && rod.price <= 100000),
+        subtitle: `${smartFormatNumber(400000)} - ${smartFormatNumber(1000000)}`,
+        rods: buyableRods.filter(rod => rod.price >= 400000 && rod.price <= 1000000),
       },
       {
         id: 'mythic',
         title: 'Mythic',
-        subtitle: `${smartFormatNumber(500000)}+`,
-        rods: buyableRods.filter(rod => rod.price >= 500000),
+        subtitle: `${smartFormatNumber(5000000)}+`,
+        rods: buyableRods.filter(rod => rod.price >= 5000000),
       },
     ].filter(section => section.rods.length > 0);
   }, []);
@@ -777,6 +777,7 @@ export default function Game() {
                               <span>{rod.multiplier}x Multiplier</span>
 
                               <Button
+                                disabled={!user || (user.money || 0) < rod.price}
                                 onClickAsync={async () => {
                                   await buyRod(rod.id);
                                   await updateEverything();
@@ -852,6 +853,10 @@ export default function Game() {
                                 </button>
                               </div>
                               <Button
+                                disabled={
+                                  !user ||
+                                  (user.money || 0) < bait.price * (baitQuantities[bait.id] || 1)
+                                }
                                 onClickAsync={async () => {
                                   await buyBait(bait.id, baitQuantities[bait.id] || 1);
                                   await updateEverything();
