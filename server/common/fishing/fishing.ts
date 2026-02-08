@@ -1,5 +1,5 @@
 import { fnv1a32, mulberry32, weightedRandom } from '../math';
-import { IFish } from '../models/fish';
+import type { IFish } from '../models/fish';
 import { fishingBaits } from './fishingBait';
 import { type FishingEventInfo, type CurrentFishingEvent, fishingEvents } from './fishingEvents';
 import { fishingRods } from './fishingRods';
