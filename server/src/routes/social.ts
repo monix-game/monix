@@ -14,7 +14,7 @@ import { requireActive } from '../middleware';
 import { IMessage, messageToDoc } from '../../common/models/message';
 import { v4 } from 'uuid';
 import { roomToDoc } from '../../common/models/room';
-import { profanityFilter } from '../index';
+import { profanityFilter } from '../constants';
 import { IReport } from '../../common/models/report';
 import { getCategoryById } from '../../common/punishx/categories';
 import { sendNyxMessage } from '../helpers/nyx';

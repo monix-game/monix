@@ -5,7 +5,7 @@ import {
   PRICE_ID_GEMS_PACK_500,
   STRIPE_WEBHOOK_SECRET,
   stripe,
-} from '../index';
+} from '../constants';
 import { getUserByUsername, updateUser } from '../db';
 import Stripe from 'stripe';
 

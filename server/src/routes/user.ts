@@ -14,7 +14,7 @@ import { ISession, sessionToDoc } from '../../common/models/session';
 import crypto from 'node:crypto';
 import { v4 } from 'uuid';
 import { requireActive, requireAuth } from '../middleware';
-import { SESSION_EXPIRES_IN, profanityFilter } from '../index';
+import { SESSION_EXPIRES_IN, profanityFilter } from '../constants';
 import { DEFAULT_SETTINGS } from '../../common/models/settings';
 import { createSecret, getTOTPURI, verifyTOTPToken } from '../helpers/totp';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
