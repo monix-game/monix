@@ -359,6 +359,19 @@ router.post('/fish', requireActive, async (req, res) => {
   user.fishing.fish_caught[fishingResult.fish_type] =
     (user.fishing.fish_caught[fishingResult.fish_type] || 0) + 1;
 
+  // Consume bait if used
+  if (baitId) {
+    user.fishing.bait_owned ??= {};
+    if (user.fishing.bait_owned[baitId] && user.fishing.bait_owned[baitId] > 0) {
+      user.fishing.bait_owned[baitId] -= 1;
+    }
+
+    // If bait runs out, unequip it
+    if (user.fishing.bait_owned[user.fishing.equipped_bait ?? ''] <= 0) {
+      user.fishing.equipped_bait = undefined;
+    }
+  }
+
   await updateUser(user);
 
   return res.status(200).json({
