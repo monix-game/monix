@@ -12,23 +12,25 @@ export const fishingBaits: FishingBaitInfo[] = [
     price: 50,
     fish_types_boosted: ['cod', 'salmon', 'trout', 'haddock', 'flathead'],
   },
+
+  {
+    id: 'insect_bait',
+    name: 'Insect Bait',
+    price: 75,
+    fish_types_boosted: ['snapper', 'grouper', 'pufferfish', 'anglerfish'],
+  },
   {
     id: 'shrimp_bait',
     name: 'Shrimp Bait',
     price: 100,
     fish_types_boosted: ['clownfish', 'stingray', 'prawn', 'crab', 'lobster'],
   },
+
   {
-    id: 'squid_bait',
-    name: 'Squid Bait',
-    price: 200,
-    fish_types_boosted: ['shark', 'whale', 'orca', 'swordfish', 'squid'],
-  },
-  {
-    id: 'insect_bait',
-    name: 'Insect Bait',
-    price: 75,
-    fish_types_boosted: ['snapper', 'grouper', 'pufferfish', 'anglerfish'],
+    id: 'plankton_bait',
+    name: 'Plankton Bait',
+    price: 125,
+    fish_types_boosted: ['jellyfish', 'oyster', 'goldfish', 'eel'],
   },
   {
     id: 'meat_bait',
@@ -37,9 +39,9 @@ export const fishingBaits: FishingBaitInfo[] = [
     fish_types_boosted: ['crocodile', 'alligator', 'cuttlefish', 'octopus'],
   },
   {
-    id: 'plankton_bait',
-    name: 'Plankton Bait',
-    price: 125,
-    fish_types_boosted: ['jellyfish', 'oyster', 'goldfish', 'eel'],
+    id: 'squid_bait',
+    name: 'Squid Bait',
+    price: 200,
+    fish_types_boosted: ['shark', 'whale', 'orca', 'swordfish', 'squid'],
   },
 ];

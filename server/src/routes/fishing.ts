@@ -4,7 +4,10 @@ import { getUserByUUID, updateUser } from '../db';
 import { type IUser } from '../../common/models/user';
 import { fishingRods } from '../../common/fishing/fishingRods';
 import { fishingBaits } from '../../common/fishing/fishingBait';
+import { calculateFishingResult, getFishValue } from '../../common/fishing/fishing';
 import { getAquariumUpgradeCost } from '../helpers/fishing';
+import { IFish } from '../models/fish';
+import { v4 } from 'uuid';
 
 const router = Router();
 
@@ -58,6 +61,56 @@ router.post('/aquarium/upgrade', requireActive, async (req, res) => {
     message: 'Aquarium upgraded successfully',
     money: user.money,
     aquarium_capacity: user.fishing.aquarium.capacity,
+  });
+});
+
+router.post('/aquarium/sell', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { fish_id } = req.body as { fish_id: string };
+
+  if (!fish_id) {
+    return res.status(400).json({ error: 'fish_id is required' });
+  }
+
+  if (typeof fish_id !== 'string') {
+    return res.status(400).json({ error: 'fish_id must be a string' });
+  }
+
+  const fishIndex = user.fishing?.aquarium.fish.findIndex(f => f.uuid === fish_id);
+
+  if (fishIndex === undefined || fishIndex === -1) {
+    return res.status(400).json({ error: 'Fish not found in aquarium' });
+  }
+
+  // Initialize fishing data if not present
+  user.fishing ??= {
+    aquarium: { capacity: 10, fish: [] },
+    bait_owned: {},
+    fish_caught: {},
+    rods_owned: [],
+  };
+
+  const fish = user.fishing.aquarium.fish[fishIndex];
+  const value = getFishValue(fish);
+
+  // Remove fish from aquarium and add money to user
+  user.fishing.aquarium.fish.splice(fishIndex, 1);
+  user.money += value;
+
+  await updateUser(user);
+
+  return res.status(200).json({
+    message: 'Fish sold successfully',
+    money: user.money,
+    soldFor: value,
   });
 });
 
@@ -117,21 +170,6 @@ router.post('/buy/rod', requireActive, async (req, res) => {
     money: user.money,
     rods_owned: user.fishing.rods_owned,
   });
-});
-
-router.get('/rods', requireActive, async (req, res) => {
-  // @ts-expect-error Because we add authUser in the middleware
-  const authUser = req.authUser as IUser;
-  const user_uuid: string = authUser?.uuid;
-  const user = await getUserByUUID(user_uuid);
-
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-
-  const rods_owned = user.fishing?.rods_owned || [];
-
-  return res.status(200).json({ rods_owned });
 });
 
 router.post('/equip/rod', requireActive, async (req, res) => {
@@ -234,21 +272,6 @@ router.post('/buy/bait', requireActive, async (req, res) => {
   });
 });
 
-router.get('/baits', requireActive, async (req, res) => {
-  // @ts-expect-error Because we add authUser in the middleware
-  const authUser = req.authUser as IUser;
-  const user_uuid: string = authUser?.uuid;
-  const user = await getUserByUUID(user_uuid);
-
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-
-  const bait_owned = user.fishing?.bait_owned || {};
-
-  return res.status(200).json({ bait_owned });
-});
-
 router.post('/equip/bait', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
@@ -287,6 +310,62 @@ router.post('/equip/bait', requireActive, async (req, res) => {
   return res.status(200).json({
     message: 'Bait equipped successfully',
     equipped_bait: user.fishing.equipped_bait,
+  });
+});
+
+router.post('/fish', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const baitId = user.fishing?.equipped_bait || null;
+  const rodId = user.fishing?.equipped_rod || 'damaged-rod';
+
+  const fishingResult = calculateFishingResult(baitId, rodId);
+
+  // Add caught fish to user's aquarium if there is capacity
+  user.fishing ??= {
+    aquarium: { capacity: 10, fish: [] },
+    bait_owned: {},
+    fish_caught: {},
+    rods_owned: [],
+  };
+
+  const fish: IFish = {
+    uuid: v4(),
+    user_uuid: user.uuid,
+    type: fishingResult.fish_type,
+    weight: fishingResult.weight,
+    caught_at: fishingResult.timestamp,
+  };
+
+  let addedToAquarium = false;
+  if (user.fishing.aquarium.fish.length < user.fishing.aquarium.capacity) {
+    user.fishing.aquarium.fish.push(fish);
+    addedToAquarium = true;
+  } else {
+    // Immediately sell the fish for money if aquarium is full
+    const value = getFishValue(fish);
+    user.money += value;
+  }
+
+  // Update fish caught count
+  user.fishing.fish_caught ??= {};
+  user.fishing.fish_caught[fishingResult.fish_type] =
+    (user.fishing.fish_caught[fishingResult.fish_type] || 0) + 1;
+
+  await updateUser(user);
+
+  return res.status(200).json({
+    fishingResult,
+    fishCaught: fish,
+    addedToAquarium,
+    soldFor: addedToAquarium ? 0 : getFishValue(fish),
   });
 });
 

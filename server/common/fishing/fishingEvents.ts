@@ -6,8 +6,13 @@ export interface FishingEventInfo {
   timing: FishingEventTiming;
 }
 
+export interface CurrentFishingEvent {
+  event: FishingEventInfo;
+  endsAt: number;
+}
+
 export interface FishingEventTiming {
-  type: 'random' | 'date_range' | 'semiannual';
+  type: 'random' | 'date_range';
   start_month?: number; // 0-11
   start_day?: number; // 1-31
   end_month?: number; // 0-11
@@ -34,9 +39,9 @@ export const fishingEvents: FishingEventInfo[] = [
     icon: '🌟',
     affects_offline: false,
     timing: {
-      type: 'semiannual',
-      min_duration: 360,
-      max_duration: 360,
+      type: 'random',
+      min_duration: 120,
+      max_duration: 120,
     },
   },
   {

@@ -92,13 +92,6 @@ export const fishingRods: FishingRodInfo[] = [
     buyable: true,
   },
   {
-    id: 'nebula-rod',
-    name: 'Nebula Rod',
-    price: 1250000,
-    multiplier: 20,
-    buyable: true,
-  },
-  {
     id: 'astral-rod',
     name: 'Astral Rod',
     price: 3000000,

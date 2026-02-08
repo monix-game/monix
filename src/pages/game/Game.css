@@ -198,6 +198,372 @@ html[data-theme='dark'] .app-logo-light {
   margin-bottom: 15px;
 }
 
+.fishing-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.fishing-hgrid {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  height: 100%;
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.fishing-hgrid>* {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+}
+
+.fishing-vgrid {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1 1 0;
+}
+
+.fishing-vgrid>* {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.fishing-card {
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.fishing-card-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-right: 20px;
+}
+
+.fishing-card h2 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.fishing-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 220px);
+}
+
+.fishing-results {
+  margin-top: 15px;
+  background-color: var(--bg);
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  width: 100%;
+}
+
+.fishing-results h3 {
+  font-size: 1.3rem;
+  margin: 0 0 10px 0;
+}
+
+.fishing-result-weight,
+.fishing-result-value {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  user-select: none;
+  margin-bottom: 10px;
+}
+
+.fishing-result-aquarium {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 15px;
+}
+
+.aquarium-info {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.aquarium-data {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aquarium-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 350px));
+  gap: 15px;
+  width: 100%;
+  margin-top: 15px;
+}
+
+.aquarium-fish-card {
+  background-color: var(--bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.aquarium-fish-card h3 {
+  font-size: 1.7rem;
+  user-select: none;
+}
+
+.aquarium-fish-weight {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.aquarium-fish-modifiers {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.aquarium-fish-modifier {
+  font-size: 0.8rem;
+  color: var(--primary-1);
+  user-select: none;
+  padding: 2px 6px;
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+}
+
+.aquarium-fish-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aquarium-fish-sell-button {
+  width: 100%;
+}
+
+.fish-sell-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+}
+
+.fish-sell-modal-buttons {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+}
+
+.fish-sell-modal-buttons>* {
+  flex: 1;
+}
+
+.fishing-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+  width: 100%;
+}
+
+.fishing-modal h2 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.fishing-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.fishing-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fishing-modal-section+.fishing-modal-section {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--primary-2);
+}
+
+.fishing-modal-section-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.fishing-modal-section-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fishing-modal-section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.fishing-modal-section-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.fishing-modal-section-toggle {
+  border: 2px solid var(--primary-2);
+  background: transparent;
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.fishing-modal-section-toggle:hover {
+  background-color: var(--dark-bg);
+  border-color: var(--primary-3);
+}
+
+.bait-quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bait-quantity-button {
+  border: 2px solid var(--primary-2);
+  background: transparent;
+  color: var(--text);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.bait-quantity-button:hover {
+  background-color: var(--dark-bg);
+  border-color: var(--primary-3);
+}
+
+.bait-quantity-input {
+  width: 60px;
+  text-align: center;
+  padding: 6px 8px;
+  border: 2px solid var(--primary-2);
+  border-radius: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-family-monospace);
+}
+
+.fishing-modal-card {
+  background-color: var(--bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.fishing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 15px;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.fishing-card:hover .fishing-grid {
+  overflow-y: auto;
+}
+
+.fishing-grid-item {
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.fishing-grid-item.equipped {
+  border: 2px solid var(--primary-3);
+}
+
+.fishing-grid-item h3 {
+  font-size: 1.3rem;
+  user-select: none;
+}
+
+.rod-multiplier {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  user-select: none;
+  margin-bottom: 5px;
+}
+
+.bait-pills {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.bait-pill {
+  font-size: 0.7rem;
+  color: var(--text);
+  user-select: none;
+  padding: 2px 6px;
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+}
+
 .jail-tab,
 .appeal-tab {
   display: flex;
