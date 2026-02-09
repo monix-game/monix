@@ -1,6 +1,11 @@
 import React, { useEffect } from 'react';
 import './Leaderboard.css';
-import { fetchLeaderboard, type LeaderboardEntry } from '../../helpers/leaderboard';
+import {
+  fetchFishLeaderboard,
+  fetchLeaderboard,
+  type FishLeaderboardEntry,
+  type LeaderboardEntry,
+} from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
 import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../helpers/utils';
 import { Avatar } from '../avatar/Avatar';
@@ -11,24 +16,37 @@ import { Nameplate } from '../nameplate/Nameplate';
 
 export const Leaderboard: React.FC = () => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
-
-  const [rawData, setRawData] = React.useState<{
+  const [activeTab, setActiveTab] = React.useState<'money' | 'fish'>('money');
+  const [rawMoneyData, setRawMoneyData] = React.useState<{
     normal: LeaderboardEntry[];
     noStaff: LeaderboardEntry[];
   }>({ normal: [], noStaff: [] });
+  const [rawFishData, setRawFishData] = React.useState<{
+    normal: FishLeaderboardEntry[];
+    noStaff: FishLeaderboardEntry[];
+  }>({ normal: [], noStaff: [] });
   const [hideStaff, setHideStaff] = React.useState<boolean>(false);
 
-  const currentData = hideStaff ? rawData.noStaff : rawData.normal;
+  const currentData = hideStaff
+    ? activeTab === 'money'
+      ? rawMoneyData.noStaff
+      : rawFishData.noStaff
+    : activeTab === 'money'
+      ? rawMoneyData.normal
+      : rawFishData.normal;
   const podiumData = currentData.slice(0, 3);
   const listData = currentData.slice(3);
 
   useEffect(() => {
     async function loadLeaderboard() {
-      const data = await fetchLeaderboard();
-      if (data) {
-        setRawData(data);
-        setHydrated(true);
+      const [moneyData, fishData] = await Promise.all([fetchLeaderboard(), fetchFishLeaderboard()]);
+      if (moneyData) {
+        setRawMoneyData(moneyData);
       }
+      if (fishData) {
+        setRawFishData(fishData);
+      }
+      setHydrated(Boolean(moneyData || fishData));
     }
 
     void loadLeaderboard();
@@ -40,9 +58,27 @@ export const Leaderboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [hideStaff]);
 
+  const isMoneyTab = activeTab === 'money';
+
   return (
     <div className="leaderboard-container">
       <div className="leaderboard-filters">
+        <div className="leaderboard-tabs">
+          <button
+            type="button"
+            className={`leaderboard-tab ${isMoneyTab ? 'active' : ''}`}
+            onClick={() => setActiveTab('money')}
+          >
+            Net Worth
+          </button>
+          <button
+            type="button"
+            className={`leaderboard-tab ${!isMoneyTab ? 'active' : ''}`}
+            onClick={() => setActiveTab('fish')}
+          >
+            Fish Caught
+          </button>
+        </div>
         <span className="leaderboard-filters-label">Filters:</span>
         <Checkbox label="Hide Staff" checked={hideStaff} onClick={value => setHideStaff(value)} />
       </div>
@@ -90,7 +126,11 @@ export const Leaderboard: React.FC = () => {
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}
                 </span>
-                <span className="podium-money">${entry.money.toLocaleString()}</span>
+                <span className="podium-money">
+                  {isMoneyTab
+                    ? `$${(entry as LeaderboardEntry).money.toLocaleString()}`
+                    : `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`}
+                </span>
               </div>
             ))}
           </div>
@@ -124,7 +164,11 @@ export const Leaderboard: React.FC = () => {
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}
                 </span>
-                <span className="leaderboard-money">${entry.money.toLocaleString()}</span>
+                <span className="leaderboard-money">
+                  {isMoneyTab
+                    ? `$${(entry as LeaderboardEntry).money.toLocaleString()}`
+                    : `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`}
+                </span>
               </div>
             ))}
           </div>

@@ -11,6 +11,30 @@
   gap: 15px;
 }
 
+.leaderboard-tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 4px;
+  background: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: 999px;
+}
+
+.leaderboard-tab {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leaderboard-tab.active {
+  background: var(--primary-2);
+  color: var(--text);
+}
+
 .leaderboard-filters-label {
   font-size: 1em;
   font-weight: 600;
