@@ -44,8 +44,22 @@ import type { IAppeal } from '../../../server/common/models/appeal';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { fishTypes } from '../../../server/common/fishing/fishTypes';
 import { fishModifiers } from '../../../server/common/fishing/fishModifiers';
-import { getFishValue, type FishingResult } from '../../../server/common/fishing/fishing';
-import { buyBait, buyRod, equipBait, equipRod, goFishing, sellFish } from '../../helpers/fishing';
+import {
+  getAquariumUpgradeCost,
+  getCurrentFishingEvent,
+  getFishValue,
+  type FishingResult,
+} from '../../../server/common/fishing/fishing';
+import {
+  buyBait,
+  buyRod,
+  equipBait,
+  equipRod,
+  goFishing,
+  sellAllFish,
+  sellFish,
+  upgradeAquarium,
+} from '../../helpers/fishing';
 import { fishingBaits } from '../../../server/common/fishing/fishingBait';
 import { fishingRods } from '../../../server/common/fishing/fishingRods';
 import type { IFish } from '../../../server/common/models/fish';
@@ -95,11 +109,22 @@ export default function Game() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [currentPunishment, setCurrentPunishment] = useState<IPunishment | null>(null);
   const [myAppeals, setMyAppeals] = useState<IAppeal[]>([]);
+  const [eventNow, setEventNow] = useState(() => Date.now());
 
   // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
   const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
+
+  const currentFishingEvent = useMemo(() => getCurrentFishingEvent(eventNow), [eventNow]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEventNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Resource list states
   const [resourceListHydrated, setResourceListHydrated] = useState(false);
@@ -124,8 +149,9 @@ export default function Game() {
     fishingResult: FishingResult;
     fishCaught: IFish;
     addedToAquarium: boolean;
-    soldFor: number;
   } | null>(null);
+  const [wasLastCatchAutoSold, setWasLastCatchAutoSold] = useState<boolean>(false);
+  const [autoSellEnabled, setAutoSellEnabled] = useState<boolean>(false);
   const [isRodsModalOpen, setIsRodsModalOpen] = useState<boolean>(false);
   const [isBaitModalOpen, setIsBaitModalOpen] = useState<boolean>(false);
   const [openRodSections, setOpenRodSections] = useState<Record<string, boolean>>({});
@@ -284,7 +310,6 @@ export default function Game() {
   }, [tab, setTabTo, banned]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateEverything().then(() => setGameHydrated(true));
 
     // Set radio volume based on settings
@@ -555,20 +580,51 @@ export default function Game() {
                 <div className="fishing-hgrid">
                   <div className="fishing-left">
                     <div className="fishing-card">
-                      <h2>Go Fishing!</h2>
-                      <Button
-                        onClickAsync={async () => {
-                          const result = await goFishing();
+                      <h2>
+                        <EmojiText>🐟</EmojiText> Go Fishing!
+                      </h2>
+                      <div className="fishing-card-actions">
+                        <Checkbox
+                          label="Auto-sell fish"
+                          checked={autoSellEnabled}
+                          onClick={setAutoSellEnabled}
+                        />
+                        <Button
+                          onClickAsync={async () => {
+                            const result = await goFishing();
 
-                          if (result) {
-                            setIsShowingFishingResults(true);
-                            setLastCatch(result);
-                            await updateEverything();
+                            if (result) {
+                              setIsShowingFishingResults(true);
+                              setLastCatch(result);
+
+                              if (autoSellEnabled) {
+                                setWasLastCatchAutoSold(true);
+                                await sellFish(result.fishCaught.uuid);
+                              }
+
+                              await updateEverything();
+                            }
+                          }}
+                          disabled={
+                            // eslint-disable-next-line react-hooks/purity
+                            (user?.fishing?.last_fished_at || 0) + 5000 > Date.now() ||
+                            (user?.fishing?.aquarium.fish.length || 0) >=
+                              (user?.fishing?.aquarium.capacity || 0)
                           }
-                        }}
-                      >
-                        Cast Line
-                      </Button>
+                        >
+                          {}
+                          {(() => {
+                            // eslint-disable-next-line react-hooks/purity
+                            if ((user?.fishing?.last_fished_at || 0) + 5000 > Date.now()) {
+                              return 'Wait...';
+                            }
+                            const isAquariumFull =
+                              (user?.fishing?.aquarium.fish.length || 0) >=
+                              (user?.fishing?.aquarium.capacity || 0);
+                            return isAquariumFull ? 'Aquarium Full' : 'Cast a Line!';
+                          })()}
+                        </Button>
+                      </div>
                       {isShowingFishingResults && lastCatch && (
                         <div className="fishing-results">
                           <h3>
@@ -605,23 +661,31 @@ export default function Game() {
                             </span>
                           </p>
 
-                          {lastCatch.addedToAquarium ? (
-                            <p className="fishing-result-aquarium">Added to Aquarium</p>
-                          ) : (
-                            <p className="fishing-result-aquarium">
-                              Automatically sold because your Aquarium is full!
-                            </p>
-                          )}
-
-                          <Button
-                            secondary
-                            onClick={() => {
-                              setIsShowingFishingResults(false);
-                              setLastCatch(null);
-                            }}
-                          >
-                            Dismiss
-                          </Button>
+                          <div className="fishing-result-buttons">
+                            <Button
+                              secondary
+                              onClick={() => {
+                                setIsShowingFishingResults(false);
+                                setLastCatch(null);
+                              }}
+                            >
+                              Dismiss
+                            </Button>
+                            {!wasLastCatchAutoSold ? (
+                              <Button
+                                onClickAsync={async () => {
+                                  await sellFish(lastCatch.fishCaught.uuid);
+                                  await updateEverything();
+                                  setIsShowingFishingResults(false);
+                                  setLastCatch(null);
+                                }}
+                              >
+                                Sell
+                              </Button>
+                            ) : (
+                              <span className="auto-sold">Auto-sold</span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -778,13 +842,19 @@ export default function Game() {
                               <span>{rod.multiplier}x Multiplier</span>
 
                               <Button
-                                disabled={!user || (user.money || 0) < rod.price}
+                                disabled={
+                                  !user ||
+                                  (user.money || 0) < rod.price ||
+                                  (user.fishing?.rods_owned || []).includes(rod.id)
+                                }
                                 onClickAsync={async () => {
                                   await buyRod(rod.id);
                                   await updateEverything();
                                 }}
                               >
-                                Buy
+                                {(user?.fishing?.rods_owned || []).includes(rod.id)
+                                  ? 'Owned'
+                                  : 'Buy'}
                               </Button>
                             </div>
                           ))}
@@ -878,13 +948,40 @@ export default function Game() {
           {tab === 'aquarium' && (
             <div className="tab-content">
               <h2>Aquarium</h2>
+              <div className="aquarium-banner">
+                <span className="aquarium-banner-subtitle">CURRENT FISHING EVENT</span>
+                <h3 className="aquarium-banner-title">
+                  {currentFishingEvent.event ? (
+                    <>
+                      <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
+                      {currentFishingEvent.event.name}
+                    </>
+                  ) : (
+                    'No active event'
+                  )}
+                </h3>
+                <span className="aquarium-banner-remaining">
+                  {formatRemainingTime(
+                    Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
+                  )}{' '}
+                  {currentFishingEvent.event ? 'remaining' : 'until next event'}
+                </span>
+              </div>
               <div className="aquarium-info">
                 {(() => {
                   const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
                   const capacity = user?.fishing?.aquarium.capacity ?? 0;
 
                   if (fishLength === 0) {
-                    return 'Your aquarium is empty. Catch some fish to display them here!';
+                    return (
+                      <>
+                        Your aquarium is empty. Catch some fish to display them here!{' '}
+                        <span className="aquarium-data">
+                          {fishLength}/{capacity}
+                        </span>{' '}
+                        fish in aquarium.
+                      </>
+                    );
                   }
 
                   if (fishLength !== capacity) {
@@ -902,10 +999,35 @@ export default function Game() {
                       fish.{' '}
                       <span className="aquarium-data">
                         {fishLength}/{capacity}
-                      </span>
+                      </span>{' '}
+                      fish in aquarium.
                     </>
                   );
                 })()}
+              </div>
+              <div className="aquarium-buttons">
+                <Button
+                  onClickAsync={async () => {
+                    await upgradeAquarium();
+                    await updateEverything();
+                  }}
+                  disabled={
+                    !user ||
+                    (user.money || 0) < getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                  }
+                >
+                  Upgrade Aquarium for{' '}
+                  {smartFormatNumber(getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1))}
+                </Button>
+                <Button
+                  onClickAsync={async () => {
+                    await sellAllFish();
+                    await updateEverything();
+                  }}
+                  disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
+                >
+                  Sell All
+                </Button>
               </div>
               <div className="aquarium-grid">
                 {user?.fishing?.aquarium.fish.map(fish => (
@@ -929,6 +1051,7 @@ export default function Game() {
                           key={fishModifiers.find(fm => fm.id === mod)?.id}
                           className="aquarium-fish-modifier"
                         >
+                          <EmojiText>{fishModifiers.find(fm => fm.id === mod)?.icon}</EmojiText>{' '}
                           {fishModifiers.find(fm => fm.id === mod)?.name}
                         </span>
                       ))}

@@ -7,7 +7,7 @@ export interface FishingEventInfo {
 }
 
 export interface CurrentFishingEvent {
-  event: FishingEventInfo;
+  event: FishingEventInfo | null;
   endsAt: number;
 }
 

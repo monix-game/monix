@@ -33,8 +33,10 @@ export interface IUser {
     fish_caught?: { [key: string]: number };
     aquarium: {
       capacity: number;
+      level?: number;
       fish: IFish[];
     };
+    last_fished_at?: number;
   };
   punishments?: IPunishment[];
 }
@@ -82,7 +84,7 @@ export function userFromDoc(doc: any): IUser {
     fishing: doc.fishing || {
       equipped_rod: 'damaged-rod',
       rods_owned: ['damaged-rod'],
-      aquarium: { capacity: 10, fish: [] },
+      aquarium: { capacity: 10, level: 1, fish: [] },
     },
     punishments: doc.punishments || [],
   };

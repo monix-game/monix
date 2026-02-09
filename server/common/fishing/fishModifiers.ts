@@ -1,6 +1,7 @@
 export interface FishModifierInfo {
   id: string;
   name: string;
+  icon?: string;
   event: string;
   multiplier: number;
   rarity_weight: number;
@@ -10,6 +11,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'windstruck',
     name: 'Windstruck',
+    icon: '💨',
     event: 'stormbreak',
     multiplier: 1.1,
     rarity_weight: 65,
@@ -17,6 +19,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'thunderstruck',
     name: 'Thunderstruck',
+    icon: '⚡',
     event: 'stormbreak',
     multiplier: 1.18,
     rarity_weight: 25,
@@ -24,6 +27,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'electrified',
     name: 'Electrified',
+    icon: '🔌',
     event: 'stormbreak',
     multiplier: 1.25,
     rarity_weight: 10,
@@ -31,6 +35,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'celestial',
     name: 'Celestial',
+    icon: '🌌',
     event: 'stardom',
     multiplier: 1.3,
     rarity_weight: 80,
@@ -38,6 +43,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'starstruck',
     name: 'Starstruck',
+    icon: '🌠',
     event: 'stardom',
     multiplier: 1.5,
     rarity_weight: 15,
@@ -45,6 +51,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'galactic',
     name: 'Galactic',
+    icon: '🌌',
     event: 'stardom',
     multiplier: 1.7,
     rarity_weight: 5,
@@ -52,6 +59,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'radioactive',
     name: 'Radioactive',
+    icon: '☢️',
     event: 'fallout',
     multiplier: 0.9,
     rarity_weight: 60,
@@ -59,6 +67,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'toxic',
     name: 'Toxic',
+    icon: '☣️',
     event: 'fallout',
     multiplier: 0.85,
     rarity_weight: 25,
@@ -66,6 +75,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'hazardous',
     name: 'Hazardous',
+    icon: '☠️',
     event: 'fallout',
     multiplier: 1.4,
     rarity_weight: 15,
@@ -73,6 +83,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'slimy',
     name: 'Slimy',
+    icon: '🟢',
     event: 'slimeification',
     multiplier: 0.75,
     rarity_weight: 100,
@@ -80,6 +91,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'shiny',
     name: 'Shiny',
+    icon: '✨',
     event: 'reflection',
     multiplier: 2.5,
     rarity_weight: 85,
@@ -87,6 +99,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'glassy',
     name: 'Glassy',
+    icon: '🪞',
     event: 'reflection',
     multiplier: 3,
     rarity_weight: 14,
@@ -94,6 +107,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'iridescent',
     name: 'Iridescent',
+    icon: '🪞',
     event: 'reflection',
     multiplier: 5,
     rarity_weight: 1,
@@ -101,6 +115,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'rainbow',
     name: 'Rainbow',
+    icon: '🌈',
     event: 'rainbow',
     multiplier: 6,
     rarity_weight: 100,
@@ -108,6 +123,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'hopeful',
     name: 'Hopeful',
+    icon: '🌈',
     event: 'newyear',
     multiplier: 1.15,
     rarity_weight: 100,
@@ -115,6 +131,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'melancholic',
     name: 'Melancholic',
+    icon: '😢',
     event: 'sadness',
     multiplier: 0.9,
     rarity_weight: 60,
@@ -122,6 +139,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'weepy',
     name: 'Weepy',
+    icon: '😭',
     event: 'sadness',
     multiplier: 0.85,
     rarity_weight: 30,
@@ -129,6 +147,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'distraught',
     name: 'Distraught',
+    icon: '😭',
     event: 'sadness',
     multiplier: 0.8,
     rarity_weight: 10,
@@ -136,6 +155,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'joyful',
     name: 'Joyful',
+    icon: '😄',
     event: 'happiness',
     multiplier: 1.1,
     rarity_weight: 60,
@@ -143,6 +163,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'peaceful',
     name: 'Peaceful',
+    icon: '😊',
     event: 'happiness',
     multiplier: 1.15,
     rarity_weight: 30,
@@ -150,6 +171,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'elated',
     name: 'Elated',
+    icon: '😆',
     event: 'happiness',
     multiplier: 1.25,
     rarity_weight: 10,
@@ -157,6 +179,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'spooky',
     name: 'Spooky',
+    icon: '🎃',
     event: 'halloween',
     multiplier: 1.1,
     rarity_weight: 40,
@@ -164,6 +187,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'ghostly',
     name: 'Ghostly',
+    icon: '👻',
     event: 'halloween',
     multiplier: 1.3,
     rarity_weight: 25,
@@ -171,6 +195,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'petrified',
     name: 'Petrified',
+    icon: '🪨',
     event: 'halloween',
     multiplier: 1.4,
     rarity_weight: 10,
@@ -178,6 +203,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'mortified',
     name: 'Mortified',
+    icon: '💀',
     event: 'halloween',
     multiplier: 1.18,
     rarity_weight: 15,
@@ -185,6 +211,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'freaky',
     name: 'Freaky',
+    icon: '🎃',
     event: 'halloween',
     multiplier: 1.12,
     rarity_weight: 10,
@@ -192,6 +219,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'dreaming',
     name: 'Dreaming',
+    icon: '💤',
     event: 'souls',
     multiplier: 1.12,
     rarity_weight: 65,
@@ -199,6 +227,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'mysterious',
     name: 'Mysterious',
+    icon: '👻',
     event: 'souls',
     multiplier: 1.25,
     rarity_weight: 25,
@@ -206,6 +235,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'abyssal',
     name: 'Abyssal',
+    icon: '🌊',
     event: 'souls',
     multiplier: 1.6,
     rarity_weight: 10,
@@ -213,6 +243,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'jolly',
     name: 'Jolly',
+    icon: '🎄',
     event: 'christmas',
     multiplier: 1.2,
     rarity_weight: 100,
@@ -220,6 +251,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'cursed',
     name: 'Cursed',
+    icon: '🪦',
     event: 'wizards',
     multiplier: 1.22,
     rarity_weight: 60,
@@ -227,6 +259,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'blessed',
     name: 'Blessed',
+    icon: '✨',
     event: 'wizards',
     multiplier: 0.7,
     rarity_weight: 25,
@@ -234,6 +267,7 @@ export const fishModifiers: FishModifierInfo[] = [
   {
     id: 'spellbound',
     name: 'Spellbound',
+    icon: '🪄',
     event: 'wizards',
     multiplier: 1.35,
     rarity_weight: 15,

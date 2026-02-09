@@ -49,6 +49,20 @@ export async function sellFish(fishId: string): Promise<boolean> {
   return false;
 }
 
+export async function sellAllFish(): Promise<boolean> {
+  try {
+    const resp = await api.post('/fishing/aquarium/sell/all');
+    if (resp?.success) {
+      return true;
+    }
+  } catch (error) {
+    console.error('Error selling all fish:', error);
+    throw error;
+  }
+
+  return false;
+}
+
 export async function buyRod(rodId: string): Promise<boolean> {
   try {
     const resp = await api.post('/fishing/buy/rod', { rod_id: rodId });
@@ -109,14 +123,12 @@ export async function goFishing(): Promise<{
   fishingResult: FishingResult;
   fishCaught: IFish;
   addedToAquarium: boolean;
-  soldFor: number;
 } | null> {
   try {
     const resp = await api.post<{
       fishingResult: FishingResult;
       fishCaught: IFish;
       addedToAquarium: boolean;
-      soldFor: number;
     }>('/fishing/fish');
     if (resp?.success) {
       const payload = resp.data;
@@ -125,7 +137,6 @@ export async function goFishing(): Promise<{
           fishingResult: payload.fishingResult,
           fishCaught: payload.fishCaught,
           addedToAquarium: payload.addedToAquarium,
-          soldFor: payload.soldFor,
         };
       }
     }

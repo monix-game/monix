@@ -269,6 +269,12 @@ html[data-theme='dark'] .app-logo-light {
   margin-bottom: 10px;
 }
 
+.fishing-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
 .fishing-tab {
   display: flex;
   flex-direction: column;
@@ -298,10 +304,40 @@ html[data-theme='dark'] .app-logo-light {
   margin-bottom: 10px;
 }
 
-.fishing-result-aquarium {
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 15px;
+.fishing-result-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.fishing-result-buttons .auto-sold {
+  font-weight: 700;
+}
+
+.aquarium-banner {
+  width: 30%;
+  background: linear-gradient(90deg, var(--primary-3), var(--primary-2));
+  border-radius: var(--border-radius);
+  border: 2px solid var(--primary-2);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.aquarium-banner-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.aquarium-banner-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  user-select: none;
 }
 
 .aquarium-info {
@@ -313,6 +349,14 @@ html[data-theme='dark'] .app-logo-light {
 .aquarium-data {
   font-weight: 600;
   color: var(--text);
+}
+
+.aquarium-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
 }
 
 .aquarium-grid {
@@ -352,10 +396,9 @@ html[data-theme='dark'] .app-logo-light {
 
 .aquarium-fish-modifier {
   font-size: 0.8rem;
-  color: var(--primary-1);
   user-select: none;
   padding: 2px 6px;
-  border: 2px solid var(--primary-1);
+  border: 2px solid var(--primary-2);
   border-radius: var(--border-radius);
 }
 
