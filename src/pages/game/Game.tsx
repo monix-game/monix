@@ -231,6 +231,7 @@ export default function Game() {
 
   // Aquarium states
   const [isFishSellModalOpen, setIsFishSellModalOpen] = useState<boolean>(false);
+  const [isFishSellAllModalOpen, setIsFishSellAllModalOpen] = useState<boolean>(false);
   const [aquariumFishToSell, setAquariumFishToSell] = useState<string | null>(null);
 
   // Radio
@@ -1020,10 +1021,7 @@ export default function Game() {
                   {smartFormatNumber(getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1))}
                 </Button>
                 <Button
-                  onClickAsync={async () => {
-                    await sellAllFish();
-                    await updateEverything();
-                  }}
+                  onClick={() => setIsFishSellAllModalOpen(true)}
                   disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
                 >
                   Sell All
@@ -1074,6 +1072,41 @@ export default function Game() {
                   </div>
                 ))}
               </div>
+
+              <Modal
+                isOpen={isFishSellAllModalOpen}
+                onClose={() => setIsFishSellAllModalOpen(false)}
+              >
+                <div className="fish-sell-modal">
+                  <h2>Sell All Fish</h2>
+                  <p>
+                    Are you sure you want to sell all your fish for{' '}
+                    <span className="mono">
+                      {smartFormatNumber(
+                        (user?.fishing?.aquarium.fish ?? []).reduce(
+                          (total, fish) => total + getFishValue(fish),
+                          0
+                        )
+                      )}
+                    </span>
+                    ?
+                  </p>
+                  <div className="fish-sell-modal-buttons">
+                    <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClickAsync={async () => {
+                        await sellAllFish();
+                        setIsFishSellAllModalOpen(false);
+                        await updateEverything();
+                      }}
+                    >
+                      Sell All
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
 
               <Modal isOpen={isFishSellModalOpen} onClose={() => setIsFishSellModalOpen(false)}>
                 <div className="fish-sell-modal">
