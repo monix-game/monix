@@ -2,7 +2,7 @@
   padding: 20px;
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: 5px;
   align-items: center;
   border-bottom: 2px dashed var(--primary-3);
   position: relative;
@@ -19,6 +19,7 @@
 
 .app-logo {
   height: 65px;
+  margin-right: -15px;
 }
 
 html[data-theme='light'] .app-logo-dark {
@@ -32,7 +33,7 @@ html[data-theme='dark'] .app-logo-light {
 .app-title {
   font-size: 2rem;
   font-weight: 700;
-  margin-right: 20px;
+  margin-right: 10px;
   user-select: none;
 }
 
