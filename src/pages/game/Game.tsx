@@ -783,7 +783,7 @@ export default function Game() {
                                         if (!typeInfo) return null;
                                         return (
                                           <span key={typeId} className="bait-pill">
-                                            {typeInfo.icon} {typeInfo.name}
+                                            <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
                                           </span>
                                         );
                                       })}
