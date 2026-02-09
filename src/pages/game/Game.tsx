@@ -778,6 +778,7 @@ export default function Game() {
                               <span>{rod.multiplier}x Multiplier</span>
 
                               <Button
+                                disabled={!user || (user.money || 0) < rod.price}
                                 onClickAsync={async () => {
                                   await buyRod(rod.id);
                                   await updateEverything();
@@ -853,6 +854,10 @@ export default function Game() {
                                 </button>
                               </div>
                               <Button
+                                disabled={
+                                  !user ||
+                                  (user.money || 0) < bait.price * (baitQuantities[bait.id] || 1)
+                                }
                                 onClickAsync={async () => {
                                   await buyBait(bait.id, baitQuantities[bait.id] || 1);
                                   await updateEverything();
