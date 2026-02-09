@@ -589,11 +589,12 @@ export default function Game() {
                             Weight:{' '}
                             {lastCatch.fishCaught.weight >= 1000 ? (
                               <span className="mono">
-                                {smartFormatNumber(lastCatch.fishCaught.weight / 1000)} tonnes
+                                {smartFormatNumber(lastCatch.fishCaught.weight / 1000, false)}{' '}
+                                tonnes
                               </span>
                             ) : (
                               <span className="mono">
-                                {smartFormatNumber(lastCatch.fishCaught.weight)} kg
+                                {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
                               </span>
                             )}
                           </p>
@@ -909,7 +910,13 @@ export default function Game() {
                       {fishTypes.find(ft => ft.id === fish.type)?.name}
                     </h3>
                     <span className="aquarium-fish-weight">
-                      {smartFormatNumber(fish.weight, false)} kg
+                      {fish.weight >= 1000 ? (
+                        <span className="mono">
+                          {smartFormatNumber(fish.weight / 1000, false)} tonnes
+                        </span>
+                      ) : (
+                        <span className="mono">{smartFormatNumber(fish.weight, false)} kg</span>
+                      )}
                     </span>
                     <div className="aquarium-fish-modifiers">
                       {fish.modifiers?.map(mod => (
