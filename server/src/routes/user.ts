@@ -19,6 +19,7 @@ import { DEFAULT_SETTINGS } from '../../common/models/settings';
 import { createSecret, getTOTPURI, verifyTOTPToken } from '../helpers/totp';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
 import { processAvatar } from '../helpers/avatar';
+import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
 
 const router = Router();
 
@@ -57,6 +58,7 @@ router.post('/register', async (req: Request, res: Response) => {
     password_hash,
     money: 1000,
     gems: 0,
+    daily_rewards: { last_claimed_day: 0, streak: 0 },
     completed_tutorial: false,
     role: 'user',
     time_created: Date.now() / 1000,
@@ -189,6 +191,40 @@ router.get('/user', requireAuth, (req: Request, res: Response) => {
   if (!authUser) return res.status(404).json({ error: 'User not found' });
 
   return res.status(200).json({ user: userToDoc(authUser) });
+});
+
+router.post('/daily-reward/claim', requireActive, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  const currentDay = Math.floor(Date.now() / 86400000);
+  const dailyRewardsState = authUser.daily_rewards || { last_claimed_day: 0, streak: 0 };
+  const lastClaimedDay = dailyRewardsState.last_claimed_day || 0;
+  const lastStreak = dailyRewardsState.streak || 0;
+
+  if (lastClaimedDay === currentDay) {
+    return res.status(200).json({ claimed: false, streak: lastStreak });
+  }
+
+  const isConsecutive = lastClaimedDay === currentDay - 1;
+  let newStreak = isConsecutive ? lastStreak + 1 : 1;
+  if (newStreak > DAILY_REWARDS.length) {
+    newStreak = 1;
+  }
+
+  const reward = DAILY_REWARDS[newStreak - 1];
+  if (reward.type === 'money') {
+    authUser.money += reward.amount;
+  } else {
+    authUser.gems += reward.amount;
+  }
+
+  authUser.daily_rewards = { last_claimed_day: currentDay, streak: newStreak };
+  await updateUser(authUser);
+
+  return res.status(200).json({ claimed: true, streak: newStreak, reward });
 });
 
 router.post('/tutorial/complete', requireAuth, async (req: Request, res: Response) => {

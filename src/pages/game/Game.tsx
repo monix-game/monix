@@ -1,5 +1,5 @@
 import './Game.css';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
 import {
@@ -30,6 +30,7 @@ import {
   resetTutorial,
   unequipCosmetic,
 } from '../../helpers/auth';
+import { claimDailyReward, type DailyRewardClaimResult } from '../../helpers/rewards';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
@@ -72,6 +73,7 @@ import {
 import { fishingBaits } from '../../../server/common/fishing/fishingBait';
 import { fishingRods } from '../../../server/common/fishing/fishingRods';
 import type { IFish } from '../../../server/common/models/fish';
+import { DAILY_REWARDS } from '../../../server/common/rewards/dailyRewards';
 
 export default function Game() {
   // Net worth states
@@ -119,6 +121,9 @@ export default function Game() {
   const [currentPunishment, setCurrentPunishment] = useState<IPunishment | null>(null);
   const [myAppeals, setMyAppeals] = useState<IAppeal[]>([]);
   const [eventNow, setEventNow] = useState(() => Date.now());
+  const [dailyRewardResult, setDailyRewardResult] = useState<DailyRewardClaimResult | null>(null);
+  const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState<boolean>(false);
+  const dailyRewardClaimedRef = useRef(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [tutorialStep, setTutorialStep] = useState<number>(0);
   const [tutorialProgress, setTutorialProgress] = useState({
@@ -485,6 +490,17 @@ export default function Game() {
   }, [updateEverything, setVolume]);
 
   useEffect(() => {
+    if (!gameHydrated || !user || dailyRewardClaimedRef.current) return;
+    dailyRewardClaimedRef.current = true;
+
+    void claimDailyReward().then(result => {
+      if (!result || !result.claimed || !result.reward) return;
+      setDailyRewardResult(result);
+      setIsDailyRewardModalOpen(true);
+    });
+  }, [gameHydrated, user]);
+
+  useEffect(() => {
     if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
     setIsTutorialOpen(true);
   }, [user, isTutorialOpen, banned]);
@@ -524,12 +540,7 @@ export default function Game() {
         visitedPets: true,
       }));
     }
-  }, [
-    isTutorialOpen,
-    tab,
-    marketModalResource,
-    marketModalOpen,
-  ]);
+  }, [isTutorialOpen, tab, marketModalResource, marketModalOpen]);
 
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
@@ -1886,6 +1897,52 @@ export default function Game() {
             </Button>
             <Button onClickAsync={submitAppealClick}>Submit Appeal</Button>
           </div>
+        </div>
+      </Modal>
+      <Modal isOpen={isDailyRewardModalOpen} onClose={() => setIsDailyRewardModalOpen(false)}>
+        <div className="daily-reward-modal">
+          <div className="daily-reward-header">
+            <h2>Daily Login Rewards</h2>
+            <span className="daily-reward-streak">
+              Streak Day {dailyRewardResult?.streak || 1}/{DAILY_REWARDS.length}
+            </span>
+          </div>
+          <p className="daily-reward-subtitle">Come back each day to build your streak.</p>
+          <div className="daily-reward-grid">
+            {DAILY_REWARDS.map(reward => {
+              const streak = dailyRewardResult?.streak || 0;
+              const isClaimed = reward.day <= streak;
+              const isToday = reward.day === dailyRewardResult?.reward?.day;
+              const rewardLabel =
+                reward.type === 'money'
+                  ? `+${smartFormatNumber(reward.amount)}`
+                  : `+${reward.amount} Gems`;
+              return (
+                <div
+                  key={reward.day}
+                  className={`daily-reward-card${isClaimed ? ' claimed' : ''}${
+                    isToday ? ' today' : ''
+                  }`}
+                >
+                  <div className="daily-reward-day">Day {reward.day}</div>
+                  <div className="daily-reward-amount">{rewardLabel}</div>
+                </div>
+              );
+            })}
+          </div>
+          {dailyRewardResult?.reward && (
+            <div className="daily-reward-today">
+              <span>Today&apos;s reward</span>
+              <strong>
+                {dailyRewardResult.reward.type === 'money'
+                  ? `+${smartFormatNumber(dailyRewardResult.reward.amount)}`
+                  : `+${dailyRewardResult.reward.amount} Gems`}
+              </strong>
+            </div>
+          )}
+          <Button onClick={() => setIsDailyRewardModalOpen(false)} secondary>
+            Close
+          </Button>
         </div>
       </Modal>
     </>

@@ -874,6 +874,75 @@ html[data-theme='dark'] .app-logo-light {
   gap: 10px;
 }
 
+.daily-reward-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.daily-reward-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.daily-reward-streak {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.daily-reward-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.daily-reward-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.daily-reward-card {
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 12px 14px;
+  background-color: var(--dark-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.daily-reward-card.claimed {
+  border-color: var(--primary-1);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.daily-reward-card.today {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0));
+}
+
+.daily-reward-day {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.daily-reward-amount {
+  font-size: 1.05rem;
+}
+
+.daily-reward-today {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px dashed var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+}
+
 .games-container {
   display: flex;
   flex-wrap: wrap;
