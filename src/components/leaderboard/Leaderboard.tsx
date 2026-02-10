@@ -27,13 +27,15 @@ export const Leaderboard: React.FC = () => {
   }>({ normal: [], noStaff: [] });
   const [hideStaff, setHideStaff] = React.useState<boolean>(false);
 
-  const currentData = hideStaff
-    ? activeTab === 'money'
-      ? rawMoneyData.noStaff
-      : rawFishData.noStaff
-    : activeTab === 'money'
-      ? rawMoneyData.normal
-      : rawFishData.normal;
+  const getLeaderboardData = () => {
+    const isMoney = activeTab === 'money';
+    if (hideStaff) {
+      return isMoney ? rawMoneyData.noStaff : rawFishData.noStaff;
+    }
+    return isMoney ? rawMoneyData.normal : rawFishData.normal;
+  };
+
+  const currentData = getLeaderboardData();
   const podiumData = currentData.slice(0, 3);
   const listData = currentData.slice(3);
 

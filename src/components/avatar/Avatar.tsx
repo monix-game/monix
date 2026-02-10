@@ -55,7 +55,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     <span className={avatarClassName} {...rest} style={mergedStyle}>
       <span className="avatar__image">
         {/* eslint-disable-next-line react-hooks/refs */}
-        {isLoaded && imgRef.current ? (
+        {isLoaded && imgRef.current && src ? (
           <img src={src} alt={alt} id={`avatar-img-${uniqueId}`} />
         ) : (
           <IconUser className="avatar-placeholder" size={size} />
