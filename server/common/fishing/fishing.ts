@@ -9,6 +9,7 @@ import { fishTypes } from './fishTypes';
 export interface FishingResult {
   fish_type: string; // ID of the fish type caught
   weight: number; // Weight of the fish caught in kilograms
+  modifiers?: string[]; // Array of modifier IDs that apply to this fish
   bait_used: string | null; // ID of the bait used, or null if no bait
   rod_used: string; // ID of the fishing rod used
   event_active: FishingEventInfo | null; // Active fishing event info, or null if no event
@@ -61,6 +62,23 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
     rng
   );
 
+  // Determine modifiers for the caught fish based on active event and random chance
+  let modifier = null;
+  if (rng() <= 0.5) {
+    const possibleModifiers = fishModifiers.filter(mod => mod.event === event.event?.id);
+    if (possibleModifiers.length > 0) {
+      const chosenModifier = weightedRandom(
+        possibleModifiers,
+        possibleModifiers.map(m => m.rarity_weight),
+        rng
+      );
+
+      if (chosenModifier) {
+        modifier = chosenModifier.id;
+      }
+    }
+  }
+
   // Calculate weight of the caught fish based on its type, rod multiplier, and lucky boost
   const baseWeight = rng() * (fishType.max_weight - fishType.min_weight) + fishType.min_weight;
   const rodMultiplier = rod ? rod.multiplier : 1;
@@ -69,6 +87,7 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
   return {
     fish_type: fishType.id,
     weight: Number.parseFloat(finalWeight.toFixed(2)),
+    modifiers: modifier ? [modifier] : [],
     bait_used: bait ? bait.id : null,
     rod_used: rod ? rod.id : 'damaged-rod',
     event_active: event.event,
@@ -197,55 +216,6 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
     event: null,
     endsAt: dayStart + 24 * 60 * 60 * 1000,
   };
-}
-
-export function applyFishingEventModifiersToAquarium(
-  fish: IFish[],
-  event: FishingEventInfo | null,
-  seedKey: string
-): boolean {
-  const maxModifiersPerFish = 3;
-  if (!event || fish.length === 0) {
-    return false;
-  }
-
-  const eventModifiers = fishModifiers.filter(modifier => modifier.event === event.id);
-  if (eventModifiers.length === 0) {
-    return false;
-  }
-
-  const modifierEventById = new Map<string, string>();
-  for (const modifier of fishModifiers) {
-    modifierEventById.set(modifier.id, modifier.event);
-  }
-
-  const modifierWeights = eventModifiers.map(modifier => modifier.rarity_weight);
-  let changed = false;
-
-  for (const fishEntry of fish) {
-    const currentModifiers = fishEntry.modifiers ?? [];
-    if (currentModifiers.length >= maxModifiersPerFish) {
-      continue;
-    }
-    const hasEventModifier = currentModifiers.some(
-      modifierId => modifierEventById.get(modifierId) === event.id
-    );
-
-    if (hasEventModifier) {
-      continue;
-    }
-
-    const seed = fnv1a32(`fish-mod-${event.id}-${fishEntry.uuid}-${seedKey}`);
-    const rng = mulberry32(seed);
-    const selectedModifier = weightedRandom(eventModifiers, modifierWeights, rng);
-
-    if (selectedModifier) {
-      fishEntry.modifiers = [...currentModifiers, selectedModifier.id];
-      changed = true;
-    }
-  }
-
-  return changed;
 }
 
 /**

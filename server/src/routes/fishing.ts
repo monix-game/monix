@@ -2,13 +2,10 @@ import { Router } from 'express';
 import { requireActive } from '../middleware';
 import { getUserByUUID, updateUser } from '../db';
 import { type IUser } from '../../common/models/user';
-import type { FishingEventInfo } from '../../common/fishing/fishingEvents';
 import { fishingRods } from '../../common/fishing/fishingRods';
 import { fishingBaits } from '../../common/fishing/fishingBait';
 import {
-  applyFishingEventModifiersToAquarium,
   calculateFishingResult,
-  getCurrentFishingEvent,
   getFishValue,
   getAquariumUpgradeCost,
 } from '../../common/fishing/fishing';
@@ -16,48 +13,6 @@ import { IFish } from '../models/fish';
 import { v4 } from 'uuid';
 
 const router = Router();
-
-const MAX_OFFLINE_EVENT_CATCHUP_MS = 7 * 24 * 60 * 60 * 1000;
-
-function applyEventModifiersToAquarium(
-  user: IUser,
-  previousLastSeen: number,
-  now: number
-): boolean {
-  if (!user.fishing?.aquarium?.fish?.length) {
-    return false;
-  }
-
-  const eventsToApply = new Map<string, FishingEventInfo>();
-  const offlineStart = Math.max(previousLastSeen || now, now - MAX_OFFLINE_EVENT_CATCHUP_MS);
-
-  if (offlineStart < now) {
-    let cursor = offlineStart;
-    while (cursor < now) {
-      const currentEvent = getCurrentFishingEvent(cursor);
-      if (currentEvent.event?.affects_offline) {
-        eventsToApply.set(currentEvent.event.id, currentEvent.event);
-      }
-
-      const nextCursor = currentEvent.endsAt > cursor ? currentEvent.endsAt : cursor + 60 * 1000;
-      cursor = nextCursor;
-    }
-  }
-
-  const activeEvent = getCurrentFishingEvent(now);
-  if (activeEvent.event && !activeEvent.event.affects_offline) {
-    eventsToApply.set(activeEvent.event.id, activeEvent.event);
-  }
-
-  let changed = false;
-  for (const event of eventsToApply.values()) {
-    if (applyFishingEventModifiersToAquarium(user.fishing.aquarium.fish, event, 'aquarium')) {
-      changed = true;
-    }
-  }
-
-  return changed;
-}
 
 router.get('/aquarium', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
@@ -69,14 +24,7 @@ router.get('/aquarium', requireActive, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const now = Date.now();
-  // @ts-expect-error Because we add authUserLastSeen in the middleware
-  const previousLastSeen = (req.authUserLastSeen as number) ?? now;
-  if (applyEventModifiersToAquarium(user, previousLastSeen, now)) {
-    await updateUser(user);
-  }
-
-  const aquarium = user.fishing?.aquarium || { capacity: 10, fish: [] };
+  const aquarium = user.fishing?.aquarium || { capacity: 10, level: 1, fish: [] };
 
   return res.status(200).json({ aquarium });
 });
@@ -153,11 +101,6 @@ router.post('/aquarium/sell', requireActive, async (req, res) => {
     rods_owned: [],
   };
 
-  const now = Date.now();
-  // @ts-expect-error Because we add authUserLastSeen in the middleware
-  const previousLastSeen = (req.authUserLastSeen as number) ?? now;
-  applyEventModifiersToAquarium(user, previousLastSeen, now);
-
   const fish = user.fishing.aquarium.fish[fishIndex];
   const value = getFishValue(fish);
 
@@ -191,11 +134,6 @@ router.post('/aquarium/sell/all', requireActive, async (req, res) => {
     fish_caught: {},
     rods_owned: [],
   };
-
-  const now = Date.now();
-  // @ts-expect-error Because we add authUserLastSeen in the middleware
-  const previousLastSeen = (req.authUserLastSeen as number) ?? now;
-  applyEventModifiersToAquarium(user, previousLastSeen, now);
 
   const fishToSell = user.fishing.aquarium.fish;
   let totalValue = 0;
@@ -453,6 +391,7 @@ router.post('/fish', requireActive, async (req, res) => {
     user_uuid: user.uuid,
     type: fishingResult.fish_type,
     weight: fishingResult.weight,
+    modifiers: fishingResult.modifiers || [],
     caught_at: fishingResult.timestamp,
   };
 
@@ -465,11 +404,6 @@ router.post('/fish', requireActive, async (req, res) => {
     user.money += value;
     success = true;
   }
-
-  const nowAfterCatch = Date.now();
-  // @ts-expect-error Because we add authUserLastSeen in the middleware
-  const previousLastSeen = (req.authUserLastSeen as number) ?? nowAfterCatch;
-  applyEventModifiersToAquarium(user, previousLastSeen, nowAfterCatch);
 
   // Update fish caught count
   user.fishing.fish_caught ??= {};
