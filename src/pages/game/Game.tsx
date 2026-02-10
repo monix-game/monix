@@ -121,6 +121,7 @@ export default function Game() {
   const [currentPunishment, setCurrentPunishment] = useState<IPunishment | null>(null);
   const [myAppeals, setMyAppeals] = useState<IAppeal[]>([]);
   const [eventNow, setEventNow] = useState(() => Date.now());
+  const [fishingNow, setFishingNow] = useState(() => Date.now());
   const [dailyRewardResult, setDailyRewardResult] = useState<DailyRewardClaimResult | null>(null);
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState<boolean>(false);
   const dailyRewardClaimedRef = useRef(false);
@@ -232,6 +233,56 @@ export default function Game() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (tab !== 'fishing') return;
+
+    let rafId: number | undefined;
+
+    const start = () => {
+      let lastTick = 0;
+
+      const tick = (time: number) => {
+        if (document.hidden) {
+          rafId = undefined;
+          return;
+        }
+
+        if (time - lastTick >= 100) {
+          setFishingNow(Date.now());
+          lastTick = time;
+        }
+
+        rafId = requestAnimationFrame(tick);
+      };
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (rafId !== undefined) {
+          cancelAnimationFrame(rafId);
+          rafId = undefined;
+        }
+        return;
+      }
+
+      setFishingNow(Date.now());
+      start();
+    };
+
+    start();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (rafId !== undefined) {
+        cancelAnimationFrame(rafId);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      setFishingNow(Date.now());
+    };
+  }, [tab]);
 
   // Resource list states
   const [resourceListHydrated, setResourceListHydrated] = useState(false);
@@ -477,6 +528,7 @@ export default function Game() {
   }, [updateEverything, user]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateEverything().then(() => setGameHydrated(true));
 
     // Set radio volume based on settings
@@ -502,11 +554,13 @@ export default function Game() {
 
   useEffect(() => {
     if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsTutorialOpen(true);
   }, [user, isTutorialOpen, banned]);
 
   useEffect(() => {
     if (!isTutorialOpen || !currentTutorialStep?.tab) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTabTo(currentTutorialStep.tab);
   }, [currentTutorialStep, isTutorialOpen, setTabTo]);
 
@@ -514,6 +568,7 @@ export default function Game() {
     if (!isTutorialOpen) return;
 
     if (tab === 'resources' && marketModalResource) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTutorialProgress(prev => ({
         ...prev,
         openedResourceModal: true,
@@ -833,19 +888,16 @@ export default function Game() {
                             }
                           }}
                           disabled={
-                            // eslint-disable-next-line react-hooks/purity
-                            (user?.fishing?.last_fished_at || 0) + 5000 > Date.now() ||
+                            (user?.fishing?.last_fished_at || 0) + 5000 > fishingNow ||
                             ((user?.fishing?.aquarium.fish.length || 0) >=
                               (user?.fishing?.aquarium.capacity || 0) &&
                               !autoSellEnabled)
                           }
                         >
                           {(() => {
-                            // eslint-disable-next-line react-hooks/purity
-                            if ((user?.fishing?.last_fished_at || 0) + 5000 > Date.now()) {
+                            if ((user?.fishing?.last_fished_at || 0) + 5000 > fishingNow) {
                               return `Wait ${formatRemainingMilliseconds(
-                                // eslint-disable-next-line react-hooks/purity
-                                (user?.fishing?.last_fished_at || 0) + 5000 - Date.now()
+                                (user?.fishing?.last_fished_at || 0) + 5000 - fishingNow
                               )}`;
                             }
                             const isAquariumFull =
