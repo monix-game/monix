@@ -70,8 +70,7 @@ router.post('/users', requireRole('helper'), async (req: Request, res: Response)
     const lowerFilter = filter.toLowerCase();
     users = users.filter(
       u =>
-        u.username.toLowerCase().includes(lowerFilter) ||
-        u.uuid.toLowerCase().includes(lowerFilter)
+        u.username.toLowerCase().includes(lowerFilter) || u.uuid.toLowerCase().includes(lowerFilter)
     );
   }
 

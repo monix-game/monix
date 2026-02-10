@@ -113,7 +113,6 @@ export default function Staff() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateEverything();
 
     const interval = setInterval(async () => {
