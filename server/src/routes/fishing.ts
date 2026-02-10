@@ -426,6 +426,8 @@ router.post('/fish', requireActive, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
+  const { auto_sell } = req.body as { auto_sell?: boolean };
+
   // Check if the user has fished within the last 5 seconds to prevent spamming
   const now = Date.now();
   if (user.fishing?.last_fished_at && now - user.fishing.last_fished_at < 5000) {
@@ -454,10 +456,14 @@ router.post('/fish', requireActive, async (req, res) => {
     caught_at: fishingResult.timestamp,
   };
 
-  let addedToAquarium = false;
-  if (user.fishing.aquarium.fish.length < user.fishing.aquarium.capacity) {
+  let success = false;
+  if (user.fishing.aquarium.fish.length < user.fishing.aquarium.capacity && !auto_sell) {
     user.fishing.aquarium.fish.push(fish);
-    addedToAquarium = true;
+    success = true;
+  } else if (auto_sell) {
+    const value = getFishValue(fish);
+    user.money += value;
+    success = true;
   }
 
   const nowAfterCatch = Date.now();
@@ -488,7 +494,7 @@ router.post('/fish', requireActive, async (req, res) => {
   return res.status(200).json({
     fishingResult,
     fishCaught: fish,
-    addedToAquarium,
+    success,
   });
 });
 

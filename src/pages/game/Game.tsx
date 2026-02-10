@@ -148,7 +148,7 @@ export default function Game() {
   const [lastCatch, setLastCatch] = useState<{
     fishingResult: FishingResult;
     fishCaught: IFish;
-    addedToAquarium: boolean;
+    success: boolean;
   } | null>(null);
   const [wasLastCatchAutoSold, setWasLastCatchAutoSold] = useState<boolean>(false);
   const [autoSellEnabled, setAutoSellEnabled] = useState<boolean>(false);
@@ -592,7 +592,7 @@ export default function Game() {
                         />
                         <Button
                           onClickAsync={async () => {
-                            const result = await goFishing();
+                            const result = await goFishing(autoSellEnabled);
 
                             if (result) {
                               setIsShowingFishingResults(true);
@@ -600,7 +600,8 @@ export default function Game() {
 
                               if (autoSellEnabled) {
                                 setWasLastCatchAutoSold(true);
-                                await sellFish(result.fishCaught.uuid);
+                              } else {
+                                setWasLastCatchAutoSold(false);
                               }
 
                               await updateEverything();
@@ -609,8 +610,9 @@ export default function Game() {
                           disabled={
                             // eslint-disable-next-line react-hooks/purity
                             (user?.fishing?.last_fished_at || 0) + 5000 > Date.now() ||
-                            (user?.fishing?.aquarium.fish.length || 0) >=
-                              (user?.fishing?.aquarium.capacity || 0)
+                            ((user?.fishing?.aquarium.fish.length || 0) >=
+                              (user?.fishing?.aquarium.capacity || 0) &&
+                              !autoSellEnabled)
                           }
                         >
                           {}
@@ -621,7 +623,7 @@ export default function Game() {
                             }
                             const isAquariumFull =
                               (user?.fishing?.aquarium.fish.length || 0) >=
-                              (user?.fishing?.aquarium.capacity || 0);
+                                (user?.fishing?.aquarium.capacity || 0) && !autoSellEnabled;
                             return isAquariumFull ? 'Aquarium Full' : 'Cast a Line!';
                           })()}
                         </Button>

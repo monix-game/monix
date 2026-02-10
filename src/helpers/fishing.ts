@@ -119,24 +119,24 @@ export async function equipBait(baitId: string): Promise<boolean> {
   return false;
 }
 
-export async function goFishing(): Promise<{
+export async function goFishing(autoSell: boolean = false): Promise<{
   fishingResult: FishingResult;
   fishCaught: IFish;
-  addedToAquarium: boolean;
+  success: boolean;
 } | null> {
   try {
     const resp = await api.post<{
       fishingResult: FishingResult;
       fishCaught: IFish;
-      addedToAquarium: boolean;
-    }>('/fishing/fish');
+      success: boolean;
+    }>('/fishing/fish', { auto_sell: autoSell });
     if (resp?.success) {
       const payload = resp.data;
-      if (payload?.fishingResult && payload?.fishCaught) {
+      if (payload) {
         return {
           fishingResult: payload.fishingResult,
           fishCaught: payload.fishCaught,
-          addedToAquarium: payload.addedToAquarium,
+          success: payload.success,
         };
       }
     }
