@@ -28,6 +28,42 @@
   padding: 20px;
 }
 
+.settings-credits-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+}
+
+.settings-credits-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.settings-credits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.settings-credits-card {
+  border: 1px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.settings-credits-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-credits-role {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .settings-qr-code {
   width: 200px;
   height: 200px;

@@ -7,6 +7,7 @@ import {
   IconEyeClosed,
   IconFaceMask,
   IconGitCommit,
+  IconInfoCircle,
   IconLock,
   IconLockOpen,
   IconLogout,
@@ -51,6 +52,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
   const [isAvatarModalOpen, setIsAvatarModalOpen] = React.useState<boolean>(false);
   const [isDeleteAvatarModalOpen, setIsDeleteAvatarModalOpen] = React.useState<boolean>(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = React.useState<boolean>(false);
+  const [isCreditsModalOpen, setIsCreditsModalOpen] = React.useState<boolean>(false);
 
   const [oldPassword, setOldPassword] = React.useState<string>('');
   const [password, setPassword] = React.useState<string>('');
@@ -250,6 +252,15 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             }}
           />
         </div>
+        <h2 className="settings-header">About</h2>
+        <SettingsOption
+          type="button"
+          icon={<IconInfoCircle />}
+          label="Credits"
+          description="See acknowledgements and licenses"
+          buttonLabel="View Credits"
+          buttonAction={() => setIsCreditsModalOpen(true)}
+        />
         <p className="settings-version-info">
           You are playing Monix on version{' '}
           <span className="mono">
@@ -440,6 +451,25 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             }}
           >
             Change Password
+          </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)}>
+        <div className="settings-credits-modal">
+          <h2>Credits</h2>
+          <p className="settings-credits-subtitle">Built with care by the creators below.</p>
+          <div className="settings-credits-grid">
+            <div className="settings-credits-card">
+              <div className="settings-credits-name">proplayer919</div>
+              <div className="settings-credits-role">Development & Creator</div>
+            </div>
+            <div className="settings-credits-card">
+              <div className="settings-credits-name">Ferretosan</div>
+              <div className="settings-credits-role">Music</div>
+            </div>
+          </div>
+          <Button onClick={() => setIsCreditsModalOpen(false)} secondary>
+            Close
           </Button>
         </div>
       </Modal>
