@@ -894,8 +894,22 @@ export default function Game() {
                           {section.baits.map(bait => (
                             <div key={bait.id} className="fishing-modal-card">
                               <h3>{bait.name}</h3>
+                              <div className="bait-pills">
+                                {bait.fish_types_boosted.map(typeId => {
+                                  const typeInfo = fishTypes.find(t => t.id === typeId);
+                                  if (!typeInfo) return null;
+                                  return (
+                                    <span key={typeId} className="bait-pill">
+                                      <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                               <p>
-                                Price: <span className="mono">{smartFormatNumber(bait.price)}</span>
+                                Cost:{' '}
+                                <span className="mono">
+                                  {smartFormatNumber(bait.price * (baitQuantities[bait.id] || 1))}
+                                </span>
                               </p>
                               <div className="bait-quantity-control">
                                 <button
