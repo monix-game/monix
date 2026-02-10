@@ -18,6 +18,7 @@ import {
   Nameplate,
   Avatar,
   Checkbox,
+  Select,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -233,6 +234,35 @@ export default function Game() {
   const [isFishSellModalOpen, setIsFishSellModalOpen] = useState<boolean>(false);
   const [isFishSellAllModalOpen, setIsFishSellAllModalOpen] = useState<boolean>(false);
   const [aquariumFishToSell, setAquariumFishToSell] = useState<string | null>(null);
+  const [aquariumSort, setAquariumSort] = useState<'value-desc' | 'value-asc'>('value-desc');
+  const [aquariumModifierFilter, setAquariumModifierFilter] = useState<'all' | 'with' | 'without'>(
+    'all'
+  );
+
+  const aquariumFishView = useMemo(() => {
+    const aquariumFish = user?.fishing?.aquarium.fish ?? [];
+
+    const filteredFish = aquariumFish.filter(fish => {
+      const modifierCount = fish.modifiers?.length ?? 0;
+      if (aquariumModifierFilter === 'with') return modifierCount > 0;
+      if (aquariumModifierFilter === 'without') return modifierCount === 0;
+      return true;
+    });
+
+    const fishWithValue = filteredFish.map(fish => ({
+      fish,
+      value: getFishValue(fish),
+    }));
+
+    const sortMultiplier = aquariumSort === 'value-desc' ? -1 : 1;
+    fishWithValue.sort((a, b) => {
+      const valueDelta = a.value - b.value;
+      if (valueDelta !== 0) return valueDelta * sortMultiplier;
+      return (b.fish.caught_at || 0) - (a.fish.caught_at || 0);
+    });
+
+    return fishWithValue.map(item => item.fish);
+  }, [user?.fishing?.aquarium.fish, aquariumModifierFilter, aquariumSort]);
 
   // Radio
   const {
@@ -1022,29 +1052,63 @@ export default function Game() {
                   );
                 })()}
               </div>
-              <div className="aquarium-buttons">
-                <Button
-                  onClickAsync={async () => {
-                    await upgradeAquarium();
-                    await updateEverything();
-                  }}
-                  disabled={
-                    !user ||
-                    (user.money || 0) < getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
-                  }
-                >
-                  Upgrade Aquarium for{' '}
-                  {smartFormatNumber(getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1))}
-                </Button>
-                <Button
-                  onClick={() => setIsFishSellAllModalOpen(true)}
-                  disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
-                >
-                  Sell All
-                </Button>
+              <div className="aquarium-action-row">
+                <div className="aquarium-buttons">
+                  <Button
+                    onClickAsync={async () => {
+                      await upgradeAquarium();
+                      await updateEverything();
+                    }}
+                    disabled={
+                      !user ||
+                      (user.money || 0) < getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                    }
+                  >
+                    Upgrade Aquarium for{' '}
+                    {smartFormatNumber(getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1))}
+                  </Button>
+                  <Button
+                    onClick={() => setIsFishSellAllModalOpen(true)}
+                    disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
+                  >
+                    Sell All
+                  </Button>
+                </div>
+                <div className="aquarium-controls">
+                  <div className="aquarium-control-group">
+                    <span className="aquarium-control-label">Sort</span>
+                    <Select
+                      value={aquariumSort}
+                      onChange={value => setAquariumSort(value as 'value-desc' | 'value-asc')}
+                      options={[
+                        { label: 'Value: High to Low', value: 'value-desc' },
+                        { label: 'Value: Low to High', value: 'value-asc' },
+                      ]}
+                      disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
+                    />
+                  </div>
+                  <div className="aquarium-control-group">
+                    <span className="aquarium-control-label">Filter</span>
+                    <Select
+                      value={aquariumModifierFilter}
+                      onChange={value =>
+                        setAquariumModifierFilter(value as 'all' | 'with' | 'without')
+                      }
+                      options={[
+                        { label: 'All Fish', value: 'all' },
+                        { label: 'Has Modifiers', value: 'with' },
+                        { label: 'No Modifiers', value: 'without' },
+                      ]}
+                      disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
+                    />
+                  </div>
+                </div>
               </div>
+              {aquariumFishView.length === 0 && (user?.fishing?.aquarium.fish.length || 0) > 0 && (
+                <div className="aquarium-empty">No fish match those filters.</div>
+              )}
               <div className="aquarium-grid">
-                {user?.fishing?.aquarium.fish.map(fish => (
+                {aquariumFishView.map(fish => (
                   <div key={fish.uuid} className="aquarium-fish-card">
                     <h3>
                       <EmojiText>{fishTypes.find(ft => ft.id === fish.type)?.icon}</EmojiText>{' '}
