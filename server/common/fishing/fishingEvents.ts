@@ -2,7 +2,6 @@ export interface FishingEventInfo {
   id: string;
   name: string;
   icon: string;
-  affects_offline: boolean;
   timing: FishingEventTiming;
 }
 
@@ -26,7 +25,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'stormbreak',
     name: 'Stormbreak',
     icon: '🌩️',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -37,7 +35,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'stardom',
     name: 'Stardom',
     icon: '🌟',
-    affects_offline: false,
     timing: {
       type: 'random',
       min_duration: 120,
@@ -48,7 +45,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'fallout',
     name: 'Fallout',
     icon: '☢️',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -59,7 +55,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'slimeification',
     name: 'The Great Slimeification',
     icon: '🟢',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -70,7 +65,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'reflection',
     name: 'Reflection',
     icon: '🪞',
-    affects_offline: false,
     timing: {
       type: 'random',
       min_duration: 60,
@@ -81,7 +75,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'rainbow',
     name: 'Rainbow',
     icon: '🌈',
-    affects_offline: false,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -92,7 +85,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'newyear',
     name: 'A New Year Dawns',
     icon: '🎉',
-    affects_offline: true,
     timing: {
       type: 'date_range',
       start_month: 0,
@@ -105,7 +97,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'sadness',
     name: 'The Cries of Sadness',
     icon: '😢',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -116,7 +107,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'happiness',
     name: 'The Era of Happiness',
     icon: '😊',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -127,7 +117,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'halloween',
     name: "Hallow's Eve",
     icon: '🎃',
-    affects_offline: false,
     timing: {
       type: 'date_range',
       start_month: 9,
@@ -140,7 +129,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'souls',
     name: 'The Escape of the Souls',
     icon: '👻',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 30,
@@ -151,7 +139,6 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'christmas',
     name: 'The Jolliest Season',
     icon: '🎄',
-    affects_offline: true,
     timing: {
       type: 'date_range',
       start_month: 11,
@@ -164,11 +151,22 @@ export const fishingEvents: FishingEventInfo[] = [
     id: 'wizards',
     name: 'The Wizards Emerge',
     icon: '🧙‍♂️',
-    affects_offline: true,
     timing: {
       type: 'random',
       min_duration: 60,
       max_duration: 120,
+    },
+  },
+  {
+    id: 'valentines',
+    name: "Valentine's Day",
+    icon: '❤️',
+    timing: {
+      type: 'date_range',
+      start_month: 1,
+      start_day: 14,
+      end_month: 1,
+      end_day: 14,
     },
   },
 ];

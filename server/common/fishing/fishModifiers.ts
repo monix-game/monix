@@ -272,4 +272,20 @@ export const fishModifiers: FishModifierInfo[] = [
     multiplier: 1.35,
     rarity_weight: 15,
   },
+  {
+    id: 'love-struck',
+    name: 'Love-Struck',
+    icon: '💘',
+    event: 'valentines',
+    multiplier: 1.2,
+    rarity_weight: 75,
+  },
+  {
+    id: 'heartbroken',
+    name: 'Heartbroken',
+    icon: '💔',
+    event: 'valentines',
+    multiplier: 0.9,
+    rarity_weight: 25,
+  },
 ];
