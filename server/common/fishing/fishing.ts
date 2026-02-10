@@ -39,16 +39,16 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
 
   // Calculate fish type weights:
   // - Start with base weights from fishTypes
-  // - Apply bait boosts (0.4-0.6x multiplier for non-boosted fish, 1.4-1.6x multiplier for boosted fish)
+  // - Apply bait boosts (0.2-0.4x multiplier for non-boosted fish, 1.6-1.8x multiplier for boosted fish)
   const fishTypeRarityWeights: { [fishTypeId: string]: number } = {};
   for (const fishType of fishTypes) {
     let weight = fishType.rarity_weight; // Base weight
 
     if (bait) {
       if (bait.fish_types_boosted.includes(fishType.id)) {
-        weight *= 1.4 + rng() * 0.2; // Boosted fish get 1.4-1.6x weight
+        weight *= 1.6 + rng() * 0.2; // Boosted fish get 1.6-1.8x weight
       } else {
-        weight *= 0.4 + rng() * 0.2; // Non-boosted fish get 0.4-0.6x weight
+        weight *= 0.2 + rng() * 0.2; // Non-boosted fish get 0.2-0.4x weight
       }
     }
 
