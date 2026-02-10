@@ -68,7 +68,11 @@ router.post('/users', requireRole('helper'), async (req: Request, res: Response)
 
   if (filter) {
     const lowerFilter = filter.toLowerCase();
-    users = users.filter(u => u.username.toLowerCase().includes(lowerFilter));
+    users = users.filter(
+      u =>
+        u.username.toLowerCase().includes(lowerFilter) ||
+        u.uuid.toLowerCase().includes(lowerFilter)
+    );
   }
 
   res.status(200).json({ users });

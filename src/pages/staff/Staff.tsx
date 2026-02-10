@@ -122,22 +122,27 @@ export default function Staff() {
     return () => clearInterval(interval);
   }, [updateEverything]);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (nextFilter: string) => {
     setUsersHydrated(false);
+    const normalizedFilter = nextFilter.trim();
+
     try {
-      const resp = await getAllUsers(filter);
+      const resp = await getAllUsers(normalizedFilter.length ? normalizedFilter : undefined);
       setUsers(resp);
-      setUsersHydrated(true);
     } catch {
       setUsers([]);
+    } finally {
       setUsersHydrated(true);
     }
-  }, [filter]);
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchUsers();
-  }, [fetchUsers]);
+    const debounce = setTimeout(() => {
+      void fetchUsers(filter);
+    }, 250);
+
+    return () => clearTimeout(debounce);
+  }, [fetchUsers, filter]);
 
   const handleReportAction = useCallback(async () => {
     if (!selectedReport || !selectedReportAction) return;
@@ -537,7 +542,6 @@ export default function Staff() {
                 value={filter}
                 onValueChange={value => {
                   setFilter(value);
-                  void fetchUsers();
                 }}
               />
             </div>
