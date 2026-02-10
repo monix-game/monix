@@ -545,7 +545,8 @@ export default function Staff() {
               />
             </div>
             <div className="user-list">
-              {users.length === 0 && <p>No users found.</p>}
+              {!usersHydrated && <Spinner size={28} />}
+              {usersHydrated && users.length === 0 && <p>No users found.</p>}
               {usersHydrated &&
                 users.map(u => (
                   <div key={u.uuid} className="user-card">
