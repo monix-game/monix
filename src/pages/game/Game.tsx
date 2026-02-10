@@ -14,6 +14,7 @@ import {
   Leaderboard,
   GemCard,
   Social,
+  DebugOverlay,
   Modal,
   Nameplate,
   Avatar,
@@ -49,7 +50,7 @@ import { getRemainingDuration, type IPunishment } from '../../../server/common/m
 import { getMyAppeals, submitAppeal } from '../../helpers/appeals';
 import { useMusic } from '../../providers/music';
 import { tracks } from '../../helpers/tracks';
-import { loadSettings } from '../../helpers/settings';
+import { loadSettings, type IClientSettings } from '../../helpers/settings';
 import type { IAppeal } from '../../../server/common/models/appeal';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { fishTypes } from '../../../server/common/fishing/fishTypes';
@@ -76,6 +77,9 @@ import type { IFish } from '../../../server/common/models/fish';
 import { DAILY_REWARDS } from '../../../server/common/rewards/dailyRewards';
 
 export default function Game() {
+  const debugOverlayPositions = ['topleft', 'topright', 'bottomleft', 'bottomright'] as const;
+  type DebugOverlayPosition = (typeof debugOverlayPositions)[number];
+
   // Net worth states
   const [totalNetWorth, setTotalNetWorth] = useState<number>(0);
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
@@ -122,6 +126,12 @@ export default function Game() {
   const [myAppeals, setMyAppeals] = useState<IAppeal[]>([]);
   const [eventNow, setEventNow] = useState(() => Date.now());
   const [fishingNow, setFishingNow] = useState(() => Date.now());
+  const [debugOverlayEnabled, setDebugOverlayEnabled] = useState(
+    () => loadSettings().debugOverlay ?? false
+  );
+  const [debugOverlayPosition, setDebugOverlayPosition] = useState<DebugOverlayPosition>(
+    () => loadSettings().debugOverlayPosition ?? 'topleft'
+  );
   const [dailyRewardResult, setDailyRewardResult] = useState<DailyRewardClaimResult | null>(null);
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState<boolean>(false);
   const dailyRewardClaimedRef = useRef(false);
@@ -233,6 +243,31 @@ export default function Game() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const handleSettingsChanged = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          key?: keyof IClientSettings;
+          value?: IClientSettings[keyof IClientSettings];
+        }>
+      ).detail;
+
+      if (detail?.key === 'debugOverlay') {
+        setDebugOverlayEnabled(Boolean(detail.value));
+      }
+      if (detail?.key === 'debugOverlayPosition') {
+        const nextValue = String(detail.value) as DebugOverlayPosition;
+        setDebugOverlayPosition(debugOverlayPositions.includes(nextValue) ? nextValue : 'topleft');
+      }
+    };
+
+    globalThis.addEventListener('settings-changed', handleSettingsChanged);
+
+    return () => {
+      globalThis.removeEventListener('settings-changed', handleSettingsChanged);
+    };
+  });
 
   useEffect(() => {
     if (tab !== 'fishing') return;
@@ -673,6 +708,7 @@ export default function Game() {
   return (
     <>
       <div className="app-container">
+        {debugOverlayEnabled && <DebugOverlay position={debugOverlayPosition} />}
         <header className="app-header">
           <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
           <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />

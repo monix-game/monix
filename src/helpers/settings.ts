@@ -6,12 +6,16 @@ export interface IClientSettings {
   theme: 'light' | 'dark' | 'system';
   musicVolume: number;
   motionReduction: boolean;
+  debugOverlay: boolean;
+  debugOverlayPosition: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
 }
 
 export const defaultSettings: IClientSettings = {
   theme: 'light',
   musicVolume: 10,
   motionReduction: false,
+  debugOverlay: false,
+  debugOverlayPosition: 'topleft',
 };
 
 export function loadSettings(): IClientSettings {
@@ -71,4 +75,15 @@ export function updateSetting<K extends keyof IClientSettings>(key: K, value: IC
 
   const root = document.documentElement;
   root.setAttribute(`data-setting-${key}`, String(value));
+
+  if (globalThis.window !== undefined) {
+    globalThis.dispatchEvent(
+      new CustomEvent('settings-changed', {
+        detail: {
+          key,
+          value,
+        },
+      })
+    );
+  }
 }

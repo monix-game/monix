@@ -4,6 +4,7 @@ import type { IUser } from '../../../server/common/models/user';
 import { SettingsOption } from './settingsoption/SettingsOption';
 import {
   IconBrush,
+  IconBug,
   IconEyeClosed,
   IconFaceMask,
   IconGitCommit,
@@ -42,6 +43,7 @@ interface SettingsProps {
 }
 
 type ThemeOption = 'light' | 'dark' | 'system';
+type DebugOverlayPosition = 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
 
 export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) => {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = React.useState<boolean>(false);
@@ -61,6 +63,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
   const [theme, setTheme] = React.useState<ThemeOption>('light');
   const [musicVolume, setMusicVolume] = React.useState<number>(70);
   const [motionReduction, setMotionReduction] = React.useState<boolean>(false);
+  const [debugOverlay, setDebugOverlay] = React.useState<boolean>(false);
+  const [debugOverlayPosition, setDebugOverlayPosition] =
+    React.useState<DebugOverlayPosition>('topleft');
 
   // Server settings
   const [privacyMode, setPrivacyMode] = React.useState<boolean>(false);
@@ -75,6 +80,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       setTheme(settings.theme);
       setMusicVolume(settings.musicVolume);
       setMotionReduction(settings.motionReduction);
+      setDebugOverlay(settings.debugOverlay);
+      setDebugOverlayPosition(settings.debugOverlayPosition);
 
       setPrivacyMode(user.settings.privacy_mode);
     };
@@ -176,6 +183,37 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             console.log('Privacy Mode changed to:', newValue);
             setPrivacyMode(newValue as boolean);
             void updateServerSetting('privacy_mode', newValue as boolean);
+          }}
+        />
+
+        <h2 className="settings-header">Developer</h2>
+        <SettingsOption
+          type="checkbox"
+          icon={<IconBug />}
+          label="Debug Overlay"
+          description="Show performance and network stats"
+          value={debugOverlay}
+          onChange={(newValue: string | boolean | number) => {
+            setDebugOverlay(newValue as boolean);
+            updateSetting('debugOverlay', newValue as boolean);
+          }}
+        />
+        <SettingsOption
+          type="select"
+          icon={<IconBug />}
+          label="Debug Overlay Position"
+          description="Choose where the overlay appears"
+          selectOptions={[
+            { label: 'Top Left', value: 'topleft' },
+            { label: 'Top Right', value: 'topright' },
+            { label: 'Bottom Left', value: 'bottomleft' },
+            { label: 'Bottom Right', value: 'bottomright' },
+          ]}
+          value={debugOverlayPosition}
+          disabled={!debugOverlay}
+          onChange={(newValue: string | boolean | number) => {
+            setDebugOverlayPosition(newValue as DebugOverlayPosition);
+            updateSetting('debugOverlayPosition', newValue as DebugOverlayPosition);
           }}
         />
 

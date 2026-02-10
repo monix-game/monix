@@ -1,0 +1,50 @@
+.debug-overlay {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.debug-overlay-topleft {
+  top: 12px;
+  left: 12px;
+}
+
+.debug-overlay-topright {
+  top: 12px;
+  right: 12px;
+}
+
+.debug-overlay-bottomleft {
+  bottom: 12px;
+  left: 12px;
+}
+
+.debug-overlay-bottomright {
+  bottom: 12px;
+  right: 12px;
+}
+
+.debug-overlay-title {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.debug-overlay-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 160px;
+}

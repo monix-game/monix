@@ -21,3 +21,4 @@ export { PunishModal } from './punishmodal/PunishModal';
 export { Slider } from './slider/Slider';
 export { Nameplate } from './nameplate/Nameplate';
 export { Avatar } from './avatar/Avatar';
+export { DebugOverlay } from './debugoverlay/DebugOverlay';
