@@ -57,6 +57,7 @@ router.post('/register', async (req: Request, res: Response) => {
     password_hash,
     money: 1000,
     gems: 0,
+    completed_tutorial: false,
     role: 'user',
     time_created: Date.now() / 1000,
     last_seen: Date.now() / 1000,
@@ -188,6 +189,34 @@ router.get('/user', requireAuth, (req: Request, res: Response) => {
   if (!authUser) return res.status(404).json({ error: 'User not found' });
 
   return res.status(200).json({ user: userToDoc(authUser) });
+});
+
+router.post('/tutorial/complete', requireAuth, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  if (!authUser.completed_tutorial) {
+    authUser.completed_tutorial = true;
+    await updateUser(authUser);
+  }
+
+  return res.status(200).json({ message: 'Tutorial completed' });
+});
+
+router.post('/tutorial/reset', requireAuth, async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  if (authUser.completed_tutorial) {
+    authUser.completed_tutorial = false;
+    await updateUser(authUser);
+  }
+
+  return res.status(200).json({ message: 'Tutorial reset' });
 });
 
 router.post('/logout', requireAuth, async (req: Request, res: Response) => {

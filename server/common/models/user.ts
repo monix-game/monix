@@ -15,6 +15,7 @@ export interface IUser {
   settings: ISettings;
   money: number;
   gems: number;
+  completed_tutorial: boolean;
   totp_secret?: string;
   setup_totp?: boolean;
   avatar_data_uri?: string;
@@ -52,6 +53,7 @@ export function userToDoc(u: IUser): IUser {
     settings: u.settings,
     money: u.money,
     gems: u.gems,
+    completed_tutorial: u.completed_tutorial ?? false,
     totp_secret: u.totp_secret,
     setup_totp: u.setup_totp,
     avatar_data_uri: u.avatar_data_uri,
@@ -75,6 +77,7 @@ export function userFromDoc(doc: any): IUser {
     settings: doc.settings || DEFAULT_SETTINGS,
     money: doc.money || 0,
     gems: doc.gems || 0,
+    completed_tutorial: doc.completed_tutorial || false,
     totp_secret: doc.totp_secret || undefined,
     setup_totp: doc.setup_totp || false,
     avatar_data_uri: doc.avatar_data_uri || undefined,

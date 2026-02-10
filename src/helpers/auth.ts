@@ -195,6 +195,26 @@ export async function removeAvatar(): Promise<boolean> {
   }
 }
 
+export async function completeTutorial(): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/tutorial/complete');
+    return resp.success;
+  } catch (err) {
+    console.error('Error completing tutorial', err);
+    return false;
+  }
+}
+
+export async function resetTutorial(): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/tutorial/reset');
+    return resp.success;
+  } catch (err) {
+    console.error('Error resetting tutorial', err);
+    return false;
+  }
+}
+
 export function logOut() {
   localStorage.removeItem(localStorageKey('session_token'));
   localStorage.removeItem(localStorageKey('session_user_uuid'));

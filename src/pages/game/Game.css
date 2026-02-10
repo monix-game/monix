@@ -155,7 +155,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1>* {
+.money-tab-content h1 > * {
   vertical-align: middle;
 }
 
@@ -218,7 +218,7 @@ html[data-theme='dark'] .app-logo-light {
   min-height: 0;
 }
 
-.fishing-hgrid>* {
+.fishing-hgrid > * {
   flex: 1 1 0;
   min-width: 0;
   height: 100%;
@@ -233,7 +233,7 @@ html[data-theme='dark'] .app-logo-light {
   flex: 1 1 0;
 }
 
-.fishing-vgrid>* {
+.fishing-vgrid > * {
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -459,8 +459,137 @@ html[data-theme='dark'] .app-logo-light {
   gap: 10px;
 }
 
-.fish-sell-modal-buttons>* {
+.fish-sell-modal-buttons > * {
   flex: 1;
+}
+
+.tutorial-dock {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+  padding: 0 20px;
+}
+
+.tutorial-card {
+  width: min(920px, 100%);
+  background: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: calc(var(--border-radius) + 6px);
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 16px;
+  padding: 16px;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+}
+
+.tutorial-npc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.tutorial-npc-avatar {
+  font-size: 2rem;
+  background: var(--bg);
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--primary-2);
+}
+
+.tutorial-npc-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tutorial-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tutorial-body h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.tutorial-body p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.tutorial-step-count {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.tutorial-task {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.tutorial-task-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tutorial-task-value {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 2px solid var(--primary-2);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tutorial-task-value.todo {
+  border-style: dashed;
+}
+
+.tutorial-task-value.done {
+  border-color: var(--primary-3);
+}
+
+.tutorial-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.tutorial-nav {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 820px) {
+  .tutorial-card {
+    grid-template-columns: 1fr;
+  }
+
+  .tutorial-actions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .fishing-modal {
@@ -490,7 +619,7 @@ html[data-theme='dark'] .app-logo-light {
   gap: 12px;
 }
 
-.fishing-modal-section+.fishing-modal-section {
+.fishing-modal-section + .fishing-modal-section {
   margin-top: 6px;
   padding-top: 12px;
   border-top: 2px dashed var(--primary-2);
@@ -528,7 +657,9 @@ html[data-theme='dark'] .app-logo-light {
   border-radius: var(--border-radius);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .fishing-modal-section-toggle:hover {
@@ -552,7 +683,9 @@ html[data-theme='dark'] .app-logo-light {
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .bait-quantity-button:hover {

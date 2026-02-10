@@ -157,6 +157,10 @@ export function formatRemainingTime(seconds: number): string {
   return parts.join(' ');
 }
 
+export function formatRemainingMilliseconds(milliseconds: number): string {
+  return `${(milliseconds / 1000).toFixed(1)}s`;
+}
+
 export function getRarityEmoji(rarity: string): string {
   switch (rarity) {
     case 'common':

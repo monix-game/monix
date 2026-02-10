@@ -22,11 +22,19 @@ import {
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
-import { buyCosmetic, equipCosmetic, fetchUser, unequipCosmetic } from '../../helpers/auth';
+import {
+  buyCosmetic,
+  completeTutorial,
+  equipCosmetic,
+  fetchUser,
+  resetTutorial,
+  unequipCosmetic,
+} from '../../helpers/auth';
 import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { getPrices } from '../../helpers/market';
 import {
+  formatRemainingMilliseconds,
   formatRemainingTime,
   getRarityEmoji,
   smartFormatNumber,
@@ -111,6 +119,21 @@ export default function Game() {
   const [currentPunishment, setCurrentPunishment] = useState<IPunishment | null>(null);
   const [myAppeals, setMyAppeals] = useState<IAppeal[]>([]);
   const [eventNow, setEventNow] = useState(() => Date.now());
+  const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
+  const [tutorialStep, setTutorialStep] = useState<number>(0);
+  const [tutorialProgress, setTutorialProgress] = useState({
+    openedResourceModal: false,
+    openedMarketModal: false,
+    caughtFish: false,
+    visitedAquarium: false,
+    visitedPets: false,
+  });
+  type TutorialStep = {
+    title: string;
+    body: string;
+    tab?: typeof tab;
+    task?: string;
+  };
 
   // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
@@ -118,6 +141,84 @@ export default function Game() {
   const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
 
   const currentFishingEvent = useMemo(() => getCurrentFishingEvent(eventNow), [eventNow]);
+  const tutorialSteps = useMemo<TutorialStep[]>(
+    () => [
+      {
+        title: 'Welcome to Monix',
+        body: 'Build your fortune by fishing, trading resources, and upgrading your collection.',
+        tab: 'money',
+      },
+      {
+        title: 'Track Your Net Worth',
+        body: 'The Money tab shows your total value across money, resources, and your aquarium.',
+        tab: 'money',
+        task: 'Check the Money tab totals.',
+      },
+      {
+        title: 'Collect Resources',
+        body: 'Visit the Resources tab to review holdings and open the market for any resource.',
+        tab: 'resources',
+        task: 'Open a resource card.',
+      },
+      {
+        title: 'Trade in the Market',
+        body: 'Use the Market tab to buy or sell. Price changes can help you grow faster.',
+        tab: 'market',
+        task: 'Open the buy/sell modal.',
+      },
+      {
+        title: 'Go Fishing',
+        body: 'Catch fish to fill your aquarium. Modifiers can boost value, so check each catch.',
+        tab: 'fishing',
+        task: 'Catch a fish.',
+      },
+      {
+        title: 'Review Your Aquarium',
+        body: 'The Aquarium tab stores your fish. Sell or upgrade capacity when you need space.',
+        tab: 'aquarium',
+        task: 'Visit the Aquarium tab.',
+      },
+      {
+        title: 'Meet Your Pets',
+        body: 'Visit the Pets tab to adopt companions and expand your collection.',
+        tab: 'pets',
+        task: 'Visit the Pets tab.',
+      },
+    ],
+    []
+  );
+  const currentTutorialStep = tutorialSteps[tutorialStep];
+  const isLastTutorialStep = tutorialStep >= tutorialSteps.length - 1;
+  const isTutorialStepComplete = useMemo(() => {
+    if (!currentTutorialStep) return true;
+
+    switch (tutorialStep) {
+      case 1:
+        return tab === 'money';
+      case 2:
+        return tab === 'resources' && tutorialProgress.openedResourceModal;
+      case 3:
+        return tab === 'market' && tutorialProgress.openedMarketModal;
+      case 4: {
+        return tab === 'fishing' && tutorialProgress.caughtFish;
+      }
+      case 5:
+        return tab === 'aquarium' && tutorialProgress.visitedAquarium;
+      case 6:
+        return tab === 'pets' && tutorialProgress.visitedPets;
+      default:
+        return true;
+    }
+  }, [
+    currentTutorialStep,
+    tutorialStep,
+    tab,
+    tutorialProgress.openedResourceModal,
+    tutorialProgress.openedMarketModal,
+    tutorialProgress.caughtFish,
+    tutorialProgress.visitedAquarium,
+    tutorialProgress.visitedPets,
+  ]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -340,6 +441,36 @@ export default function Game() {
     setSocialRooms(socialRooms);
   }, [tab, setTabTo, banned]);
 
+  const startTutorial = useCallback(async () => {
+    setTutorialStep(0);
+    setIsTutorialOpen(true);
+    setTutorialProgress({
+      openedResourceModal: false,
+      openedMarketModal: false,
+      caughtFish: false,
+      visitedAquarium: false,
+      visitedPets: false,
+    });
+
+    if (user?.completed_tutorial) {
+      setUser({ ...user, completed_tutorial: false });
+    }
+
+    await resetTutorial();
+  }, [user]);
+
+  const handleTutorialComplete = useCallback(async () => {
+    setIsTutorialOpen(false);
+    setTutorialStep(0);
+
+    if (user && !user.completed_tutorial) {
+      setUser({ ...user, completed_tutorial: true });
+    }
+
+    await completeTutorial();
+    await updateEverything();
+  }, [updateEverything, user]);
+
   useEffect(() => {
     void updateEverything().then(() => setGameHydrated(true));
 
@@ -352,6 +483,53 @@ export default function Game() {
     }, 1000);
     return () => clearInterval(interval);
   }, [updateEverything, setVolume]);
+
+  useEffect(() => {
+    if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
+    setIsTutorialOpen(true);
+  }, [user, isTutorialOpen, banned]);
+
+  useEffect(() => {
+    if (!isTutorialOpen || !currentTutorialStep?.tab) return;
+    setTabTo(currentTutorialStep.tab);
+  }, [currentTutorialStep, isTutorialOpen, setTabTo]);
+
+  useEffect(() => {
+    if (!isTutorialOpen) return;
+
+    if (tab === 'resources' && marketModalResource) {
+      setTutorialProgress(prev => ({
+        ...prev,
+        openedResourceModal: true,
+      }));
+    }
+
+    if (tab === 'market' && marketModalOpen) {
+      setTutorialProgress(prev => ({
+        ...prev,
+        openedMarketModal: true,
+      }));
+    }
+
+    if (tab === 'aquarium') {
+      setTutorialProgress(prev => ({
+        ...prev,
+        visitedAquarium: true,
+      }));
+    }
+
+    if (tab === 'pets') {
+      setTutorialProgress(prev => ({
+        ...prev,
+        visitedPets: true,
+      }));
+    }
+  }, [
+    isTutorialOpen,
+    tab,
+    marketModalResource,
+    marketModalOpen,
+  ]);
 
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
@@ -627,6 +805,12 @@ export default function Game() {
                             if (result) {
                               setIsShowingFishingResults(true);
                               setLastCatch(result);
+                              if (isTutorialOpen) {
+                                setTutorialProgress(prev => ({
+                                  ...prev,
+                                  caughtFish: true,
+                                }));
+                              }
 
                               if (autoSellEnabled) {
                                 setWasLastCatchAutoSold(true);
@@ -645,11 +829,13 @@ export default function Game() {
                               !autoSellEnabled)
                           }
                         >
-                          {}
                           {(() => {
                             // eslint-disable-next-line react-hooks/purity
                             if ((user?.fishing?.last_fished_at || 0) + 5000 > Date.now()) {
-                              return 'Wait...';
+                              return `Wait ${formatRemainingMilliseconds(
+                                // eslint-disable-next-line react-hooks/purity
+                                (user?.fishing?.last_fished_at || 0) + 5000 - Date.now()
+                              )}`;
                             }
                             const isAquariumFull =
                               (user?.fishing?.aquarium.fish.length || 0) >=
@@ -1532,7 +1718,7 @@ export default function Game() {
           )}
           {tab === 'settings' && (
             <div className="tab-content">
-              <Settings user={user!} />
+              <Settings user={user!} onRestartTutorial={startTutorial} />
             </div>
           )}
           {tab === 'jail' && (
@@ -1630,6 +1816,61 @@ export default function Game() {
           />
         )}
       </div>
+      {isTutorialOpen && (
+        <div className="tutorial-dock" role="status" aria-live="polite">
+          <div className="tutorial-card">
+            <div className="tutorial-npc">
+              <span className="tutorial-npc-avatar">
+                <EmojiText>🐠</EmojiText>
+              </span>
+              <span className="tutorial-npc-name">Reef Guide</span>
+            </div>
+            <div className="tutorial-body">
+              <span className="tutorial-step-count">
+                Step {tutorialStep + 1} of {tutorialSteps.length}
+              </span>
+              <h3>{currentTutorialStep?.title}</h3>
+              <p>{currentTutorialStep?.body}</p>
+              {currentTutorialStep?.task && (
+                <div className="tutorial-task">
+                  <span className="tutorial-task-label">Task</span>
+                  <span
+                    className={`tutorial-task-value ${isTutorialStepComplete ? 'done' : 'todo'}`}
+                  >
+                    {currentTutorialStep.task}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="tutorial-actions">
+              <Button secondary onClick={() => void handleTutorialComplete()}>
+                Skip
+              </Button>
+              <div className="tutorial-nav">
+                <Button
+                  secondary
+                  disabled={tutorialStep === 0}
+                  onClick={() => setTutorialStep(prev => Math.max(0, prev - 1))}
+                >
+                  Back
+                </Button>
+                <Button
+                  disabled={!isTutorialStepComplete}
+                  onClick={() => {
+                    if (isLastTutorialStep) {
+                      void handleTutorialComplete();
+                    } else {
+                      setTutorialStep(prev => prev + 1);
+                    }
+                  }}
+                >
+                  {isLastTutorialStep ? 'Finish' : 'Next'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <Modal isOpen={appealModalOpen} onClose={() => setAppealModalOpen(false)}>
         <div className="appeal-modal">
           <h2>Submit an Appeal</h2>

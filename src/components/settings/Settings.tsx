@@ -37,11 +37,12 @@ import { useMusic } from '../../providers/music';
 
 interface SettingsProps {
   user: IUser;
+  onRestartTutorial?: () => void | Promise<void>;
 }
 
 type ThemeOption = 'light' | 'dark' | 'system';
 
-export const Settings: React.FC<SettingsProps> = ({ user }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) => {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = React.useState<boolean>(false);
   const [is2FAModalOpen, setIs2FAModalOpen] = React.useState<boolean>(false);
   const [is2FARemoveModalOpen, setIs2FARemoveModalOpen] = React.useState<boolean>(false);
@@ -125,6 +126,18 @@ export const Settings: React.FC<SettingsProps> = ({ user }) => {
             console.log('Motion Reduction changed to:', newValue);
             setMotionReduction(newValue as boolean);
             updateSetting('motionReduction', newValue as boolean);
+          }}
+        />
+        <SettingsOption
+          type="button"
+          icon={<IconGitCommit />}
+          label="Restart Tutorial"
+          description="Replay the guided walkthrough of Monix"
+          buttonLabel="Restart"
+          buttonAction={async () => {
+            if (onRestartTutorial) {
+              await onRestartTutorial();
+            }
           }}
         />
 
