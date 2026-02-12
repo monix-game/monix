@@ -884,15 +884,19 @@ html[data-theme='dark'] .app-logo-light {
 
 .daily-reward-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.daily-reward-streak {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-muted);
+.daily-reward-header>div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.daily-reward-header h2 {
+  margin: 0;
 }
 
 .daily-reward-subtitle {
@@ -942,6 +946,20 @@ html[data-theme='dark'] .app-logo-light {
   border: 1px dashed var(--primary-2);
   border-radius: var(--border-radius);
   background-color: var(--dark-bg);
+}
+
+.daily-reward-today-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.daily-reward-today-amount {
+  font-size: 1.05rem;
+}
+
+.daily-reward-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .games-container {

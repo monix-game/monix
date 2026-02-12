@@ -1990,12 +1990,11 @@ export default function Game() {
       <Modal isOpen={isDailyRewardModalOpen} onClose={() => setIsDailyRewardModalOpen(false)}>
         <div className="daily-reward-modal">
           <div className="daily-reward-header">
-            <h2>Daily Login Rewards</h2>
-            <span className="daily-reward-streak">
-              Streak Day {dailyRewardResult?.streak || 1}/{DAILY_REWARDS.length}
-            </span>
+            <div>
+              <h2>Daily Login Rewards</h2>
+              <p className="daily-reward-subtitle">Come back each day to build your streak.</p>
+            </div>
           </div>
-          <p className="daily-reward-subtitle">Come back each day to build your streak.</p>
           <div className="daily-reward-grid">
             {DAILY_REWARDS.map(reward => {
               const streak = dailyRewardResult?.streak || 0;
@@ -2020,17 +2019,19 @@ export default function Game() {
           </div>
           {dailyRewardResult?.reward && (
             <div className="daily-reward-today">
-              <span>Today&apos;s reward</span>
-              <strong>
+              <span className="daily-reward-today-label">Today&apos;s reward</span>
+              <strong className="daily-reward-today-amount">
                 {dailyRewardResult.reward.type === 'money'
                   ? `+${smartFormatNumber(dailyRewardResult.reward.amount)}`
                   : `+${dailyRewardResult.reward.amount} Gems`}
               </strong>
             </div>
           )}
-          <Button onClick={() => setIsDailyRewardModalOpen(false)} secondary>
-            Close
-          </Button>
+          <div className="daily-reward-actions">
+            <Button onClick={() => setIsDailyRewardModalOpen(false)} secondary>
+              Close
+            </Button>
+          </div>
         </div>
       </Modal>
     </>
