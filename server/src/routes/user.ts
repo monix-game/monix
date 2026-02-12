@@ -20,6 +20,7 @@ import { createSecret, getTOTPURI, verifyTOTPToken } from '../helpers/totp';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
 import { processAvatar } from '../helpers/avatar';
 import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
+import { applyAquariumEventModifiers, getCurrentFishingEvent } from '../../common/fishing/fishing';
 
 const router = Router();
 
@@ -190,6 +191,12 @@ router.get('/user', requireAuth, (req: Request, res: Response) => {
   const authUser = req.authUser as IUser;
 
   if (!authUser) return res.status(404).json({ error: 'User not found' });
+
+  const currentEvent = getCurrentFishingEvent();
+  const aquariumFish = authUser.fishing?.aquarium?.fish ?? [];
+  if (applyAquariumEventModifiers(aquariumFish, currentEvent)) {
+    void updateUser(authUser);
+  }
 
   return res.status(200).json({ user: userToDoc(authUser) });
 });

@@ -6,6 +6,20 @@ import { fishingRods } from './fishingRods';
 import { fishModifiers } from './fishModifiers';
 import { fishTypes } from './fishTypes';
 
+const AQUARIUM_EVENT_MODIFIER_CHANCE = 0.25;
+const AQUARIUM_EVENT_ROLL_WINDOW_MS = 60 * 1000;
+
+const FISH_MODIFIER_CAP = 3;
+
+function clampFishModifiers(modifiers: string[] | undefined): string[] {
+  if (!modifiers || modifiers.length === 0) {
+    return [];
+  }
+
+  const unique = Array.from(new Set(modifiers));
+  return unique.slice(0, FISH_MODIFIER_CAP);
+}
+
 export interface FishingResult {
   fish_type: string; // ID of the fish type caught
   weight: number; // Weight of the fish caught in kilograms
@@ -87,7 +101,7 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
   return {
     fish_type: fishType.id,
     weight: Number.parseFloat(finalWeight.toFixed(2)),
-    modifiers: modifier ? [modifier] : [],
+    modifiers: clampFishModifiers(modifier ? [modifier] : []),
     bait_used: bait ? bait.id : null,
     rod_used: rod ? rod.id : 'damaged-rod',
     event_active: event.event,
@@ -241,6 +255,67 @@ export function getFishValue(fish: IFish): number {
   }
 
   return Number.parseFloat(modifiedValue.toFixed(2));
+}
+
+export function applyAquariumEventModifiers(
+  aquariumFish: IFish[],
+  currentEvent: CurrentFishingEvent | null,
+  timestamp = Date.now()
+): boolean {
+  const event = currentEvent?.event;
+  if (!event) {
+    return false;
+  }
+
+  const eventModifiers = fishModifiers.filter(mod => mod.event === event.id);
+  if (eventModifiers.length === 0) {
+    return false;
+  }
+
+  const rollBucket = Math.floor(timestamp / AQUARIUM_EVENT_ROLL_WINDOW_MS);
+  let didChange = false;
+
+  for (const fish of aquariumFish) {
+    const currentModifiers = clampFishModifiers(fish.modifiers);
+    if (currentModifiers.length !== (fish.modifiers ?? []).length) {
+      fish.modifiers = currentModifiers;
+      didChange = true;
+    }
+    if (currentModifiers.length >= FISH_MODIFIER_CAP) {
+      continue;
+    }
+
+    const hasEventModifier = currentModifiers.some(modifierId => {
+      const modifier = fishModifiers.find(mod => mod.id === modifierId);
+      return modifier?.event === event.id;
+    });
+
+    if (hasEventModifier) {
+      continue;
+    }
+
+    const seedStr = `aquarium-mod-${fish.uuid}-${event.id}-${rollBucket}`;
+    const rng = mulberry32(fnv1a32(seedStr));
+
+    if (rng() > AQUARIUM_EVENT_MODIFIER_CHANCE) {
+      continue;
+    }
+
+    const chosenModifier = weightedRandom(
+      eventModifiers,
+      eventModifiers.map(mod => mod.rarity_weight),
+      rng
+    );
+
+    if (!chosenModifier || currentModifiers.includes(chosenModifier.id)) {
+      continue;
+    }
+
+    fish.modifiers = clampFishModifiers([...currentModifiers, chosenModifier.id]);
+    didChange = true;
+  }
+
+  return didChange;
 }
 
 /**

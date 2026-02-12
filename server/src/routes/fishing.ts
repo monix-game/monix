@@ -8,6 +8,8 @@ import {
   calculateFishingResult,
   getFishValue,
   getAquariumUpgradeCost,
+  getCurrentFishingEvent,
+  applyAquariumEventModifiers,
 } from '../../common/fishing/fishing';
 import { IFish } from '../models/fish';
 import { v4 } from 'uuid';
@@ -101,6 +103,9 @@ router.post('/aquarium/sell', requireActive, async (req, res) => {
     rods_owned: [],
   };
 
+  const currentEvent = getCurrentFishingEvent();
+  applyAquariumEventModifiers(user.fishing.aquarium.fish, currentEvent);
+
   const fish = user.fishing.aquarium.fish[fishIndex];
   const value = getFishValue(fish);
 
@@ -138,6 +143,8 @@ router.post('/aquarium/sell/all', requireActive, async (req, res) => {
   const fishToSell = user.fishing.aquarium.fish;
   let totalValue = 0;
 
+  const currentEvent = getCurrentFishingEvent();
+  applyAquariumEventModifiers(fishToSell, currentEvent);
   for (const fish of fishToSell) {
     totalValue += getFishValue(fish);
   }
