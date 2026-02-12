@@ -230,12 +230,6 @@ pecker
 Peckerwood
 peepshow
 phonesex
-phuk
-phuked
-phuking
-phukking
-phungky
-phuq
 picaninny
 piccaninny
 poon
@@ -245,6 +239,7 @@ porn
 pornflick
 pornking
 porno
+pornography
 prostitute
 pubiclicepud
 punani
