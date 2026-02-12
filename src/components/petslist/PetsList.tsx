@@ -8,6 +8,7 @@ import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
 import { Modal } from '../modal/Modal';
+import { hasGems } from '../../../server/common/math';
 
 interface PetsListProps {
   money: number;
@@ -86,8 +87,8 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
         <Button
           cost={50}
           costType="gems"
-          onClickAsync={async () => setPetSlotConfirmOpen(true)}
-          disabled={!hydrated || maxSlots >= 10 || (gems !== -1 && gems < 50)}
+          onClick={() => setPetSlotConfirmOpen(true)}
+          disabled={!hydrated || maxSlots >= 10 || !hasGems(gems, 50)}
         >
           Buy Pet Slot
         </Button>

@@ -21,6 +21,7 @@ import { cosmetics } from '../../common/cosmetics/cosmetics';
 import { processAvatar } from '../helpers/avatar';
 import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
 import { applyAquariumEventModifiers, getCurrentFishingEvent } from '../../common/fishing/fishing';
+import { hasGems } from '../math';
 
 const router = Router();
 
@@ -393,7 +394,7 @@ router.post('/cosmetics/buy', requireAuth, async (req: Request, res: Response) =
     return res.status(400).json({ error: 'Cosmetic has no price' });
   }
 
-  if (user.gems !== -1 && user.gems < cosmetic.price) {
+  if (!hasGems(user.gems, cosmetic.price)) {
     return res.status(400).json({ error: 'Insufficient gems' });
   }
 

@@ -48,3 +48,8 @@ export function weightedRandom<T>(items: T[], weights: number[], rng: () => numb
 
   return items[items.length - 1];
 }
+
+export function hasGems(gems: number, cost: number): boolean {
+  if (gems === -1) return true; // Unlimited gems
+  return gems >= cost;
+}

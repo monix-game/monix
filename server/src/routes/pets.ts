@@ -20,6 +20,7 @@ import {
   canPlayWithPet,
   isPetAsleep,
 } from '../../common/pet';
+import { hasGems } from '../math';
 
 const router = Router();
 
@@ -90,7 +91,7 @@ router.post('/buy-slot', requireActive, async (req, res) => {
     return res.status(400).json({ error: 'You have reached the maximum pet slots (10)' });
   }
 
-  if (user.gems !== -1 && (user.gems || 0) < PET_SLOT_COST) {
+  if (!hasGems(user.gems, PET_SLOT_COST)) {
     return res.status(400).json({ error: 'Insufficient gems to buy a pet slot' });
   }
 
