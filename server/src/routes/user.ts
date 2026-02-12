@@ -21,7 +21,7 @@ import { cosmetics } from '../../common/cosmetics/cosmetics';
 import { processAvatar } from '../helpers/avatar';
 import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
 import { applyAquariumEventModifiers, getCurrentFishingEvent } from '../../common/fishing/fishing';
-import { hasGems } from '../math';
+import { hasGems } from '../../common/math';
 
 const router = Router();
 
