@@ -44,6 +44,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const [messageInput, setMessageInput] = React.useState<string>('');
   const profanityFilter = React.useMemo(() => new Filter(), []);
   const messagesRef = React.useRef<IMessage[]>([]);
+  const prevMessagesRef = React.useRef<IMessage[]>([]);
   const currentRoomUuidRef = React.useRef<string>(room.uuid);
   const [contextMenu, setContextMenu] = React.useState<{
     visible: boolean;
@@ -66,14 +67,31 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesRef.current = messages;
-    if (messageContainerRef.current) {
-      // Scroll to bottom when messages change (smoothly)
-      messageContainerRef.current.scrollTo({
-        top: messageContainerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+    const previousMessages = prevMessagesRef.current;
+    const nextMessages = messages;
+    messagesRef.current = nextMessages;
+
+    const container = messageContainerRef.current;
+    if (container) {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      const isNearBottom = distanceFromBottom <= 48;
+      const prevLast = previousMessages[previousMessages.length - 1];
+      const nextLast = nextMessages[nextMessages.length - 1];
+      const isOptimisticReplacement =
+        previousMessages.length === nextMessages.length &&
+        Boolean(prevLast?.uuid?.startsWith('temp-')) &&
+        Boolean(nextLast && !nextLast.uuid.startsWith('temp-'));
+
+      if (isNearBottom && !isOptimisticReplacement) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: previousMessages.length === 0 ? 'auto' : 'smooth',
+        });
+      }
     }
+
+    prevMessagesRef.current = nextMessages;
   }, [messages]);
 
   useEffect(() => {
