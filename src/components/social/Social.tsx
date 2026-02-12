@@ -45,6 +45,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const profanityFilter = React.useMemo(() => new Filter(), []);
   const messagesRef = React.useRef<IMessage[]>([]);
   const prevMessagesRef = React.useRef<IMessage[]>([]);
+  const isUserNearBottomRef = React.useRef<boolean>(true);
   const currentRoomUuidRef = React.useRef<string>(room.uuid);
   const [contextMenu, setContextMenu] = React.useState<{
     visible: boolean;
@@ -228,9 +229,6 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   }, []);
 
   const copyText = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
       // Fallback
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -238,17 +236,39 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       ta.select();
       document.execCommand('copy');
       ta.remove();
-    }
+        if (previousMessages.length === 0) {
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'auto',
+          });
+        } else if (isUserNearBottomRef.current && !isOptimisticReplacement) {
     hideContextMenu();
-  };
+            top: container.scrollHeight,
+            behavior: 'smooth',
+          });
+        }
+      }
 
-  const replyToMessage = (msg: IMessage) => {
-    setMessageInput(prev => `@${msg.sender_username} ${prev}`);
-    hideContextMenu();
-    // focus input: find the input element by class
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const el = document.querySelector('.social-message-input input') as HTMLInputElement | null;
-    if (el) el.focus();
+      prevMessagesRef.current = nextMessages;
+    }, [messages]);
+
+    useEffect(() => {
+      const container = messageContainerRef.current;
+      if (!container) return;
+
+      const handleScroll = () => {
+        const distanceFromBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight;
+        isUserNearBottomRef.current = distanceFromBottom <= 48;
+      };
+
+      handleScroll();
+      container.addEventListener('scroll', handleScroll);
+
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }, []);
   };
 
   const editMessageClick = async () => {
