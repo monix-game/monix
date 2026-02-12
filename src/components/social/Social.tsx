@@ -20,6 +20,7 @@ import { punishXCategories } from '../../../server/common/punishx/categories';
 import { Message } from '../message/Message';
 import { hasRole } from '../../../server/common/roles';
 import { Spinner } from '../spinner/Spinner';
+import Filter from '../../../server/common/filter/filter';
 
 interface SocialProps {
   user: IUser;
@@ -41,6 +42,7 @@ const areMessagesEqual = (msgs1: IMessage[], msgs2: IMessage[]) => {
 export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) => {
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
+  const profanityFilter = React.useMemo(() => new Filter(), []);
   const [contextMenu, setContextMenu] = React.useState<{
     visible: boolean;
     x: number;
@@ -101,33 +103,37 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       }
     }
 
+    const trimmedMessage = messageInput.trim();
+
     // Clear input
     setMessageInput('');
 
     // Send message to server
-    await sendMessage(room.uuid, messageInput.trim());
+    await sendMessage(room.uuid, trimmedMessage);
+
+    const optimisticContent = trimmedMessage.startsWith('/')
+      ? 'Running command...'
+      : profanityFilter.censorText(trimmedMessage);
 
     // Optimistically add message to UI (will be replaced on next fetch)
-    if (!messageInput.trim().startsWith('/')) {
-      setMessages(prev => [
-        ...prev,
-        {
-          uuid: 'temp-' + Date.now(),
-          room_uuid: room.uuid,
-          sender_uuid: user.uuid,
-          sender_username: user.username,
-          sender_badge: user.role,
-          sender_avatar_url: user.avatar_data_uri,
-          user_tag: user.equipped_cosmetics?.tag,
-          nameplate: user.equipped_cosmetics?.nameplate,
-          frame: user.equipped_cosmetics?.frame,
-          content: messageInput.trim(),
-          time_sent: Date.now(),
-          ephemeral: false,
-          edited: false,
-        } as IMessage,
-      ]);
-    }
+    setMessages(prev => [
+      ...prev,
+      {
+        uuid: 'temp-' + Date.now(),
+        room_uuid: room.uuid,
+        sender_uuid: user.uuid,
+        sender_username: user.username,
+        sender_badge: user.role,
+        sender_avatar_url: user.avatar_data_uri,
+        user_tag: user.equipped_cosmetics?.tag,
+        nameplate: user.equipped_cosmetics?.nameplate,
+        frame: user.equipped_cosmetics?.frame,
+        content: optimisticContent,
+        time_sent: Date.now(),
+        ephemeral: false,
+        edited: false,
+      } as IMessage,
+    ]);
 
     // Refresh messages
     await fetchMessages();
