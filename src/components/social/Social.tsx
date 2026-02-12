@@ -43,6 +43,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
   const profanityFilter = React.useMemo(() => new Filter(), []);
+  const messagesRef = React.useRef<IMessage[]>([]);
+  const currentRoomUuidRef = React.useRef<string>(room.uuid);
   const [contextMenu, setContextMenu] = React.useState<{
     visible: boolean;
     x: number;
@@ -64,6 +66,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    messagesRef.current = messages;
     if (messageContainerRef.current) {
       // Scroll to bottom when messages change (smoothly)
       messageContainerRef.current.scrollTo({
@@ -73,15 +76,23 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     }
   }, [messages]);
 
+  useEffect(() => {
+    currentRoomUuidRef.current = room.uuid;
+    setMessages([]);
+    setHydrated(false);
+  }, [room.uuid]);
+
   const fetchMessages = useCallback(
     async (roomUUID?: string) => {
-      const msgs = await getRoomMessages(roomUUID || room.uuid);
+      const targetRoomUuid = roomUUID || room.uuid;
+      const msgs = await getRoomMessages(targetRoomUuid);
+      if (currentRoomUuidRef.current !== targetRoomUuid) return;
       setHydrated(true);
-      if (!areMessagesEqual(messages, msgs)) {
+      if (!areMessagesEqual(messagesRef.current, msgs)) {
         setMessages(msgs);
       }
     },
-    [room.uuid, messages]
+    [room.uuid]
   );
 
   useEffect(() => {
@@ -92,7 +103,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       void fetchMessages();
     }, 1000);
     return () => clearInterval(interval);
-  }, [fetchMessages, room]);
+  }, [fetchMessages, room.uuid]);
 
   const sendMessageClick = async () => {
     if (messageInput.trim() === '') return;
