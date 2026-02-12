@@ -11,6 +11,36 @@ export function getCategoryById(id: string): PunishXCategory | null {
 
 export const punishXCategories: PunishXCategory[] = [
   {
+    id: 'account/sharing',
+    name: 'Account Sharing',
+    levels: [
+      10080, // 7 days
+      40320, // 28 days
+      -1, // Permanent
+    ],
+  },
+  {
+    id: 'account/ban-evasion',
+    name: 'Ban Evasion',
+    levels: [
+      -1, // Permanent
+    ],
+  },
+  {
+    id: 'account/alt-accounts',
+    name: 'Alt Accounts',
+    levels: [
+      -1, // Permanent
+    ],
+  },
+  {
+    id: 'account/brigading',
+    name: 'Brigading',
+    levels: [
+      -1, // Permanent
+    ],
+  },
+  {
     id: 'game/exploiting/general',
     name: 'Game Exploiting - General',
     levels: [
