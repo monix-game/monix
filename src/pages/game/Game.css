@@ -306,6 +306,36 @@ html[data-theme='dark'] .app-logo-light {
   margin-bottom: 10px;
 }
 
+.fishing-result-modifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+}
+
+.fishing-result-modifiers-label {
+  font-size: 1.05rem;
+}
+
+.fishing-result-modifier-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fishing-result-modifier {
+  background-color: var(--dark-bg);
+  border: 1px solid var(--primary-2);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  user-select: none;
+}
+
+
 .fishing-result-buttons {
   display: flex;
   flex-direction: row;
