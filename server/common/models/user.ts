@@ -15,6 +15,7 @@ export interface IUser {
   settings: ISettings;
   money: number;
   gems: number;
+  pet_slots: number;
   daily_rewards?: {
     last_claimed_day?: number;
     streak?: number;
@@ -57,6 +58,7 @@ export function userToDoc(u: IUser): IUser {
     settings: u.settings,
     money: u.money,
     gems: u.gems,
+    pet_slots: u.pet_slots,
     daily_rewards: u.daily_rewards,
     completed_tutorial: u.completed_tutorial ?? false,
     totp_secret: u.totp_secret,
@@ -82,6 +84,7 @@ export function userFromDoc(doc: any): IUser {
     settings: doc.settings || DEFAULT_SETTINGS,
     money: doc.money || 0,
     gems: doc.gems || 0,
+    pet_slots: typeof doc.pet_slots === 'number' ? doc.pet_slots : 3,
     daily_rewards: doc.daily_rewards || { last_claimed_day: 0, streak: 0 },
     completed_tutorial: doc.completed_tutorial || false,
     totp_secret: doc.totp_secret || undefined,

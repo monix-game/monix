@@ -58,6 +58,7 @@ router.post('/register', async (req: Request, res: Response) => {
     password_hash,
     money: 1000,
     gems: 0,
+    pet_slots: 3,
     daily_rewards: { last_claimed_day: 0, streak: 0 },
     completed_tutorial: false,
     role: 'user',

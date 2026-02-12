@@ -28,3 +28,24 @@
   text-align: center;
   margin: 20px;
 }
+
+.pet-slot-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pet-slot-confirm h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.pet-slot-confirm p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pet-slot-confirm-buttons {
+  display: flex;
+  gap: 10px;
+}

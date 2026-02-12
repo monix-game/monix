@@ -51,6 +51,16 @@ export async function buyPet(petTypeId: string): Promise<IPet | null> {
   }
 }
 
+export async function buyPetSlot(): Promise<boolean> {
+  try {
+    const resp = await api.post<{ pet_slots: number }>('/pets/buy-slot');
+    return resp?.success ?? false;
+  } catch (err) {
+    console.error('Error buying pet slot', err);
+    return false;
+  }
+}
+
 export async function namePet(petId: string, name: string): Promise<boolean> {
   try {
     const resp = await api.post<{ success: boolean }>('/pets/name', {

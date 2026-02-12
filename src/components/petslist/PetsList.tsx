@@ -3,20 +3,26 @@ import './PetsList.css';
 import { Pet } from './pet/Pet';
 import type { IPet } from '../../../server/common/models/pet';
 import { PetModal } from './petmodal/PetModal';
-import { adoptPet, getAllPets } from '../../helpers/pets';
+import { adoptPet, buyPetSlot, getAllPets } from '../../helpers/pets';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
+import { Modal } from '../modal/Modal';
 
 interface PetsListProps {
   money: number;
+  gems: number;
+  petSlots?: number;
+  refreshUser: () => Promise<void>;
 }
 
-export const PetsList: React.FC<PetsListProps> = ({ money }) => {
+export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refreshUser }) => {
   const [hydrated, setHydrated] = useState<boolean>(false);
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
   const [petShopModalOpen, setPetShopModalOpen] = useState<boolean>(false);
+  const [petSlotConfirmOpen, setPetSlotConfirmOpen] = useState<boolean>(false);
+  const maxSlots = Math.min(Math.max(petSlots ?? 3, 3), 10);
 
   const fetchPets = async () => {
     const fetchedPets = await getAllPets();
@@ -39,6 +45,17 @@ export const PetsList: React.FC<PetsListProps> = ({ money }) => {
     });
   };
 
+  const buySlot = async () => {
+    const ok = await buyPetSlot();
+    if (!ok) return;
+    await refreshUser();
+  };
+
+  const confirmBuySlot = async () => {
+    await buySlot();
+    setPetSlotConfirmOpen(false);
+  };
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchPets();
@@ -56,16 +73,30 @@ export const PetsList: React.FC<PetsListProps> = ({ money }) => {
         <Button
           cost={2000}
           onClickAsync={adoptAPet}
-          disabled={money < 2000 || !hydrated || pets.length >= 3}
+          disabled={money < 2000 || !hydrated || pets.length >= maxSlots}
         >
           Adopt a Pet
         </Button>
-        <Button onClick={() => setPetShopModalOpen(true)} disabled={!hydrated || pets.length >= 3}>
+        <Button
+          onClick={() => setPetShopModalOpen(true)}
+          disabled={!hydrated || pets.length >= maxSlots}
+        >
           Open Pet Shop
         </Button>
+        <Button
+          cost={50}
+          costType="gems"
+          onClickAsync={async () => setPetSlotConfirmOpen(true)}
+          disabled={!hydrated || maxSlots >= 10 || (gems !== -1 && gems < 50)}
+        >
+          Buy Pet Slot
+        </Button>
       </div>
-      {pets.length >= 3 && (
-        <div className="info-text">You have reached the maximum number of pets (3).</div>
+      <div className="info-text">
+        Pet slots: {pets.length} / {maxSlots}
+      </div>
+      {pets.length >= maxSlots && (
+        <div className="info-text">You have reached the maximum number of pets ({maxSlots}).</div>
       )}
       <div className={`pets-list ${pets.length === 0 ? 'no-pets' : ''}`}>
         {pets.map(pet => (
@@ -108,6 +139,24 @@ export const PetsList: React.FC<PetsListProps> = ({ money }) => {
           void fetchPets();
         }}
       />
+      <Modal
+        isOpen={petSlotConfirmOpen}
+        onClose={() => setPetSlotConfirmOpen(false)}
+        ariaLabel="Confirm buy pet slot"
+      >
+        <div className="pet-slot-confirm">
+          <h3>Buy a pet slot?</h3>
+          <p>This costs 50 gems and increases your pet slots to {maxSlots + 1}.</p>
+          <div className="pet-slot-confirm-buttons">
+            <Button secondary onClick={() => setPetSlotConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button cost={50} costType="gems" onClickAsync={confirmBuySlot}>
+              Confirm
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };

@@ -1511,7 +1511,12 @@ export default function Game() {
           {tab === 'pets' && (
             <div className="tab-content">
               <h2>Pets</h2>
-              <PetsList money={user?.money || 0} />
+              <PetsList
+                money={user?.money || 0}
+                gems={user?.gems ?? 0}
+                petSlots={user?.pet_slots}
+                refreshUser={updateEverything}
+              />
             </div>
           )}
           {tab === 'relics' && (

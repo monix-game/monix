@@ -33,6 +33,15 @@ const FEED_EXP: { [key: string]: number } = {
   premium: 25,
 };
 
+const PET_SLOT_COST = 50;
+const PET_SLOT_MIN = 3;
+const PET_SLOT_MAX = 10;
+
+function getPetSlotLimit(user: IUser): number {
+  const rawSlots = typeof user.pet_slots === 'number' ? user.pet_slots : PET_SLOT_MIN;
+  return Math.min(Math.max(rawSlots, PET_SLOT_MIN), PET_SLOT_MAX);
+}
+
 async function updatePlayersPets(user_uuid: string) {
   const pets = await getPetsByOwnerUUID(user_uuid);
   for (const pet of pets) {
@@ -66,6 +75,38 @@ router.get('/all', requireActive, async (req, res) => {
   });
 });
 
+router.post('/buy-slot', requireActive, async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const currentSlots = getPetSlotLimit(user);
+  if (currentSlots >= PET_SLOT_MAX) {
+    return res.status(400).json({ error: 'You have reached the maximum pet slots (10)' });
+  }
+
+  if (user.gems !== -1 && (user.gems || 0) < PET_SLOT_COST) {
+    return res.status(400).json({ error: 'Insufficient gems to buy a pet slot' });
+  }
+
+  if (user.gems !== -1) {
+    user.gems = (user.gems || 0) - PET_SLOT_COST;
+  }
+  user.pet_slots = currentSlots + 1;
+  await updateUser(user);
+
+  return res.status(200).json({
+    message: 'Pet slot purchased successfully',
+    pet_slots: user.pet_slots,
+    gems: user.gems,
+  });
+});
+
 router.post('/adopt', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
   const authUser = req.authUser as IUser;
@@ -76,10 +117,14 @@ router.post('/adopt', requireActive, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  // Check if the user already has the maximum number of pets (3)
+  const maxPets = getPetSlotLimit(user);
+
+  // Check if the user already has the maximum number of pets
   const pets = await getPetsByOwnerUUID(user_uuid);
-  if (pets.length >= 3) {
-    return res.status(400).json({ error: 'You have reached the maximum number of pets (3)' });
+  if (pets.length >= maxPets) {
+    return res
+      .status(400)
+      .json({ error: `You have reached the maximum number of pets (${maxPets})` });
   }
 
   // Get a random pet type from the available pet types
@@ -122,10 +167,14 @@ router.post('/shop', requireActive, async (req, res) => {
     return res.status(400).json({ error: 'Missing pet_type_id' });
   }
 
-  // Check if the user already has the maximum number of pets (3)
+  const maxPets = getPetSlotLimit(user);
+
+  // Check if the user already has the maximum number of pets
   const pets = await getPetsByOwnerUUID(user_uuid);
-  if (pets.length >= 3) {
-    return res.status(400).json({ error: 'You have reached the maximum number of pets (3)' });
+  if (pets.length >= maxPets) {
+    return res
+      .status(400)
+      .json({ error: `You have reached the maximum number of pets (${maxPets})` });
   }
 
   const petType = petTypes.find(pt => pt.id === pet_type_id);

@@ -10,6 +10,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   onClickAsync?: () => Promise<void>;
   cost?: number | null;
+  costType?: 'money' | 'gems';
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -21,6 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   onClickAsync,
   cost = null,
+  costType = 'money',
   ...props
 }) => {
   return (
@@ -35,7 +37,19 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {isLoading ? <Spinner size={16} /> : children}
-      {cost !== null && <span className="btn-cost"> (Cost: {smartFormatNumber(cost)})</span>}
+      {cost !== null && (
+        <span className="btn-cost">
+          (
+          {costType === 'money' ? (
+            <>Cost: {smartFormatNumber(cost)}</>
+          ) : (
+            <>
+              Cost: {smartFormatNumber(cost, false)} Gems
+            </>
+          )}
+          )
+        </span>
+      )}
     </button>
   );
 };
