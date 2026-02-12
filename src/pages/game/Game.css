@@ -335,6 +335,9 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
+.fishing-result-none {
+  font-size: 1rem;
+}
 
 .fishing-result-buttons {
   display: flex;

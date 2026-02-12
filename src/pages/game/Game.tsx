@@ -978,9 +978,9 @@ export default function Game() {
                               {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
                             </span>
                           </p>
-                          {lastCatch.fishCaught.modifiers?.length ? (
-                            <div className="fishing-result-modifiers">
-                              <span className="fishing-result-modifiers-label">Modifiers:</span>
+                          <div className="fishing-result-modifiers">
+                            <span className="fishing-result-modifiers-label">Modifiers:</span>
+                            {lastCatch.fishCaught.modifiers?.length ? (
                               <div className="fishing-result-modifier-list">
                                 {lastCatch.fishCaught.modifiers.map(mod => {
                                   const modifier = fishModifiers.find(fm => fm.id === mod);
@@ -992,8 +992,10 @@ export default function Game() {
                                   );
                                 })}
                               </div>
-                            </div>
-                          ) : null}
+                            ) : (
+                              <span className="fishing-result-none">None</span>
+                            )}
+                          </div>
 
                           <div className="fishing-result-buttons">
                             <Button
