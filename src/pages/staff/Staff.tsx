@@ -15,14 +15,16 @@ import {
 import { Avatar } from '../../components/avatar/Avatar';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
-import { formatRelativeTime, titleCase } from '../../helpers/utils';
+import { formatRelativeTime, formatRemainingTime, titleCase } from '../../helpers/utils';
 import type { IReport } from '../../../server/common/models/report';
 import type { DashboardInfo } from '../../../server/common/models/dashboardInfo';
 import {
   changeReportCategory,
+  deletePunishment,
   getAllReports,
   getAllUsers,
   getDashboardInfo,
+  getUserByUUID,
   reviewReport,
 } from '../../helpers/staff';
 import { getCategoryById, punishXCategories } from '../../../server/common/punishx/categories';
@@ -30,6 +32,7 @@ import { hasPowerOver, hasRole } from '../../../server/common/roles';
 import type { IAppeal } from '../../../server/common/models/appeal';
 import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
+import { getRemainingDuration, hasExpired } from '../../../server/common/models/punishment';
 
 export default function Staff() {
   // App states
@@ -81,6 +84,12 @@ export default function Staff() {
   const [users, setUsers] = useState<IUser[]>([]);
   const [punishModalOpen, setPunishModalOpen] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
+  const [punishmentsModalOpen, setPunishmentsModalOpen] = useState<boolean>(false);
+  const [punishmentsModalUser, setPunishmentsModalUser] = useState<IUser | null>(null);
+  const [punishmentsModalHydrated, setPunishmentsModalHydrated] = useState<boolean>(false);
+  const [punishmentsFilter, setPunishmentsFilter] = useState<'all' | 'active' | 'inactive'>(
+    'active'
+  );
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -180,6 +189,50 @@ export default function Staff() {
     // Refresh reports
     await updateEverything();
   }, [selectedReport, reportChangeCategory, updateEverything]);
+
+  const openPunishmentsModal = useCallback(
+    async (targetUser: IUser) => {
+      setPunishmentsModalUser(targetUser);
+      setPunishmentsModalHydrated(false);
+      setPunishmentsModalOpen(true);
+
+      const freshUser = await getUserByUUID(targetUser.uuid);
+      if (freshUser) {
+        setPunishmentsModalUser(freshUser);
+        setUsers(prev =>
+          prev.map(userEntry => (userEntry.uuid === freshUser.uuid ? freshUser : userEntry))
+        );
+      }
+
+      setPunishmentsModalHydrated(true);
+    },
+    [setUsers]
+  );
+
+  const handleDeletePunishment = useCallback(
+    async (punishmentId: string) => {
+      if (!punishmentsModalUser) return;
+      const ok = await deletePunishment(punishmentsModalUser.uuid, punishmentId);
+      if (!ok) return;
+
+      const freshUser = await getUserByUUID(punishmentsModalUser.uuid);
+      if (freshUser) {
+        setPunishmentsModalUser(freshUser);
+        setUsers(prev =>
+          prev.map(userEntry => (userEntry.uuid === freshUser.uuid ? freshUser : userEntry))
+        );
+      }
+    },
+    [punishmentsModalUser, setUsers]
+  );
+
+  const punishmentsForModal = (punishmentsModalUser?.punishments || [])
+    .filter(punishment => {
+      if (punishmentsFilter === 'all') return true;
+      const active = !hasExpired(punishment);
+      return punishmentsFilter === 'active' ? active : !active;
+    })
+    .sort((a, b) => b.issued_at - a.issued_at);
 
   return (
     <div className="app-container">
@@ -616,6 +669,16 @@ export default function Staff() {
                         >
                           {hasPowerOver(user?.role || 'helper', u.role) ? 'Punish' : "Can't Punish"}
                         </Button>
+                        <Button
+                          onClick={() => {
+                            void openPunishmentsModal(u);
+                          }}
+                          disabled={!hasPowerOver(user?.role || 'helper', u.role)}
+                        >
+                          {hasPowerOver(user?.role || 'helper', u.role)
+                            ? 'See Punishments'
+                            : "Can't View"}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -677,6 +740,92 @@ export default function Staff() {
               </Button>
             </>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={punishmentsModalOpen}
+        onClose={() => setPunishmentsModalOpen(false)}
+        width={600}
+      >
+        <div className="staff-modal">
+          <h2>
+            {punishmentsModalUser
+              ? `${punishmentsModalUser.username}'s Punishments`
+              : 'Punishments'}
+          </h2>
+          <div className="review-filter">
+            <p>Filter by status:</p>
+            <Select
+              value={punishmentsFilter}
+              onChange={value => setPunishmentsFilter(value as typeof punishmentsFilter)}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+            />
+          </div>
+          {!punishmentsModalHydrated && <Spinner size={28} />}
+          {punishmentsModalHydrated && punishmentsForModal.length === 0 && (
+            <b>No punishments to show.</b>
+          )}
+          {punishmentsModalHydrated &&
+            punishmentsForModal.map(punishment => {
+              const isActive = !hasExpired(punishment);
+              const originalDuration =
+                punishment.duration === -1
+                  ? 'Permanent'
+                  : formatRemainingTime(punishment.duration * 60);
+              const remainingDuration =
+                punishment.duration === -1
+                  ? 'Permanent'
+                  : formatRemainingTime(Math.ceil(getRemainingDuration(punishment) / 1000));
+
+              return (
+                <div key={punishment.uuid} className="review-card">
+                  <div className="review-header">
+                    <span className={`review-badge ${isActive ? 'reviewed' : 'dismissed'}`}>
+                      {isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className="review-time">
+                      {formatRelativeTime(new Date(punishment.issued_at))}
+                    </span>
+                  </div>
+                  <div className="review-body">
+                    <div className="staff-info-list">
+                      <div className="staff-info-line">
+                        <span>Category</span>
+                        <span className="mono">{punishment.category?.name || 'Unknown'}</span>
+                      </div>
+                      <div className="staff-info-line">
+                        <span>Level</span>
+                        <span className="mono">{punishment.level}</span>
+                      </div>
+                      <div className="staff-info-line">
+                        <span>Original Duration</span>
+                        <span className="mono">{originalDuration}</span>
+                      </div>
+                      <div className="staff-info-line">
+                        <span>Remaining Duration</span>
+                        <span className="mono">{isActive ? remainingDuration : 'N/A'}</span>
+                      </div>
+                    </div>
+                    <div className="review-buttons">
+                      <Button
+                        color="red"
+                        onClickAsync={async () => {
+                          await handleDeletePunishment(punishment.uuid);
+                        }}
+                        disabled={!hasRole(userRole || 'user', 'admin')}
+                      >
+                        {hasRole(userRole || 'user', 'admin') ? 'Delete' : "Can't Delete"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
         </div>
       </Modal>
 

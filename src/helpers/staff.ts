@@ -73,6 +73,18 @@ export async function pardonUser(uuid: string, punishment_id: string): Promise<b
   }
 }
 
+export async function deletePunishment(uuid: string, punishment_id: string): Promise<boolean> {
+  try {
+    const resp = await api.post<{ message: string }>('/staff/punishment/delete', {
+      target_user_uuid: uuid,
+      punishment_id,
+    });
+    return resp?.success;
+  } catch {
+    return false;
+  }
+}
+
 export async function getAllReports(): Promise<IReport[]> {
   try {
     const resp = await api.get<{ reports: IReport[] }>('/staff/reports');

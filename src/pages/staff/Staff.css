@@ -32,6 +32,10 @@
   margin-bottom: 20px;
 }
 
+.staff-modal .review-filter {
+  margin-bottom: 0;
+}
+
 .review-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

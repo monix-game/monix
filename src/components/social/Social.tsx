@@ -74,9 +74,6 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
 
     const container = messageContainerRef.current;
     if (container) {
-      const distanceFromBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-      const isNearBottom = distanceFromBottom <= 48;
       const prevLast = previousMessages[previousMessages.length - 1];
       const nextLast = nextMessages[nextMessages.length - 1];
       const isOptimisticReplacement =
@@ -84,10 +81,15 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
         Boolean(prevLast?.uuid?.startsWith('temp-')) &&
         Boolean(nextLast && !nextLast.uuid.startsWith('temp-'));
 
-      if (isNearBottom && !isOptimisticReplacement) {
+      if (previousMessages.length === 0) {
         container.scrollTo({
           top: container.scrollHeight,
-          behavior: previousMessages.length === 0 ? 'auto' : 'smooth',
+          behavior: 'auto',
+        });
+      } else if (isUserNearBottomRef.current && !isOptimisticReplacement) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth',
         });
       }
     }
@@ -97,6 +99,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
 
   useEffect(() => {
     currentRoomUuidRef.current = room.uuid;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages([]);
     setHydrated(false);
   }, [room.uuid]);
@@ -229,6 +232,9 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   }, []);
 
   const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
       // Fallback
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -236,40 +242,35 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       ta.select();
       document.execCommand('copy');
       ta.remove();
-        if (previousMessages.length === 0) {
-          container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'auto',
-          });
-        } else if (isUserNearBottomRef.current && !isOptimisticReplacement) {
+    }
     hideContextMenu();
-            top: container.scrollHeight,
-            behavior: 'smooth',
-          });
-        }
-      }
-
-      prevMessagesRef.current = nextMessages;
-    }, [messages]);
-
-    useEffect(() => {
-      const container = messageContainerRef.current;
-      if (!container) return;
-
-      const handleScroll = () => {
-        const distanceFromBottom =
-          container.scrollHeight - container.scrollTop - container.clientHeight;
-        isUserNearBottomRef.current = distanceFromBottom <= 48;
-      };
-
-      handleScroll();
-      container.addEventListener('scroll', handleScroll);
-
-      return () => {
-        container.removeEventListener('scroll', handleScroll);
-      };
-    }, []);
   };
+
+  const replyToMessage = (msg: IMessage) => {
+    setMessageInput(prev => `@${msg.sender_username} ${prev}`);
+    hideContextMenu();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const el = document.querySelector('.social-message-input input') as HTMLInputElement | null;
+    if (el) el.focus();
+  };
+
+  useEffect(() => {
+    const container = messageContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      isUserNearBottomRef.current = distanceFromBottom <= 48;
+    };
+
+    handleScroll();
+    container.addEventListener('scroll', handleScroll);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const editMessageClick = async () => {
     if (!editedMessage) return;
@@ -418,64 +419,64 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 )}
               {!contextMenu.message.deleted &&
                 (contextMenu.message.sender_uuid === user.uuid ||
-                (hasRole(user.role, 'helper') &&
-                  (!contextMenu.message.sent_restricted ||
-                    hasRole(
-                      user.role,
-                      contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
-                    )))) && (
-                <div
-                  className="context-menu-item"
-                  onClick={() => {
-                    setEditedMessage(contextMenu.message!);
-                    setEditContent(contextMenu.message!.content);
-                    setIsEditModalOpen(true);
-                    hideContextMenu();
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
+                  (hasRole(user.role, 'helper') &&
+                    (!contextMenu.message.sent_restricted ||
+                      hasRole(
+                        user.role,
+                        contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
+                      )))) && (
+                  <div
+                    className="context-menu-item"
+                    onClick={() => {
                       setEditedMessage(contextMenu.message!);
                       setEditContent(contextMenu.message!.content);
                       setIsEditModalOpen(true);
                       hideContextMenu();
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <IconPencil />
-                  <span>Edit</span>
-                </div>
-              )}
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        setEditedMessage(contextMenu.message!);
+                        setEditContent(contextMenu.message!.content);
+                        setIsEditModalOpen(true);
+                        hideContextMenu();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <IconPencil />
+                    <span>Edit</span>
+                  </div>
+                )}
               {!contextMenu.message.deleted &&
                 (contextMenu.message.sender_uuid === user.uuid ||
-                (hasRole(user.role, 'helper') &&
-                  (!contextMenu.message.sent_restricted ||
-                    hasRole(
-                      user.role,
-                      contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
-                    )))) && (
-                <div
-                  className="context-menu-item"
-                  onClick={() => {
-                    void deleteMessage(contextMenu.message!.uuid);
-                    void fetchMessages();
-                    hideContextMenu();
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
+                  (hasRole(user.role, 'helper') &&
+                    (!contextMenu.message.sent_restricted ||
+                      hasRole(
+                        user.role,
+                        contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
+                      )))) && (
+                  <div
+                    className="context-menu-item"
+                    onClick={() => {
                       void deleteMessage(contextMenu.message!.uuid);
                       void fetchMessages();
                       hideContextMenu();
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <IconTrash />
-                  <span>Delete</span>
-                </div>
-              )}
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        void deleteMessage(contextMenu.message!.uuid);
+                        void fetchMessages();
+                        hideContextMenu();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <IconTrash />
+                    <span>Delete</span>
+                  </div>
+                )}
             </div>
           )}
         </div>

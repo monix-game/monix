@@ -13,7 +13,7 @@ import { getActivePunishments, punishUser } from '../../common/punishx/punishx';
 import { getCategoryById } from '../../common/punishx/categories';
 import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
-import { hasPowerOver } from '../../common/roles';
+import { hasPowerOver, hasRole } from '../../common/roles';
 
 const router = Router();
 
@@ -166,6 +166,53 @@ router.post('/pardon', requireRole('mod'), async (req: Request, res: Response) =
   await updateUser(targetUser);
 
   res.status(200).json({ message: 'Punishment lifted successfully' });
+});
+
+router.post('/punishment/delete', requireRole('mod'), async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { target_user_uuid, punishment_id } = req.body as {
+    target_user_uuid: string;
+    punishment_id: string;
+  };
+
+  if (!target_user_uuid || !punishment_id) {
+    return res.status(400).json({ error: 'Missing target_user_uuid or punishment_id' });
+  }
+
+  const targetUser = await getUserByUUID(target_user_uuid);
+
+  if (!targetUser) {
+    return res.status(404).json({ error: 'Target user not found' });
+  }
+
+  if (!targetUser.punishments) {
+    return res.status(400).json({ error: 'Target user has no punishments' });
+  }
+
+  if (!hasRole(user.role, 'admin')) {
+    return res.status(403).json({ error: 'You do not have permission to delete this punishment' });
+  }
+
+  const punishmentIndex = targetUser.punishments.findIndex(p => p.uuid === punishment_id);
+
+  if (punishmentIndex === -1) {
+    return res.status(404).json({ error: 'Punishment not found' });
+  }
+
+  targetUser.punishments.splice(punishmentIndex, 1);
+  await updateUser(targetUser);
+
+  res.status(200).json({ message: 'Punishment deleted successfully' });
 });
 
 router.get('/reports', requireRole('mod'), async (req, res) => {
