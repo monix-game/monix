@@ -20,7 +20,7 @@ import {
   canPlayWithPet,
   isPetAsleep,
 } from '../../common/pet';
-import { hasGems } from '../math';
+import { hasGems } from '../../common/math';
 
 const router = Router();
 
