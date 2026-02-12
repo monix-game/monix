@@ -111,6 +111,7 @@ router.post('/send', requireActive, async (req, res) => {
     sender_avatar_url: user.avatar_data_uri,
     room_uuid,
     content: censoredContent,
+    deleted: false,
     sent_restricted: room.restrict_send || false,
     restricted_role: room.sender_required_role,
     nameplate: user.equipped_cosmetics?.nameplate,
@@ -255,7 +256,13 @@ router.post('/delete/:message_uuid', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to delete messages in this room' });
   }
 
-  await deleteMessageByUUID(message.uuid);
+  if (!message.deleted) {
+    message.deleted = true;
+    message.content = '';
+    message.edited = false;
+    message.time_edited = Date.now();
+    await updateMessage(message);
+  }
 
   res.status(200).json({ success: true });
 });
@@ -298,6 +305,7 @@ router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
 
   // Dont return ephemeral messages if not for the user
   const filteredMessages = messages.filter(m => {
+    if (m.deleted) return false;
     if (m.ephemeral && m.ephemeral_user_uuid !== user.uuid) {
       return false;
     }

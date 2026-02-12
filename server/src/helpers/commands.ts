@@ -2,7 +2,7 @@ import { sendNyxMessage } from './nyx';
 import { IMessage } from '../../common/models/message';
 import { IUser } from '../../common/models/user';
 import { hasRole } from '../../common/roles';
-import { deleteMessagesByRoomUUID, getUserByUsername } from '../db';
+import { getUserByUsername, markMessagesDeletedByRoomUUID } from '../db';
 import { v4 } from 'uuid';
 
 export interface CommandResult {
@@ -73,7 +73,7 @@ const commands: Command[] = [
       }
 
       // Clear the messages
-      await deleteMessagesByRoomUUID(room_uuid, numMessages);
+      await markMessagesDeletedByRoomUUID(room_uuid, numMessages);
       await sendNyxMessage(
         user.uuid,
         `Cleared the last ${numMessages} messages in this room.`,

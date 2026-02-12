@@ -186,6 +186,35 @@ export async function deleteMessagesByRoomUUID(
   }
 }
 
+export async function markMessagesDeletedByRoomUUID(
+  room_uuid: string,
+  numMessages: number
+): Promise<void> {
+  const database = ensureDB();
+  const docs = await database
+    .collection('messages')
+    .find({ room_uuid, deleted: { $ne: true } })
+    .sort({ time_sent: -1 })
+    .limit(numMessages)
+    .toArray();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  const uuidsToUpdate = docs.map(doc => doc.uuid);
+
+  if (uuidsToUpdate.length === 0) return;
+
+  await database.collection('messages').updateMany(
+    { uuid: { $in: uuidsToUpdate } },
+    {
+      $set: {
+        deleted: true,
+        content: '',
+        edited: false,
+        time_edited: Date.now(),
+      },
+    }
+  );
+}
+
 export async function updateMessage(message: IMessage): Promise<void> {
   const database = ensureDB();
   await database

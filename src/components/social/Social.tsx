@@ -388,7 +388,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                     <span>Reply</span>
                   </div>
                 )}
-              {contextMenu.message.sender_uuid !== user.uuid &&
+              {!contextMenu.message.deleted &&
+                contextMenu.message.sender_uuid !== user.uuid &&
                 contextMenu.message.sender_uuid !== 'nyx' &&
                 !hasRole(
                   contextMenu.message.sender_badge as 'owner' | 'admin' | 'mod' | 'helper' | 'user',
@@ -415,7 +416,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                     <span>Report</span>
                   </div>
                 )}
-              {(contextMenu.message.sender_uuid === user.uuid ||
+              {!contextMenu.message.deleted &&
+                (contextMenu.message.sender_uuid === user.uuid ||
                 (hasRole(user.role, 'helper') &&
                   (!contextMenu.message.sent_restricted ||
                     hasRole(
@@ -445,7 +447,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                   <span>Edit</span>
                 </div>
               )}
-              {(contextMenu.message.sender_uuid === user.uuid ||
+              {!contextMenu.message.deleted &&
+                (contextMenu.message.sender_uuid === user.uuid ||
                 (hasRole(user.role, 'helper') &&
                   (!contextMenu.message.sent_restricted ||
                     hasRole(
