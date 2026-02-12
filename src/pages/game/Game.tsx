@@ -83,7 +83,7 @@ export default function Game() {
   // Net worth states
   const [totalNetWorth, setTotalNetWorth] = useState<number>(0);
   const [resourcesTotal, setResourcesTotal] = useState<number>(0);
-  const [aquariumTotal] = useState<number>(0);
+  const [aquariumTotal, setAquariumTotal] = useState<number>(0);
 
   // Game states
   const [gameHydrated, setGameHydrated] = useState<boolean>(false);
@@ -525,8 +525,14 @@ export default function Game() {
     }
 
     const totalResources = await getTotalResourceValue();
+    const aquariumValue = (userData?.fishing?.aquarium?.fish ?? []).reduce(
+      (total, fish) => total + getFishValue(fish),
+      0
+    );
+
     setResourcesTotal(totalResources);
-    setTotalNetWorth((userData?.money || 0) + totalResources);
+    setAquariumTotal(aquariumValue);
+    setTotalNetWorth((userData?.money || 0) + totalResources + aquariumValue);
 
     const socialRooms = await getAllRooms();
     setSocialRooms(socialRooms);
