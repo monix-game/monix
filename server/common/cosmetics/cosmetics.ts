@@ -1,7 +1,7 @@
 import type { Cosmetic } from './cosmetic';
 
 export const cosmetics: Cosmetic[] = [
-  // Tags
+  // Exclusive tags
   {
     id: 'og-tag',
     name: 'OG Tag',
@@ -22,6 +22,18 @@ export const cosmetics: Cosmetic[] = [
     rarity: 'godlike',
     buyable: false,
   },
+  {
+    id: 'brother-tag',
+    name: 'Brother Tag',
+    type: 'tag',
+    tagIcon: '👶',
+    tagName: 'Brother',
+    tagColour: 'primary',
+    rarity: 'godlike',
+    buyable: false,
+  },
+
+  // Buyable tags
   {
     id: 'cool-tag',
     name: 'Cool Tag',
