@@ -163,9 +163,14 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
     const idleMaxDuration = 60; // minutes
     const idleProbability = 0.25;
 
-    const pickRandomEvent = () => {
+    const pickRandomEvent = (lastEventId: string | null) => {
+      const candidates = lastEventId
+        ? randomEvents.filter(event => event.id !== lastEventId)
+        : randomEvents;
+      const events = candidates.length > 0 ? candidates : randomEvents;
+
       let totalWeight = 0;
-      for (const event of randomEvents) {
+      for (const event of events) {
         const minDuration = event.timing.min_duration ?? 30;
         const maxDuration = event.timing.max_duration ?? 120;
         const avgDuration = (minDuration + maxDuration) / 2;
@@ -181,7 +186,7 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
       }
 
       target -= idleWeight;
-      for (const event of randomEvents) {
+      for (const event of events) {
         const minDuration = event.timing.min_duration ?? 30;
         const maxDuration = event.timing.max_duration ?? 120;
         const avgDuration = (minDuration + maxDuration) / 2;
@@ -191,12 +196,13 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
         }
       }
 
-      return randomEvents[0];
+      return events[0];
     };
 
     let cursor = startUtc;
+    let lastEventId: string | null = null;
     while (cursor < dayEnd) {
-      const event = pickRandomEvent();
+      const event = pickRandomEvent(lastEventId);
       const minDuration = event?.timing.min_duration ?? idleMinDuration; // in minutes
       const maxDuration = event?.timing.max_duration ?? idleMaxDuration; // in minutes
       const durationMinutes = minDuration + Math.floor(rng() * (maxDuration - minDuration + 1));
@@ -211,6 +217,7 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
       }
 
       cursor += durationMs;
+      lastEventId = event?.id ?? null;
     }
 
     return null;
