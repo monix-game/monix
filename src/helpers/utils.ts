@@ -160,22 +160,3 @@ export function formatRemainingTime(seconds: number): string {
 export function formatRemainingMilliseconds(milliseconds: number): string {
   return `${(milliseconds / 1000).toFixed(1)}s`;
 }
-
-export function getRarityEmoji(rarity: string): string {
-  switch (rarity) {
-    case 'common':
-      return '⚪';
-    case 'uncommon':
-      return '🟢';
-    case 'rare':
-      return '🔵';
-    case 'epic':
-      return '🟣';
-    case 'legendary':
-      return '🟠';
-    case 'godlike':
-      return '🔶';
-    default:
-      return '';
-  }
-}

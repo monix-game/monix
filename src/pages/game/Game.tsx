@@ -38,7 +38,6 @@ import { getPrices } from '../../helpers/market';
 import {
   formatRemainingMilliseconds,
   formatRemainingTime,
-  getRarityEmoji,
   smartFormatNumber,
   titleCase,
 } from '../../helpers/utils';
@@ -75,6 +74,7 @@ import { fishingBaits } from '../../../server/common/fishing/fishingBait';
 import { fishingRods } from '../../../server/common/fishing/fishingRods';
 import type { IFish } from '../../../server/common/models/fish';
 import { DAILY_REWARDS } from '../../../server/common/rewards/dailyRewards';
+import { rarityEmojis } from '../../../server/common/rarities';
 
 export default function Game() {
   const debugOverlayPositions = ['topleft', 'topright', 'bottomleft', 'bottomright'] as const;
@@ -1727,7 +1727,7 @@ export default function Game() {
                     <div key={cosmetic.id} className="cosmetic-card">
                       <h2 className="cosmetic-name">{cosmetic.name}</h2>
                       <span className="cosmetic-rarity">
-                        <EmojiText>{getRarityEmoji(cosmetic.rarity)}</EmojiText>{' '}
+                        <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
                         {titleCase(cosmetic.rarity)}
                       </span>
                       <div className="cosmetic-preview">
@@ -1804,7 +1804,7 @@ export default function Game() {
                     >
                       <h2 className="cosmetic-name">{cosmetic.name}</h2>
                       <span className="cosmetic-rarity">
-                        <EmojiText>{getRarityEmoji(cosmetic.rarity)}</EmojiText>{' '}
+                        <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
                         {titleCase(cosmetic.rarity)}
                       </span>
                       <div className="cosmetic-preview">

@@ -1,3 +1,5 @@
+import { Rarity } from '../rarities';
+
 export interface Cosmetic {
   id: string;
   name: string;
@@ -7,7 +9,7 @@ export interface Cosmetic {
   tagIcon?: string;
   tagName?: string;
   tagColour?: 'primary' | 'red' | 'blue' | 'purple';
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'godlike';
+  rarity: Rarity;
   price?: number;
   buyable: boolean;
 }
