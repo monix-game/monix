@@ -93,6 +93,8 @@ html[data-theme='dark'] .app-logo-light {
   flex-direction: row;
   align-items: center;
   gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .username-info svg {
