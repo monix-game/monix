@@ -10,7 +10,7 @@
   background-color: var(--bg);
   height: auto;
   min-height: 100px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .app-header .spacer {
@@ -43,6 +43,7 @@ html[data-theme='dark'] .app-logo-light {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .nav-row {
@@ -86,6 +87,7 @@ html[data-theme='dark'] .app-logo-light {
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
+  min-width: 0;
 }
 
 .username-info {
@@ -1183,6 +1185,7 @@ html[data-theme='dark'] .app-logo-light {
     padding: 15px;
     gap: 10px;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .app-header h1 {
