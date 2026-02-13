@@ -95,7 +95,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     // Calculate 10% of affordable quantity
                     const affordableQuantity = Math.floor(money / resourcePrice);
                     const tenPercent = Math.max(1, Math.floor(affordableQuantity * 0.1));
-                    setMarketQuantity(marketQuantity + tenPercent);
+                    setMarketQuantity(tenPercent);
                   }}
                 >
                   10% of money
@@ -106,7 +106,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     // Calculate 50% of affordable quantity
                     const affordableQuantity = Math.floor(money / resourcePrice);
                     const fiftyPercent = Math.max(1, Math.floor(affordableQuantity * 0.5));
-                    setMarketQuantity(marketQuantity + fiftyPercent);
+                    setMarketQuantity(fiftyPercent);
                   }}
                 >
                   50% of money
@@ -185,7 +185,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                       onClick={() => {
                         // Calculate 10% of available quantity
                         const tenPercent = Math.max(1, Math.floor(quantity * 0.1));
-                        setMarketQuantity(marketQuantity + tenPercent);
+                        setMarketQuantity(tenPercent);
                       }}
                     >
                       10% of quantity
@@ -195,7 +195,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                       onClick={() => {
                         // Calculate 50% of available quantity
                         const fiftyPercent = Math.max(1, Math.floor(quantity * 0.5));
-                        setMarketQuantity(marketQuantity + fiftyPercent);
+                        setMarketQuantity(fiftyPercent);
                       }}
                     >
                       50% of quantity
