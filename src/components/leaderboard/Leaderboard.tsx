@@ -71,7 +71,7 @@ export const Leaderboard: React.FC = () => {
             className={`leaderboard-tab ${isMoneyTab ? 'active' : ''}`}
             onClick={() => setActiveTab('money')}
           >
-            Net Worth
+            Most Money
           </button>
           <button
             type="button"
