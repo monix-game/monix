@@ -3,6 +3,151 @@
 
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        const originalGetOwnPropertyNames = Object.getOwnPropertyNames;
+        const originalKeys = Object.keys;
+        const originalGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+        const originalDefineProperty = Object.defineProperty;
+        const originalReflectOwnKeys = Reflect.ownKeys;
+        const originalEntries = Object.entries;
+        const originalValues = Object.values;
+        const originalPropertyIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+        const isNode = (obj) => {
+          try {
+            if (!obj || typeof obj !== 'object') return false;
+            return 'nodeType' in obj || (typeof Node !== 'undefined' && obj instanceof Node);
+          } catch { return false; }
+        };
+
+        const hideProperty = (obj, prop) => {
+          try {
+            const desc = originalGetOwnPropertyDescriptor(obj, prop);
+            if (desc && desc.enumerable) {
+              originalDefineProperty(obj, prop, { ...desc, enumerable: false });
+            }
+          } catch { /* Ignore */ }
+        };
+
+        const sweep = (root) => {
+          try {
+            const walker = document.createTreeWalker(root, 1 /* NodeFilter.SHOW_ELEMENT */);
+            let node = walker.currentNode;
+            while (node) {
+              originalGetOwnPropertyNames(node).forEach(name => {
+                if (name.indexOf('__react') === 0) hideProperty(node, name);
+              });
+              node = walker.nextNode();
+            }
+            originalGetOwnPropertyNames(root).forEach(name => {
+              if (name.indexOf('__react') === 0) hideProperty(root, name);
+            });
+          } catch { /* Ignore */ }
+        };
+
+        Object.getOwnPropertyNames = function (obj) {
+          const names = originalGetOwnPropertyNames(obj);
+          if (isNode(obj) && !globalThis._anticheatTriggered) {
+            return names.filter(name => name.indexOf('__react') !== 0);
+          }
+          return names;
+        };
+
+        Object.keys = function (obj) {
+          const keys = originalKeys(obj);
+          if (isNode(obj) && !globalThis._anticheatTriggered) {
+            return keys.filter(key => key.indexOf('__react') !== 0);
+          }
+          return keys;
+        };
+
+        Object.entries = function (obj) {
+          const entries = originalEntries(obj);
+          if (isNode(obj) && !globalThis._anticheatTriggered) {
+            return entries.filter(e => e[0].indexOf('__react') !== 0);
+          }
+          return entries;
+        };
+
+        Object.values = function (obj) {
+          if (isNode(obj) && !globalThis._anticheatTriggered) {
+            const keys = originalKeys(obj);
+            return keys.filter(k => k.indexOf('__react') !== 0).map(k => obj[k]);
+          }
+          return originalValues(obj);
+        };
+
+        Object.getOwnPropertyDescriptor = function (obj, prop) {
+          const desc = originalGetOwnPropertyDescriptor(obj, prop);
+          if (desc && typeof prop === 'string' && prop.indexOf('__react') === 0 && isNode(obj) && !globalThis._anticheatTriggered) {
+            return { ...desc, enumerable: false };
+          }
+          return desc;
+        };
+
+        Object.defineProperty = function (obj, prop, descriptor) {
+          if (typeof prop === 'string' && prop.indexOf('__react') === 0 && isNode(obj) && !globalThis._anticheatTriggered) {
+            return originalDefineProperty(obj, prop, { ...descriptor, enumerable: false });
+          }
+          return originalDefineProperty(obj, prop, descriptor);
+        };
+
+        originalDefineProperty(Object.prototype, 'propertyIsEnumerable', {
+          value: function (prop) {
+            if (typeof prop === 'string' && prop.indexOf('__react') === 0 && isNode(this) && !globalThis._anticheatTriggered) return false;
+            return originalPropertyIsEnumerable.call(this, prop);
+          },
+          configurable: true, writable: true
+        });
+
+        Reflect.ownKeys = function (target) {
+          const keys = originalReflectOwnKeys(target);
+          if (isNode(target) && !globalThis._anticheatTriggered) {
+            return keys.filter(key => typeof key !== 'string' || key.indexOf('__react') !== 0);
+          }
+          return keys;
+        };
+
+        const applyHooksToWindow = (win) => {
+          try {
+            if (!win || win === globalThis || win._anticheatInfected) return;
+            win.Object.getOwnPropertyNames = Object.getOwnPropertyNames;
+            win.Object.keys = Object.keys;
+            win.Object.entries = Object.entries;
+            win.Object.values = Object.values;
+            win.Object.defineProperty = Object.defineProperty;
+            win.Object.getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+            win.Reflect.ownKeys = Reflect.ownKeys;
+            win._anticheatInfected = true;
+            if (win.document) sweep(win.document);
+          } catch { /* Ignore */ }
+        };
+
+        const winDesc = originalGetOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+        if (winDesc && winDesc.get) {
+          originalDefineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+            get: function () {
+              const win = winDesc.get.call(this);
+              if (win) applyHooksToWindow(win);
+              return win;
+            },
+            configurable: true
+          });
+        }
+
+        globalThis.open = (function (orig) {
+          return function () {
+            const win = orig.apply(this, arguments);
+            if (win) applyHooksToWindow(win);
+            return win;
+          };
+        })(globalThis.open);
+
+        document.addEventListener('DOMContentLoaded', () => sweep(document));
+      })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Monix</title>
 
