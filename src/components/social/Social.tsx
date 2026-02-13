@@ -130,8 +130,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const sendMessageClick = async () => {
     if (messageInput.trim() === '') return;
     if (!room) return;
-    if (room.restrict_send) {
-      if (!room.sender_required_role || !hasRole(user.role, room.sender_required_role)) {
+    if (room.restrict_send_to) {
+      if (!hasRole(user.role, room.restrict_send_to)) {
         return;
       }
     }
@@ -481,10 +481,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           )}
         </div>
         <div className="social-main-bottom">
-          {!room.restrict_send ||
-          (room.restrict_send &&
-            room.sender_required_role &&
-            hasRole(user.role, room.sender_required_role)) ? (
+          {!room.restrict_send_to ||
+          (room.restrict_send_to && hasRole(user.role, room.restrict_send_to)) ? (
             <Input
               placeholder="Type a message..."
               onValueChange={value => setMessageInput(value)}
