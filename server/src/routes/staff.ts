@@ -101,7 +101,7 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
     return res.status(404).json({ error: 'Target user not found' });
   }
 
-  if (!hasPowerOver(user.role, targetUser.role)) {
+  if (!hasPowerOver(user.role, targetUser.role) || !hasRole(targetUser.role, 'admin')) {
     return res.status(403).json({ error: 'You do not have permission to edit this user' });
   }
 

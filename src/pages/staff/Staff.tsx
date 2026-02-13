@@ -999,7 +999,7 @@ export default function Staff() {
                             }}
                             disabled={!hasPowerOver(user?.role || 'helper', u.role)}
                           >
-                            {hasPowerOver(user?.role || 'helper', u.role)
+                            {hasPowerOver(user?.role || 'helper', u.role) && hasRole(u.role, 'admin')
                               ? 'Edit User'
                               : "Can't Edit"}
                           </Button>
