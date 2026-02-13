@@ -10,6 +10,7 @@ import Success from './pages/payment/success/Success';
 import Cancel from './pages/payment/cancel/Cancel';
 import Staff from './pages/staff/Staff';
 import { MusicProvider } from './providers/MusicProvider';
+import { AnticheatProvider } from './providers/AnticheatProvider';
 
 function App() {
   initThemeListener();
@@ -25,7 +26,9 @@ function App() {
           path="/game"
           element={
             <MusicProvider>
-              <Game />
+              <AnticheatProvider>
+                <Game />
+              </AnticheatProvider>
             </MusicProvider>
           }
         />
