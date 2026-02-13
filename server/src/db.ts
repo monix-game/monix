@@ -187,12 +187,17 @@ export async function deleteMessagesByRoomUUID(
 
 export async function markMessagesDeletedByRoomUUID(
   room_uuid: string,
-  numMessages: number
+  numMessages: number,
+  ignoreEphemeral = true
 ): Promise<void> {
   const database = ensureDB();
   const docs = await database
     .collection('messages')
-    .find({ room_uuid, deleted: { $ne: true } })
+    .find({
+      room_uuid,
+      deleted: { $ne: true },
+      ...(ignoreEphemeral ? { ephemeral: { $ne: true } } : {}),
+    })
     .sort({ time_sent: -1 })
     .limit(numMessages)
     .toArray();

@@ -53,7 +53,7 @@ const commands: Command[] = [
   },
   {
     name: 'clear',
-    requiredRole: 'mod',
+    requiredRole: 'helper',
     execute: async (args, message, user, room_uuid) => {
       // If the command is /clear N, delete last N messages
       // If N is not provided, clear last 10 messages
