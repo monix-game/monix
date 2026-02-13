@@ -4,6 +4,7 @@ import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
 import {
   Button,
+  Checkbox,
   EmojiText,
   Input,
   Modal,
@@ -26,6 +27,7 @@ import {
   getDashboardInfo,
   getUserByUUID,
   reviewReport,
+  updateStaffUser,
 } from '../../helpers/staff';
 import { getCategoryById, punishXCategories } from '../../../server/common/punishx/categories';
 import { hasPowerOver, hasRole } from '../../../server/common/roles';
@@ -33,6 +35,7 @@ import type { IAppeal } from '../../../server/common/models/appeal';
 import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { getRemainingDuration, hasExpired } from '../../../server/common/models/punishment';
+import { IconBrush, IconCoins, IconCrown, IconPaw, IconPhoto } from '@tabler/icons-react';
 
 export default function Staff() {
   // App states
@@ -90,6 +93,23 @@ export default function Staff() {
   const [punishmentsFilter, setPunishmentsFilter] = useState<'all' | 'active' | 'inactive'>(
     'active'
   );
+  const [editUserModalOpen, setEditUserModalOpen] = useState<boolean>(false);
+  const [editUserTarget, setEditUserTarget] = useState<IUser | null>(null);
+  const [editUserPage, setEditUserPage] = useState<
+    'root' | 'economy' | 'avatar' | 'role' | 'pets' | 'cosmetics'
+  >('root');
+  const [editMoney, setEditMoney] = useState<string>('');
+  const [editGems, setEditGems] = useState<string>('');
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editRemoveAvatar, setEditRemoveAvatar] = useState<boolean>(false);
+  const [editRole, setEditRole] = useState<IUser['role']>('user');
+  const [editPetSlots, setEditPetSlots] = useState<string>('');
+  const [editCosmeticsUnlocked, setEditCosmeticsUnlocked] = useState<string[]>([]);
+  const [editEquippedNameplate, setEditEquippedNameplate] = useState<string>('');
+  const [editEquippedTag, setEditEquippedTag] = useState<string>('');
+  const [editEquippedFrame, setEditEquippedFrame] = useState<string>('');
+  const [editUserError, setEditUserError] = useState<string>('');
+  const [editUserSaving, setEditUserSaving] = useState<boolean>(false);
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -226,6 +246,240 @@ export default function Staff() {
     [punishmentsModalUser, setUsers]
   );
 
+  const openEditUserModal = useCallback((targetUser: IUser) => {
+    setEditUserTarget(targetUser);
+    setEditUserPage('root');
+    setEditMoney(String(targetUser.money));
+    setEditGems(String(targetUser.gems));
+    setEditAvatarFile(null);
+    setEditRemoveAvatar(false);
+    setEditRole(targetUser.role);
+    setEditPetSlots(String(targetUser.pet_slots));
+    const unlocked = [...(targetUser.cosmetics_unlocked || [])];
+    const equipped = targetUser.equipped_cosmetics || {};
+    if (equipped.nameplate && !unlocked.includes(equipped.nameplate)) {
+      unlocked.push(equipped.nameplate);
+    }
+    if (equipped.tag && !unlocked.includes(equipped.tag)) {
+      unlocked.push(equipped.tag);
+    }
+    if (equipped.frame && !unlocked.includes(equipped.frame)) {
+      unlocked.push(equipped.frame);
+    }
+    setEditCosmeticsUnlocked(unlocked);
+    setEditEquippedNameplate(equipped.nameplate || '');
+    setEditEquippedTag(equipped.tag || '');
+    setEditEquippedFrame(equipped.frame || '');
+    setEditUserError('');
+    setEditUserModalOpen(true);
+  }, []);
+
+  const readFileAsDataUrl = useCallback(async (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error('Failed to read file.'));
+          return;
+        }
+        resolve(reader.result);
+      };
+      reader.onerror = () => reject(new Error('Failed to read file.'));
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const applyUpdatedUser = useCallback(
+    (updatedUser: IUser) => {
+      setUsers(prev =>
+        prev.map(userEntry => (userEntry.uuid === updatedUser.uuid ? updatedUser : userEntry))
+      );
+      setEditUserTarget(updatedUser);
+    },
+    [setUsers]
+  );
+
+  const handleSaveEconomyEdits = useCallback(async () => {
+    if (!editUserTarget) return;
+
+    const moneyValue = Number(editMoney);
+    const gemsValue = Number(editGems);
+    if (
+      editMoney.trim().length === 0 ||
+      editGems.trim().length === 0 ||
+      !Number.isFinite(moneyValue) ||
+      !Number.isFinite(gemsValue) ||
+      moneyValue < 0 ||
+      gemsValue < 0
+    ) {
+      setEditUserError('Money and gems must be non-negative numbers.');
+      return;
+    }
+
+    setEditUserSaving(true);
+    setEditUserError('');
+
+    const updatedUser = await updateStaffUser(editUserTarget.uuid, {
+      money: Math.floor(moneyValue),
+      gems: Math.floor(gemsValue),
+    });
+
+    setEditUserSaving(false);
+
+    if (!updatedUser) {
+      setEditUserError('Failed to update user.');
+      return;
+    }
+
+    applyUpdatedUser(updatedUser);
+    setEditUserPage('root');
+  }, [applyUpdatedUser, editGems, editMoney, editUserTarget]);
+
+  const handleSaveAvatarEdits = useCallback(async () => {
+    if (!editUserTarget) return;
+
+    if (!editRemoveAvatar && !editAvatarFile) {
+      setEditUserError('Select an avatar file or choose remove avatar.');
+      return;
+    }
+
+    setEditUserSaving(true);
+    setEditUserError('');
+
+    const payload: { avatar_url?: string; remove_avatar?: boolean } = {};
+
+    if (editRemoveAvatar) {
+      payload.remove_avatar = true;
+    } else if (editAvatarFile) {
+      try {
+        payload.avatar_url = await readFileAsDataUrl(editAvatarFile);
+      } catch {
+        setEditUserSaving(false);
+        setEditUserError('Failed to read avatar file.');
+        return;
+      }
+    }
+
+    const updatedUser = await updateStaffUser(editUserTarget.uuid, payload);
+    setEditUserSaving(false);
+
+    if (!updatedUser) {
+      setEditUserError('Failed to update user.');
+      return;
+    }
+
+    applyUpdatedUser(updatedUser);
+    setEditAvatarFile(null);
+    setEditRemoveAvatar(false);
+    setEditUserPage('root');
+  }, [applyUpdatedUser, editAvatarFile, editRemoveAvatar, editUserTarget, readFileAsDataUrl]);
+
+  const handleSaveRoleEdits = useCallback(async () => {
+    if (!editUserTarget) return;
+    if (!editRole || editRole === editUserTarget.role) {
+      setEditUserError('Select a different role.');
+      return;
+    }
+
+    setEditUserSaving(true);
+    setEditUserError('');
+
+    const updatedUser = await updateStaffUser(editUserTarget.uuid, { role: editRole });
+
+    setEditUserSaving(false);
+
+    if (!updatedUser) {
+      setEditUserError('Failed to update role.');
+      return;
+    }
+
+    applyUpdatedUser(updatedUser);
+    setEditUserPage('root');
+  }, [applyUpdatedUser, editRole, editUserTarget]);
+
+  const handleSavePetSlotsEdits = useCallback(async () => {
+    if (!editUserTarget) return;
+
+    const petSlotsValue = Number(editPetSlots);
+    if (editPetSlots.trim().length === 0 || !Number.isFinite(petSlotsValue) || petSlotsValue < 1) {
+      setEditUserError('Pet slots must be a whole number of 1 or more.');
+      return;
+    }
+
+    setEditUserSaving(true);
+    setEditUserError('');
+
+    const updatedUser = await updateStaffUser(editUserTarget.uuid, {
+      pet_slots: Math.floor(petSlotsValue),
+    });
+
+    setEditUserSaving(false);
+
+    if (!updatedUser) {
+      setEditUserError('Failed to update pet slots.');
+      return;
+    }
+
+    applyUpdatedUser(updatedUser);
+    setEditUserPage('root');
+  }, [applyUpdatedUser, editPetSlots, editUserTarget]);
+
+  const handleToggleUnlockedCosmetic = useCallback(
+    (cosmeticId: string) => {
+      setEditCosmeticsUnlocked(prev => {
+        const isUnlocked = prev.includes(cosmeticId);
+        const next = isUnlocked ? prev.filter(id => id !== cosmeticId) : [...prev, cosmeticId];
+
+        if (isUnlocked) {
+          setEditEquippedNameplate(current => (current === cosmeticId ? '' : current));
+          setEditEquippedTag(current => (current === cosmeticId ? '' : current));
+          setEditEquippedFrame(current => (current === cosmeticId ? '' : current));
+        }
+
+        return next;
+      });
+    },
+    [setEditCosmeticsUnlocked]
+  );
+
+  const handleSaveCosmeticsEdits = useCallback(async () => {
+    if (!editUserTarget) return;
+
+    setEditUserSaving(true);
+    setEditUserError('');
+
+    const unlockedSet = new Set(editCosmeticsUnlocked);
+    if (editEquippedNameplate) unlockedSet.add(editEquippedNameplate);
+    if (editEquippedTag) unlockedSet.add(editEquippedTag);
+    if (editEquippedFrame) unlockedSet.add(editEquippedFrame);
+
+    const updatedUser = await updateStaffUser(editUserTarget.uuid, {
+      cosmetics_unlocked: Array.from(unlockedSet),
+      equipped_cosmetics: {
+        nameplate: editEquippedNameplate || undefined,
+        tag: editEquippedTag || undefined,
+        frame: editEquippedFrame || undefined,
+      },
+    });
+
+    setEditUserSaving(false);
+
+    if (!updatedUser) {
+      setEditUserError('Failed to update cosmetics.');
+      return;
+    }
+
+    applyUpdatedUser(updatedUser);
+    setEditUserPage('root');
+  }, [
+    applyUpdatedUser,
+    editCosmeticsUnlocked,
+    editEquippedFrame,
+    editEquippedNameplate,
+    editEquippedTag,
+    editUserTarget,
+  ]);
+
   const punishmentsForModal = (punishmentsModalUser?.punishments || [])
     .filter(punishment => {
       if (punishmentsFilter === 'all') return true;
@@ -236,6 +490,56 @@ export default function Staff() {
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
+  const availableRoles = (['owner', 'admin', 'mod', 'helper', 'user'] as const).filter(role =>
+    user?.role ? hasPowerOver(user.role, role) : false
+  );
+  const roleOptions = availableRoles.map(role => ({
+    value: role,
+    label: titleCase(role),
+  }));
+  const cosmeticsByType = {
+    nameplate: cosmetics.filter(c => c.type === 'nameplate'),
+    tag: cosmetics.filter(c => c.type === 'tag'),
+    frame: cosmetics.filter(c => c.type === 'frame'),
+  };
+  const unlockedCosmetics = new Set(editCosmeticsUnlocked);
+  const unlockedOptionsByType = {
+    nameplate: cosmeticsByType.nameplate.filter(c => unlockedCosmetics.has(c.id)),
+    tag: cosmeticsByType.tag.filter(c => unlockedCosmetics.has(c.id)),
+    frame: cosmeticsByType.frame.filter(c => unlockedCosmetics.has(c.id)),
+  };
+  const editNavItems = [
+    {
+      key: 'economy',
+      label: 'Money & Gems',
+      icon: IconCoins,
+      disabled: false,
+    },
+    {
+      key: 'avatar',
+      label: 'Avatar',
+      icon: IconPhoto,
+      disabled: false,
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      icon: IconCrown,
+      disabled: roleOptions.length === 0,
+    },
+    {
+      key: 'pets',
+      label: 'Pet Slots',
+      icon: IconPaw,
+      disabled: false,
+    },
+    {
+      key: 'cosmetics',
+      label: 'Cosmetics',
+      icon: IconBrush,
+      disabled: false,
+    },
+  ] as const;
 
   return (
     <div className="app-container">
@@ -687,6 +991,19 @@ export default function Staff() {
                             ? 'See Punishments'
                             : "Can't View"}
                         </Button>
+                        {hasRole(userRole || 'user', 'admin') && (
+                          <Button
+                            color="purple"
+                            onClick={() => {
+                              openEditUserModal(u);
+                            }}
+                            disabled={!hasPowerOver(user?.role || 'helper', u.role)}
+                          >
+                            {hasPowerOver(user?.role || 'helper', u.role)
+                              ? 'Edit User'
+                              : "Can't Edit"}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -834,6 +1151,290 @@ export default function Staff() {
                 </div>
               );
             })}
+        </div>
+      </Modal>
+
+      <Modal isOpen={editUserModalOpen} onClose={() => setEditUserModalOpen(false)} width={520}>
+        <div className="staff-modal">
+          {editUserTarget && (
+            <>
+              <div className="staff-edit-header">
+                <Avatar
+                  src={editUserTarget.avatar_data_uri || undefined}
+                  alt="User Avatar"
+                  className="user-avatar"
+                  size={42}
+                  styleKey={
+                    editUserTarget.equipped_cosmetics?.frame
+                      ? cosmetics.find(c => c.id === editUserTarget.equipped_cosmetics?.frame)
+                          ?.frameStyle
+                      : undefined
+                  }
+                />
+                <div>
+                  <h2>Edit {editUserTarget.username}</h2>
+                  <div className="mono staff-edit-uuid">{editUserTarget.uuid}</div>
+                </div>
+              </div>
+              {editUserPage === 'root' && (
+                <div className="staff-edit-nav">
+                  <div className="staff-edit-nav-grid">
+                    {editNavItems.map(item => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <div
+                          key={item.key}
+                          className={`staff-edit-nav-item ${item.disabled ? 'disabled' : ''}`}
+                          role="button"
+                          tabIndex={item.disabled ? -1 : 0}
+                          onClick={() => {
+                            if (item.disabled) return;
+                            setEditUserError('');
+                            setEditUserPage(item.key);
+                          }}
+                          onKeyDown={event => {
+                            if (item.disabled) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setEditUserError('');
+                              setEditUserPage(item.key);
+                            }
+                          }}
+                        >
+                          <ItemIcon size={20} />
+                          <span>{item.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="staff-edit-nav-actions">
+                    <Button secondary onClick={() => setEditUserModalOpen(false)}>
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {editUserPage === 'economy' && (
+                <div className="staff-edit-section">
+                  <Input
+                    label="Money"
+                    value={editMoney}
+                    onValueChange={value => setEditMoney(value)}
+                    predicates={[
+                      {
+                        isValid: value => value.trim().length > 0 && /^\d+$/.test(value),
+                        message: 'Enter a non-negative whole number.',
+                      },
+                    ]}
+                  />
+                  <Input
+                    label="Gems"
+                    value={editGems}
+                    onValueChange={value => setEditGems(value)}
+                    predicates={[
+                      {
+                        isValid: value => value.trim().length > 0 && /^\d+$/.test(value),
+                        message: 'Enter a non-negative whole number.',
+                      },
+                    ]}
+                  />
+                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
+                  <div className="staff-edit-actions">
+                    <Button onClickAsync={handleSaveEconomyEdits} isLoading={editUserSaving}>
+                      Save Money & Gems
+                    </Button>
+                    <Button secondary onClick={() => setEditUserPage('root')}>
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {editUserPage === 'avatar' && (
+                <div className="staff-edit-section">
+                  <Input
+                    label="Avatar File"
+                    type="file"
+                    accept="image/*"
+                    disabled={editRemoveAvatar}
+                    onChange={event => {
+                      const nextFile = event.target.files?.[0] || null;
+                      setEditAvatarFile(nextFile);
+                      setEditUserError('');
+                    }}
+                  />
+                  <Checkbox
+                    checked={editRemoveAvatar}
+                    label="Remove avatar"
+                    color="red"
+                    onClick={value => {
+                      setEditRemoveAvatar(value);
+                      if (value) {
+                        setEditAvatarFile(null);
+                      }
+                    }}
+                  />
+                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
+                  <div className="staff-edit-actions">
+                    <Button onClickAsync={handleSaveAvatarEdits} isLoading={editUserSaving}>
+                      Save Avatar
+                    </Button>
+                    <Button secondary onClick={() => setEditUserPage('root')}>
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {editUserPage === 'role' && (
+                <div className="staff-edit-section">
+                  {roleOptions.length === 0 ? (
+                    <p>You do not have any roles you can assign.</p>
+                  ) : (
+                    <>
+                      <div className="staff-edit-line">
+                        <span>Role</span>
+                        <Select
+                          value={editRole}
+                          onChange={value => setEditRole(value as IUser['role'])}
+                          options={roleOptions}
+                        />
+                      </div>
+                      {editUserError && <div className="staff-edit-error">{editUserError}</div>}
+                      <div className="staff-edit-actions">
+                        <Button onClickAsync={handleSaveRoleEdits} isLoading={editUserSaving}>
+                          Save Role
+                        </Button>
+                        <Button secondary onClick={() => setEditUserPage('root')}>
+                          Back
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {editUserPage === 'pets' && (
+                <div className="staff-edit-section">
+                  <Input
+                    label="Pet Slots"
+                    value={editPetSlots}
+                    onValueChange={value => setEditPetSlots(value)}
+                    predicates={[
+                      {
+                        isValid: value => value.trim().length > 0 && /^\d+$/.test(value),
+                        message: 'Enter a whole number of 1 or more.',
+                      },
+                    ]}
+                  />
+                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
+                  <div className="staff-edit-actions">
+                    <Button onClickAsync={handleSavePetSlotsEdits} isLoading={editUserSaving}>
+                      Save Pet Slots
+                    </Button>
+                    <Button secondary onClick={() => setEditUserPage('root')}>
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {editUserPage === 'cosmetics' && (
+                <div className="staff-edit-section">
+                  <div className="staff-edit-cosmetics">
+                    <div>
+                      <h3>Unlocked Nameplates</h3>
+                      <div className="staff-edit-cosmetics-grid">
+                        {cosmeticsByType.nameplate.map(cosmetic => (
+                          <Checkbox
+                            key={cosmetic.id}
+                            checked={unlockedCosmetics.has(cosmetic.id)}
+                            label={cosmetic.name}
+                            onClick={() => handleToggleUnlockedCosmetic(cosmetic.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3>Unlocked Tags</h3>
+                      <div className="staff-edit-cosmetics-grid">
+                        {cosmeticsByType.tag.map(cosmetic => (
+                          <Checkbox
+                            key={cosmetic.id}
+                            checked={unlockedCosmetics.has(cosmetic.id)}
+                            label={cosmetic.name}
+                            onClick={() => handleToggleUnlockedCosmetic(cosmetic.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3>Unlocked Frames</h3>
+                      <div className="staff-edit-cosmetics-grid">
+                        {cosmeticsByType.frame.map(cosmetic => (
+                          <Checkbox
+                            key={cosmetic.id}
+                            checked={unlockedCosmetics.has(cosmetic.id)}
+                            label={cosmetic.name}
+                            onClick={() => handleToggleUnlockedCosmetic(cosmetic.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="staff-edit-equip">
+                    <div className="staff-edit-line">
+                      <span>Equipped Nameplate</span>
+                      <Select
+                        value={editEquippedNameplate}
+                        onChange={value => setEditEquippedNameplate(value)}
+                        options={[
+                          { value: '', label: 'None' },
+                          ...unlockedOptionsByType.nameplate.map(cosmetic => ({
+                            value: cosmetic.id,
+                            label: cosmetic.name,
+                          })),
+                        ]}
+                      />
+                    </div>
+                    <div className="staff-edit-line">
+                      <span>Equipped Tag</span>
+                      <Select
+                        value={editEquippedTag}
+                        onChange={value => setEditEquippedTag(value)}
+                        options={[
+                          { value: '', label: 'None' },
+                          ...unlockedOptionsByType.tag.map(cosmetic => ({
+                            value: cosmetic.id,
+                            label: cosmetic.name,
+                          })),
+                        ]}
+                      />
+                    </div>
+                    <div className="staff-edit-line">
+                      <span>Equipped Frame</span>
+                      <Select
+                        value={editEquippedFrame}
+                        onChange={value => setEditEquippedFrame(value)}
+                        options={[
+                          { value: '', label: 'None' },
+                          ...unlockedOptionsByType.frame.map(cosmetic => ({
+                            value: cosmetic.id,
+                            label: cosmetic.name,
+                          })),
+                        ]}
+                      />
+                    </div>
+                  </div>
+                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
+                  <div className="staff-edit-actions">
+                    <Button onClickAsync={handleSaveCosmeticsEdits} isLoading={editUserSaving}>
+                      Save Cosmetics
+                    </Button>
+                    <Button secondary onClick={() => setEditUserPage('root')}>
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Modal>
 

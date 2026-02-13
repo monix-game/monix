@@ -127,3 +127,32 @@ export async function changeReportCategory(
     return false;
   }
 }
+
+export async function updateStaffUser(
+  uuid: string,
+  payload: {
+    money?: number;
+    gems?: number;
+    avatar_url?: string;
+    remove_avatar?: boolean;
+    role?: IUser['role'];
+    pet_slots?: number;
+    cosmetics_unlocked?: string[];
+    equipped_cosmetics?: {
+      nameplate?: string;
+      tag?: string;
+      frame?: string;
+    };
+  }
+): Promise<IUser | null> {
+  try {
+    const resp = await api.post<{ user: IUser }>(`/staff/user/${uuid}/edit`, payload);
+    if (resp?.success) {
+      return resp.data?.user || null;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error updating staff user', err);
+    return null;
+  }
+}

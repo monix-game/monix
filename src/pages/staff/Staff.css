@@ -159,3 +159,102 @@
   display: flex;
   gap: 10px;
 }
+
+.staff-edit-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.staff-edit-uuid {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.staff-edit-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.staff-edit-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-edit-nav-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.staff-edit-nav-item {
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+}
+
+.staff-edit-nav-item:hover {
+  background-color: var(--primary-1);
+}
+
+.staff-edit-nav-item.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.staff-edit-nav-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.staff-edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-edit-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.staff-edit-cosmetics {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-edit-cosmetics-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.staff-edit-equip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-edit-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.staff-edit-error {
+  color: var(--red-1);
+  font-weight: 600;
+}

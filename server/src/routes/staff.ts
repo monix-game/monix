@@ -9,11 +9,13 @@ import {
   updateReport,
   updateUser,
 } from '../db';
+import { processAvatar } from '../helpers/avatar';
 import { getActivePunishments, punishUser } from '../../common/punishx/punishx';
 import { getCategoryById } from '../../common/punishx/categories';
 import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
 import { hasPowerOver, hasRole } from '../../common/roles';
+import { cosmetics } from '../../common/cosmetics/cosmetics';
 
 const router = Router();
 
@@ -75,6 +77,153 @@ router.post('/users', requireRole('helper'), async (req: Request, res: Response)
   }
 
   res.status(200).json({ users });
+});
+
+router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { uuid } = req.params;
+  if (!uuid) {
+    return res.status(400).json({ error: 'Missing uuid parameter' });
+  }
+
+  const targetUser = await getUserByUUID(uuid as string);
+  if (!targetUser) {
+    return res.status(404).json({ error: 'Target user not found' });
+  }
+
+  if (!hasPowerOver(user.role, targetUser.role)) {
+    return res.status(403).json({ error: 'You do not have permission to edit this user' });
+  }
+
+  const {
+    money,
+    gems,
+    avatar_url,
+    remove_avatar,
+    role,
+    pet_slots,
+    cosmetics_unlocked,
+    equipped_cosmetics,
+  } = req.body as {
+    money?: number;
+    gems?: number;
+    avatar_url?: string;
+    remove_avatar?: boolean;
+    role?: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
+    pet_slots?: number;
+    cosmetics_unlocked?: string[];
+    equipped_cosmetics?: {
+      nameplate?: string;
+      tag?: string;
+      frame?: string;
+    };
+  };
+
+  if (money !== undefined) {
+    if (typeof money !== 'number' || !Number.isFinite(money) || money < 0) {
+      return res.status(400).json({ error: 'Money must be a non-negative number' });
+    }
+    targetUser.money = Math.floor(money);
+  }
+
+  if (gems !== undefined) {
+    if (typeof gems !== 'number' || !Number.isFinite(gems) || gems < 0) {
+      return res.status(400).json({ error: 'Gems must be a non-negative number' });
+    }
+    targetUser.gems = Math.floor(gems);
+  }
+
+  if (role !== undefined) {
+    if (!hasPowerOver(user.role, role) || role === user.role) {
+      return res.status(403).json({ error: 'You do not have permission to assign this role' });
+    }
+    targetUser.role = role;
+  }
+
+  if (pet_slots !== undefined) {
+    if (typeof pet_slots !== 'number' || !Number.isFinite(pet_slots) || pet_slots < 1) {
+      return res.status(400).json({ error: 'Pet slots must be a number of 1 or more' });
+    }
+    targetUser.pet_slots = Math.floor(pet_slots);
+  }
+
+  if (cosmetics_unlocked !== undefined) {
+    if (!Array.isArray(cosmetics_unlocked)) {
+      return res.status(400).json({ error: 'Cosmetics unlocked must be an array' });
+    }
+    const validCosmetics = new Set(cosmetics.map(c => c.id));
+    targetUser.cosmetics_unlocked = cosmetics_unlocked.filter(id => validCosmetics.has(id));
+  }
+
+  if (equipped_cosmetics !== undefined) {
+    const validCosmetics = new Map(cosmetics.map(c => [c.id, c]));
+    const nextEquipped: { nameplate?: string; tag?: string; frame?: string } =
+      targetUser.equipped_cosmetics || {};
+
+    const updateEquipped = (key: 'nameplate' | 'tag' | 'frame', cosmeticId?: string) => {
+      if (!cosmeticId) {
+        nextEquipped[key] = undefined;
+        return true;
+      }
+      const cosmetic = validCosmetics.get(cosmeticId);
+      if (cosmetic?.type !== key) {
+        return false;
+      }
+      nextEquipped[key] = cosmeticId;
+      return true;
+    };
+
+    if (!updateEquipped('nameplate', equipped_cosmetics.nameplate)) {
+      return res.status(400).json({ error: 'Invalid nameplate cosmetic' });
+    }
+    if (!updateEquipped('tag', equipped_cosmetics.tag)) {
+      return res.status(400).json({ error: 'Invalid tag cosmetic' });
+    }
+    if (!updateEquipped('frame', equipped_cosmetics.frame)) {
+      return res.status(400).json({ error: 'Invalid frame cosmetic' });
+    }
+
+    targetUser.equipped_cosmetics = nextEquipped;
+    targetUser.cosmetics_unlocked ??= [];
+    const unlockedSet = new Set(targetUser.cosmetics_unlocked);
+    if (nextEquipped.nameplate) unlockedSet.add(nextEquipped.nameplate);
+    if (nextEquipped.tag) unlockedSet.add(nextEquipped.tag);
+    if (nextEquipped.frame) unlockedSet.add(nextEquipped.frame);
+    targetUser.cosmetics_unlocked = Array.from(unlockedSet);
+  }
+
+  if (remove_avatar) {
+    targetUser.avatar_data_uri = undefined;
+  } else if (avatar_url) {
+    try {
+      new URL(avatar_url);
+    } catch {
+      return res.status(400).json({ error: 'Invalid avatar URL' });
+    }
+
+    try {
+      const processedAvatar = await processAvatar(avatar_url);
+      targetUser.avatar_data_uri = processedAvatar;
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : 'Failed to process avatar',
+      });
+    }
+  }
+
+  await updateUser(targetUser);
+
+  return res.status(200).json({ user: targetUser });
 });
 
 router.post('/punish', requireRole('mod'), async (req: Request, res: Response) => {
