@@ -641,6 +641,9 @@ export default function Game() {
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
     : null;
+  const equippedTagCosmetic = user?.equipped_cosmetics?.tag
+    ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
+    : null;
 
   useEffect(() => {
     let mounted = true;
@@ -812,6 +815,11 @@ export default function Game() {
                   }
                 }}
               />
+              {equippedTagCosmetic && (
+                <span className={`user-tag tag-colour-${equippedTagCosmetic.tagColour}`}>
+                  <EmojiText>{equippedTagCosmetic.tagIcon}</EmojiText> {equippedTagCosmetic.tagName}
+                </span>
+              )}
               {userRole !== null && userRole !== 'user' && (
                 <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
               )}

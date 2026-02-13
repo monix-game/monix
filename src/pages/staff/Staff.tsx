@@ -233,6 +233,9 @@ export default function Staff() {
       return punishmentsFilter === 'active' ? active : !active;
     })
     .sort((a, b) => b.issued_at - a.issued_at);
+  const equippedTagCosmetic = user?.equipped_cosmetics?.tag
+    ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
+    : null;
 
   return (
     <div className="app-container">
@@ -321,6 +324,11 @@ export default function Staff() {
                 globalThis.location.href = '/game';
               }}
             />
+            {equippedTagCosmetic && (
+              <span className={`user-tag tag-colour-${equippedTagCosmetic.tagColour}`}>
+                <EmojiText>{equippedTagCosmetic.tagIcon}</EmojiText> {equippedTagCosmetic.tagName}
+              </span>
+            )}
             {userRole !== null && userRole !== 'user' && (
               <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
             )}
