@@ -292,6 +292,11 @@ export function applyAquariumEventModifiers(
       continue;
     }
 
+    const caughtEventId = getCurrentFishingEvent(fish.caught_at).event?.id ?? null;
+    if (caughtEventId === event.id) {
+      continue;
+    }
+
     const hasEventModifier = currentModifiers.some(modifierId => {
       const modifier = fishModifiers.find(mod => mod.id === modifierId);
       return modifier?.event === event.id;
