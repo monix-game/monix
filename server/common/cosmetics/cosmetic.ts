@@ -1,4 +1,4 @@
-import { Rarity } from '../rarities';
+import type { Rarity } from '../rarities';
 
 export interface Cosmetic {
   id: string;
