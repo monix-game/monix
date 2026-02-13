@@ -43,9 +43,7 @@ export const Button: React.FC<ButtonProps> = ({
           {costType === 'money' ? (
             <>Cost: {smartFormatNumber(cost)}</>
           ) : (
-            <>
-              Cost: {smartFormatNumber(cost, false)} Gems
-            </>
+            <>Cost: {smartFormatNumber(cost, false)} Gems</>
           )}
           )
         </span>

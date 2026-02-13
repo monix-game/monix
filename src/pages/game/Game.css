@@ -160,7 +160,7 @@ html[data-theme='dark'] .app-logo-light {
   user-select: none;
 }
 
-.money-tab-content h1>* {
+.money-tab-content h1 > * {
   vertical-align: middle;
 }
 
@@ -223,7 +223,7 @@ html[data-theme='dark'] .app-logo-light {
   min-height: 0;
 }
 
-.fishing-hgrid>* {
+.fishing-hgrid > * {
   flex: 1 1 0;
   min-width: 0;
   height: 100%;
@@ -238,7 +238,7 @@ html[data-theme='dark'] .app-logo-light {
   flex: 1 1 0;
 }
 
-.fishing-vgrid>* {
+.fishing-vgrid > * {
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -498,7 +498,7 @@ html[data-theme='dark'] .app-logo-light {
   gap: 10px;
 }
 
-.fish-sell-modal-buttons>* {
+.fish-sell-modal-buttons > * {
   flex: 1;
 }
 
@@ -658,7 +658,7 @@ html[data-theme='dark'] .app-logo-light {
   gap: 12px;
 }
 
-.fishing-modal-section+.fishing-modal-section {
+.fishing-modal-section + .fishing-modal-section {
   margin-top: 6px;
   padding-top: 12px;
   border-top: 2px dashed var(--primary-2);
@@ -927,7 +927,7 @@ html[data-theme='dark'] .app-logo-light {
   gap: 12px;
 }
 
-.daily-reward-header>div {
+.daily-reward-header > div {
   display: flex;
   flex-direction: column;
   gap: 6px;

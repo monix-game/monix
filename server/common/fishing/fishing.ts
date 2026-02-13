@@ -5,6 +5,12 @@ import { type FishingEventInfo, type CurrentFishingEvent, fishingEvents } from '
 import { fishingRods } from './fishingRods';
 import { fishModifiers } from './fishModifiers';
 import { fishTypes } from './fishTypes';
+import {
+  getTimeZoneDateUtc,
+  getTimeZoneDayStartUtc,
+  getTimeZoneParts,
+  SYDNEY_TIME_ZONE,
+} from '../timezone';
 
 const AQUARIUM_EVENT_MODIFIER_CHANCE = 0.25;
 const AQUARIUM_EVENT_ROLL_WINDOW_MS = 60 * 1000;
@@ -45,7 +51,8 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
 
   // Create a seed based on the current day, rod, bait, and event
   const now = new Date();
-  const timeKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${now.getUTCHours()}-${now.getSeconds()}-${now.getUTCMilliseconds()}`;
+  const nowParts = getTimeZoneParts(now.getTime(), SYDNEY_TIME_ZONE);
+  const timeKey = `${nowParts.year}-${nowParts.month - 1}-${nowParts.day}-${nowParts.hour}-${nowParts.second}-${now.getMilliseconds()}`;
   const seedStr = `fishing-${timeKey}-${rodId}-${baitId ?? 'no_bait'}-${eventId}`;
   const seed = fnv1a32(seedStr);
   const rng = mulberry32(seed);
@@ -114,8 +121,8 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
  * @returns An object containing the currently active fishing event and its end time. The event is determined by first checking for any date range events that encompass the current date. If no such event is active, it then checks for random events that are scheduled throughout the day using a deterministic method based on the current date. The returned object includes the event information and the timestamp of when the event will end (in milliseconds since the Unix epoch).
  */
 export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEvent {
-  const nowDate = new Date(timestamp);
-  const now = nowDate.getTime();
+  const now = timestamp;
+  const nowParts = getTimeZoneParts(timestamp, SYDNEY_TIME_ZONE);
 
   // Check if there is a event that is specifically active during this time
   for (const event of fishingEvents) {
@@ -125,9 +132,9 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
       const endMonth = event.timing.end_month ?? 11;
       const endDay = event.timing.end_day ?? 31;
 
-      const year = nowDate.getUTCFullYear();
-      const startDate = Date.UTC(year, startMonth, startDay);
-      const endDate = Date.UTC(year, endMonth, endDay, 23, 59, 59);
+      const year = nowParts.year;
+      const startDate = getTimeZoneDateUtc(SYDNEY_TIME_ZONE, year, startMonth, startDay);
+      const endDate = getTimeZoneDateUtc(SYDNEY_TIME_ZONE, year, endMonth, endDay, 23, 59, 59);
 
       if (now >= startDate && now <= endDate) {
         return {
@@ -138,11 +145,8 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
     }
   }
 
-  // Deterministic schedule for random events within the current UTC day.
-  const year = nowDate.getUTCFullYear();
-  const month = nowDate.getUTCMonth(); // 0..11
-  const day = nowDate.getUTCDate(); // 1..31
-  const dayStart = Date.UTC(year, month, day);
+  // Deterministic schedule for random events within the current Sydney day.
+  const dayStart = getTimeZoneDayStartUtc(timestamp, SYDNEY_TIME_ZONE);
 
   const randomEvents = fishingEvents.filter(event => event.timing.type === 'random');
   if (randomEvents.length === 0) {
@@ -153,8 +157,8 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
   }
 
   const eventFromDay = (startUtc: number, timestamp: number): CurrentFishingEvent | null => {
-    const dayDate = new Date(startUtc);
-    const key = `fishing-event-${dayDate.getUTCFullYear()}-${dayDate.getUTCMonth()}-${dayDate.getUTCDate()}`;
+    const dayParts = getTimeZoneParts(startUtc, SYDNEY_TIME_ZONE);
+    const key = `fishing-event-${dayParts.year}-${dayParts.month - 1}-${dayParts.day}`;
     const seed = fnv1a32(key);
     const rng = mulberry32(seed);
     const dayEnd = startUtc + 24 * 60 * 60 * 1000;

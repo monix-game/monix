@@ -1,5 +1,11 @@
 import { fnv1a32, mulberry32 } from './math';
 import type { IPet } from './models/pet';
+import {
+  getTimeZoneDateUtc,
+  getTimeZoneDayStartUtc,
+  getTimeZoneParts,
+  SYDNEY_TIME_ZONE,
+} from './timezone';
 
 export function expRequiredForLevel(level: number): number {
   // Exponential level up requirement: 100 * (level ^ 2)
@@ -80,9 +86,10 @@ export type PetSleepPeriod = {
 };
 
 export function dailySleepPeriod(dayDate: Date, uuid: string): PetSleepPeriod {
-  const year = dayDate.getUTCFullYear();
-  const month = dayDate.getUTCMonth(); // 0..11
-  const day = dayDate.getUTCDate(); // 1..31
+  const dayParts = getTimeZoneParts(dayDate.getTime(), SYDNEY_TIME_ZONE);
+  const year = dayParts.year;
+  const month = dayParts.month - 1; // 0..11
+  const day = dayParts.day; // 1..31
 
   // Build a key like "2026-1-20"
   const key = `${year}-${month + 1}-${day}-${uuid}`;
@@ -98,8 +105,8 @@ export function dailySleepPeriod(dayDate: Date, uuid: string): PetSleepPeriod {
   const latestStartMinute = 24 * 60 - durationMinutes; // inclusive
   const startMinute = Math.floor(rng() * (latestStartMinute + 1));
 
-  // Build start Date at UTC midnight then add minutes
-  const start = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+  const dayStartUtc = getTimeZoneDayStartUtc(dayDate.getTime(), SYDNEY_TIME_ZONE);
+  const start = new Date(dayStartUtc);
   start.setUTCMinutes(start.getUTCMinutes() + startMinute);
 
   const end = new Date(start.getTime() + durationMinutes * 60_000);
@@ -130,8 +137,14 @@ export function formatTimeUntilSleep(uuid: string) {
   let sleepPeriod = dailySleepPeriod(now, uuid);
   if (now >= sleepPeriod.end) {
     // Already slept today, get tomorrow's
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    sleepPeriod = dailySleepPeriod(tomorrow, uuid);
+    const nowParts = getTimeZoneParts(now.getTime(), SYDNEY_TIME_ZONE);
+    const tomorrowStartUtc = getTimeZoneDateUtc(
+      SYDNEY_TIME_ZONE,
+      nowParts.year,
+      nowParts.month - 1,
+      nowParts.day + 1
+    );
+    sleepPeriod = dailySleepPeriod(new Date(tomorrowStartUtc), uuid);
   }
 
   // Return string like "3h15m"

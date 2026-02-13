@@ -22,6 +22,7 @@ import { processAvatar } from '../helpers/avatar';
 import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
 import { applyAquariumEventModifiers, getCurrentFishingEvent } from '../../common/fishing/fishing';
 import { hasGems } from '../../common/math';
+import { getTimeZoneDayIndex, SYDNEY_TIME_ZONE } from '../../common/timezone';
 
 const router = Router();
 
@@ -208,7 +209,7 @@ router.post('/daily-reward/claim', requireActive, async (req: Request, res: Resp
 
   if (!authUser) return res.status(404).json({ error: 'User not found' });
 
-  const currentDay = Math.floor(Date.now() / 86400000);
+  const currentDay = getTimeZoneDayIndex(Date.now(), SYDNEY_TIME_ZONE);
   const dailyRewardsState = authUser.daily_rewards || { last_claimed_day: 0, streak: 0 };
   const lastClaimedDay = dailyRewardsState.last_claimed_day || 0;
   const lastStreak = dailyRewardsState.streak || 0;
