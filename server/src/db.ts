@@ -33,8 +33,7 @@ export async function connectDB(uri: string) {
       type: 'public',
       name: '📢 Updates',
       time_created: 0,
-      restrict_send: true,
-      sender_required_role: 'admin',
+      restrict_send_to: 'admin',
     },
     { uuid: 'staff', type: 'staff', name: '🛠️ Staff', time_created: 0 },
   ];

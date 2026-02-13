@@ -56,11 +56,7 @@ router.post('/send', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to send messages in this room' });
   }
 
-  if (
-    room.restrict_send &&
-    room.sender_required_role &&
-    !hasRole(user.role, room.sender_required_role)
-  ) {
+  if (room.restrict_send_to && !hasRole(user.role, room.restrict_send_to)) {
     return res.status(403).json({ error: 'You are not allowed to send messages in this room' });
   }
 
@@ -112,8 +108,8 @@ router.post('/send', requireActive, async (req, res) => {
     room_uuid,
     content: censoredContent,
     deleted: false,
-    sent_restricted: room.restrict_send || false,
-    restricted_role: room.sender_required_role,
+    sent_restricted: !!room.restrict_send_to,
+    restricted_role: room.restrict_send_to,
     nameplate: user.equipped_cosmetics?.nameplate,
     user_tag: user.equipped_cosmetics?.tag,
     frame: user.equipped_cosmetics?.frame,
@@ -179,11 +175,7 @@ router.post('/edit/:message_uuid', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to edit messages in this room' });
   }
 
-  if (
-    room.restrict_send &&
-    room.sender_required_role &&
-    !hasRole(user.role, room.sender_required_role)
-  ) {
+  if (room.restrict_send_to && !hasRole(user.role, room.restrict_send_to)) {
     return res.status(403).json({ error: 'You are not allowed to edit messages in this room' });
   }
 
@@ -248,11 +240,7 @@ router.post('/delete/:message_uuid', requireActive, async (req, res) => {
     return res.status(403).json({ error: 'You are not allowed to delete messages in this room' });
   }
 
-  if (
-    room.restrict_send &&
-    room.sender_required_role &&
-    !hasRole(user.role, room.sender_required_role)
-  ) {
+  if (room.restrict_send_to && !hasRole(user.role, room.restrict_send_to)) {
     return res.status(403).json({ error: 'You are not allowed to delete messages in this room' });
   }
 
