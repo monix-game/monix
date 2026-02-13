@@ -8,6 +8,7 @@ import {
   getMessagesByRoomUUID,
   getRoomByUUID,
   getUserByUUID,
+  updateUser,
   updateMessage,
 } from '../db';
 import { requireActive } from '../middleware';
@@ -20,6 +21,8 @@ import { getCategoryById } from '../../common/punishx/categories';
 import { sendNyxMessage } from '../helpers/nyx';
 import { handleCommand } from '../helpers/commands';
 import { hasRole } from '../../common/roles';
+import { checkSocialSpam } from '../helpers/spamModeration';
+import { punishUser } from '../../common/punishx/punishx';
 
 const router = Router();
 
@@ -86,6 +89,33 @@ router.post('/send', requireActive, async (req, res) => {
       room_uuid
     );
     return res.status(400).json({ error: 'Message content cannot be only profanity' });
+  }
+
+  const isPublicRoom = room.type === 'public';
+  const isModOrHigher = hasRole(user.role, 'mod');
+
+  if (isPublicRoom && !isModOrHigher) {
+    const spamDecision = checkSocialSpam({ user_uuid: user.uuid, room_uuid, content });
+
+    if (spamDecision.isSpam) {
+      const reasons = spamDecision.reasons.map(reason => reason.name).join(', ');
+
+      if (spamDecision.shouldAutoBan) {
+        const category = getCategoryById('social/chat/spam');
+        if (category) {
+          punishUser(user, category, 'nyx', `Auto moderation: ${reasons}`);
+          await updateUser(user);
+        }
+      }
+
+      await sendNyxMessage(
+        user.uuid,
+        `Your message was blocked by auto moderation (${reasons}).`,
+        room_uuid
+      );
+
+      return res.status(403).json({ error: 'Message blocked by auto moderation' });
+    }
   }
 
   // Check if the message contains links (not allowed in social rooms except for staff)
