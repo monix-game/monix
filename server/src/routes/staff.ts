@@ -90,12 +90,19 @@ router.post('/features', requireRole('admin'), async (req: Request, res: Respons
     return value ? 'enabled' : 'disabled';
   };
 
+  const keyDisplayMap: { [key: string]: string } = {
+    resourcesMarket: 'Resources/Market',
+    fishingAquarium: 'Fishing/Aquarium',
+    pets: 'Pets',
+    social: 'Social',
+  };
+
   const changeLogEntries = changedKeys.length
     ? changedKeys.map(key => {
         const previousValue = oldSettings[key as keyof typeof oldSettings];
         const nextValue = nextSettings.features[key as keyof typeof nextSettings.features];
         return {
-          key,
+          key: keyDisplayMap[key] || key,
           value: `${formatSettingValue(previousValue)} -> ${formatSettingValue(nextValue)}`,
         };
       })
