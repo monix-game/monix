@@ -1,11 +1,13 @@
 import { Router } from 'express';
-import { requireActive } from '../middleware';
+import { requireActive, requireFeatureEnabled } from '../middleware';
 import { getUserByUUID, updateUser } from '../db';
 import { type IUser } from '../models/user';
 import { generatePrice } from '../helpers/market';
 import { resources } from '../../common/resources';
 
 const router = Router();
+
+router.use(requireFeatureEnabled('resourcesMarket'));
 
 router.get('/all', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware

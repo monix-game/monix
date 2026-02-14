@@ -75,6 +75,11 @@ import { fishingRods } from '../../../server/common/fishing/fishingRods';
 import type { IFish } from '../../../server/common/models/fish';
 import { DAILY_REWARDS } from '../../../server/common/rewards/dailyRewards';
 import { rarityEmojis } from '../../../server/common/rarities';
+import {
+  DEFAULT_GLOBAL_SETTINGS,
+  type IGlobalSettings,
+} from '../../../server/common/models/globalSettings';
+import { getGlobalSettings } from '../../helpers/globalSettings';
 
 export default function Game() {
   const debugOverlayPositions = ['topleft', 'topright', 'bottomleft', 'bottomright'] as const;
@@ -144,6 +149,7 @@ export default function Game() {
     visitedAquarium: false,
     visitedPets: false,
   });
+  const [globalSettings, setGlobalSettings] = useState<IGlobalSettings>(DEFAULT_GLOBAL_SETTINGS);
   type TutorialStep = {
     title: string;
     body: string;
@@ -205,6 +211,11 @@ export default function Game() {
   );
   const currentTutorialStep = tutorialSteps[tutorialStep];
   const isLastTutorialStep = tutorialStep >= tutorialSteps.length - 1;
+  const featureFlags = globalSettings.features;
+  const resourceMarketDisabled = !featureFlags.resourcesMarket;
+  const fishingDisabled = !featureFlags.fishingAquarium;
+  const petsDisabled = !featureFlags.pets;
+  const socialDisabled = !featureFlags.social;
   const isTutorialStepComplete = useMemo(() => {
     if (!currentTutorialStep) return true;
 
@@ -242,6 +253,25 @@ export default function Game() {
     }, 1000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchSettings = async () => {
+      const settings = await getGlobalSettings();
+      if (!mounted) return;
+      if (settings) {
+        setGlobalSettings(settings);
+      }
+    };
+
+    void fetchSettings();
+
+    const interval = setInterval(fetchSettings, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -524,7 +554,7 @@ export default function Game() {
       setTabTo('money');
     }
 
-    const totalResources = await getTotalResourceValue();
+    const totalResources = resourceMarketDisabled ? 0 : await getTotalResourceValue();
     const aquariumValue = (userData?.fishing?.aquarium?.fish ?? []).reduce(
       (total, fish) => total + getFishValue(fish),
       0
@@ -534,9 +564,9 @@ export default function Game() {
     setAquariumTotal(aquariumValue);
     setTotalNetWorth((userData?.money || 0) + totalResources + aquariumValue);
 
-    const socialRooms = await getAllRooms();
+    const socialRooms = socialDisabled ? [] : await getAllRooms();
     setSocialRooms(socialRooms);
-  }, [tab, setTabTo, banned]);
+  }, [tab, setTabTo, banned, resourceMarketDisabled, socialDisabled]);
 
   const startTutorial = useCallback(async () => {
     setTutorialStep(0);
@@ -649,8 +679,21 @@ export default function Game() {
     let mounted = true;
     let intervalId: number | undefined;
 
+    if (resourceMarketDisabled) {
+      queueMicrotask(() => {
+        setResourceListHydrated(true);
+        setSortedResources([]);
+        setResourcePrices({});
+        setResourceQuantities({});
+      });
+      return () => {
+        mounted = false;
+        if (intervalId !== undefined) clearInterval(intervalId);
+      };
+    }
+
     const updateResource = async () => {
-      if (banned) return;
+      if (banned || resourceMarketDisabled) return;
 
       const resourcesCopy = [...resources];
 
@@ -700,7 +743,26 @@ export default function Game() {
       mounted = false;
       if (intervalId !== undefined) clearInterval(intervalId);
     };
-  }, [banned]);
+  }, [banned, resourceMarketDisabled]);
+
+  useEffect(() => {
+    if (!resourceMarketDisabled) return;
+    queueMicrotask(() => {
+      setMarketModalOpen(false);
+      setMarketModalResource(null);
+    });
+  }, [resourceMarketDisabled]);
+
+  useEffect(() => {
+    if (!fishingDisabled) return;
+    queueMicrotask(() => {
+      setIsRodsModalOpen(false);
+      setIsBaitModalOpen(false);
+      setIsFishSellModalOpen(false);
+      setIsFishSellAllModalOpen(false);
+      setAquariumFishToSell(null);
+    });
+  }, [fishingDisabled]);
 
   const submitAppealClick = async () => {
     if (appealModalContent.trim().length === 0) {
@@ -713,6 +775,21 @@ export default function Game() {
       setAppealModalContent('');
     }
   };
+
+  const isFeatureTabDisabled = (key: typeof tab) => {
+    if (key === 'resources' || key === 'market') return resourceMarketDisabled;
+    if (key === 'fishing' || key === 'aquarium') return fishingDisabled;
+    if (key === 'pets') return petsDisabled;
+    if (key === 'social') return socialDisabled;
+    return false;
+  };
+
+  const renderFeatureDisabled = (title: string) => (
+    <div className="tab-content feature-disabled">
+      <h2>{title}</h2>
+      <p>This feature has been disabled by staff.</p>
+    </div>
+  );
 
   return (
     <>
@@ -760,7 +837,7 @@ export default function Game() {
               const renderTab = (t: { key: typeof tab; label: string }, index: number) => (
                 <span
                   key={t.key}
-                  className={`tab ${tab === t.key ? 'active' : ''} ${!gameHydrated ? 'disabled' : ''}`}
+                  className={`tab ${tab === t.key ? 'active' : ''} ${!gameHydrated || isFeatureTabDisabled(t.key) ? 'disabled' : ''}`}
                   onClick={() => setTabTo(t.key)}
                   role="tab"
                   tabIndex={index}
@@ -868,689 +945,722 @@ export default function Game() {
               </div>
             </div>
           )}
-          {tab === 'resources' && (
-            <div className="tab-content">
-              <div className="resource-list-header">
-                <h2>Resources</h2>
-                <span>
-                  <b>Total Value:</b> {smartFormatNumber(resourcesTotal)}
-                </span>
+          {tab === 'resources' &&
+            (resourceMarketDisabled ? (
+              renderFeatureDisabled('Resources')
+            ) : (
+              <div className="tab-content">
+                <div className="resource-list-header">
+                  <h2>Resources</h2>
+                  <span>
+                    <b>Total Value:</b> {smartFormatNumber(resourcesTotal)}
+                  </span>
+                </div>
+                <ResourceList
+                  setMarketModalResource={setMarketModalResource}
+                  setMarketModalOpen={setMarketModalOpen}
+                  resourceListHydrated={resourceListHydrated}
+                  sortedResources={sortedResources}
+                  resourcePrices={resourcePrices}
+                />
               </div>
-              <ResourceList
-                setMarketModalResource={setMarketModalResource}
-                setMarketModalOpen={setMarketModalOpen}
-                resourceListHydrated={resourceListHydrated}
-                sortedResources={sortedResources}
-                resourcePrices={resourcePrices}
-              />
-            </div>
-          )}
-          {tab === 'market' && (
-            <div className="tab-content">
-              <h2>Market</h2>
-              <Button onClick={() => setTabTo('resources')}>Choose Resource</Button>
-              <ResourceGraph
-                resource={getResourceById(marketResourceDetails)!}
-                onBuySellClick={() => {
-                  setMarketModalOpen(true);
-                  setMarketModalResource(getResourceById(marketResourceDetails)!);
-                }}
-              />
-            </div>
-          )}
-          {tab === 'fishing' && (
-            <div className="tab-content fishing-tab">
-              <h2>Fishing</h2>
-              <div className="fishing-container">
-                <div className="fishing-hgrid">
-                  <div className="fishing-left">
-                    <div className="fishing-card">
-                      <h2>
-                        <EmojiText>🐟</EmojiText> Go Fishing!
-                      </h2>
-                      <div className="fishing-card-actions">
-                        <Checkbox
-                          label="Auto-sell fish"
-                          checked={autoSellEnabled}
-                          onClick={setAutoSellEnabled}
-                        />
-                        <Button
-                          onClickAsync={async () => {
-                            const result = await goFishing(autoSellEnabled);
+            ))}
+          {tab === 'market' &&
+            (resourceMarketDisabled ? (
+              renderFeatureDisabled('Market')
+            ) : (
+              <div className="tab-content">
+                <h2>Market</h2>
+                <Button onClick={() => setTabTo('resources')}>Choose Resource</Button>
+                <ResourceGraph
+                  resource={getResourceById(marketResourceDetails)!}
+                  onBuySellClick={() => {
+                    setMarketModalOpen(true);
+                    setMarketModalResource(getResourceById(marketResourceDetails)!);
+                  }}
+                />
+              </div>
+            ))}
+          {tab === 'fishing' &&
+            (fishingDisabled ? (
+              renderFeatureDisabled('Fishing')
+            ) : (
+              <div className="tab-content fishing-tab">
+                <h2>Fishing</h2>
+                <div className="fishing-container">
+                  <div className="fishing-hgrid">
+                    <div className="fishing-left">
+                      <div className="fishing-card">
+                        <h2>
+                          <EmojiText>🐟</EmojiText> Go Fishing!
+                        </h2>
+                        <div className="fishing-card-actions">
+                          <Checkbox
+                            label="Auto-sell fish"
+                            checked={autoSellEnabled}
+                            onClick={setAutoSellEnabled}
+                          />
+                          <Button
+                            onClickAsync={async () => {
+                              const result = await goFishing(autoSellEnabled);
 
-                            if (result) {
-                              setIsShowingFishingResults(true);
-                              setLastCatch(result);
-                              if (isTutorialOpen) {
-                                setTutorialProgress(prev => ({
-                                  ...prev,
-                                  caughtFish: true,
-                                }));
+                              if (result) {
+                                setIsShowingFishingResults(true);
+                                setLastCatch(result);
+                                if (isTutorialOpen) {
+                                  setTutorialProgress(prev => ({
+                                    ...prev,
+                                    caughtFish: true,
+                                  }));
+                                }
+
+                                if (autoSellEnabled) {
+                                  setWasLastCatchAutoSold(true);
+                                } else {
+                                  setWasLastCatchAutoSold(false);
+                                }
+
+                                await updateEverything();
                               }
-
-                              if (autoSellEnabled) {
-                                setWasLastCatchAutoSold(true);
-                              } else {
-                                setWasLastCatchAutoSold(false);
+                            }}
+                            disabled={
+                              (user?.fishing?.last_fished_at || 0) + 5000 > fishingNow ||
+                              ((user?.fishing?.aquarium.fish.length || 0) >=
+                                (user?.fishing?.aquarium.capacity || 0) &&
+                                !autoSellEnabled)
+                            }
+                          >
+                            {(() => {
+                              if ((user?.fishing?.last_fished_at || 0) + 5000 > fishingNow) {
+                                return `Wait ${formatRemainingMilliseconds(
+                                  (user?.fishing?.last_fished_at || 0) + 5000 - fishingNow
+                                )}`;
                               }
-
-                              await updateEverything();
-                            }
-                          }}
-                          disabled={
-                            (user?.fishing?.last_fished_at || 0) + 5000 > fishingNow ||
-                            ((user?.fishing?.aquarium.fish.length || 0) >=
-                              (user?.fishing?.aquarium.capacity || 0) &&
-                              !autoSellEnabled)
-                          }
-                        >
-                          {(() => {
-                            if ((user?.fishing?.last_fished_at || 0) + 5000 > fishingNow) {
-                              return `Wait ${formatRemainingMilliseconds(
-                                (user?.fishing?.last_fished_at || 0) + 5000 - fishingNow
-                              )}`;
-                            }
-                            const isAquariumFull =
-                              (user?.fishing?.aquarium.fish.length || 0) >=
-                                (user?.fishing?.aquarium.capacity || 0) && !autoSellEnabled;
-                            return isAquariumFull ? 'Aquarium Full' : 'Cast a Line!';
-                          })()}
-                        </Button>
-                      </div>
-                      {isShowingFishingResults && lastCatch && (
-                        <div className="fishing-results">
-                          <h3>
-                            You Caught{' '}
-                            {['a', 'e', 'i', 'o', 'u'].includes(
-                              fishTypes
-                                .find(f => f.id === lastCatch.fishCaught.type)
-                                ?.name[0].toLowerCase() || ''
-                            )
-                              ? 'an'
-                              : 'a'}{' '}
-                            <EmojiText>
-                              {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.icon}
-                            </EmojiText>{' '}
-                            {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.name}
-                          </h3>
-                          <p className="fishing-result-weight">
-                            Weight:{' '}
-                            {lastCatch.fishCaught.weight >= 1000 ? (
+                              const isAquariumFull =
+                                (user?.fishing?.aquarium.fish.length || 0) >=
+                                  (user?.fishing?.aquarium.capacity || 0) && !autoSellEnabled;
+                              return isAquariumFull ? 'Aquarium Full' : 'Cast a Line!';
+                            })()}
+                          </Button>
+                        </div>
+                        {isShowingFishingResults && lastCatch && (
+                          <div className="fishing-results">
+                            <h3>
+                              You Caught{' '}
+                              {['a', 'e', 'i', 'o', 'u'].includes(
+                                fishTypes
+                                  .find(f => f.id === lastCatch.fishCaught.type)
+                                  ?.name[0].toLowerCase() || ''
+                              )
+                                ? 'an'
+                                : 'a'}{' '}
+                              <EmojiText>
+                                {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.icon}
+                              </EmojiText>{' '}
+                              {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.name}
+                            </h3>
+                            <p className="fishing-result-weight">
+                              Weight:{' '}
+                              {lastCatch.fishCaught.weight >= 1000 ? (
+                                <span className="mono">
+                                  {smartFormatNumber(lastCatch.fishCaught.weight / 1000, false)}{' '}
+                                  tonnes
+                                </span>
+                              ) : (
+                                <span className="mono">
+                                  {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
+                                </span>
+                              )}
+                            </p>
+                            <p className="fishing-result-value">
+                              Value:{' '}
                               <span className="mono">
-                                {smartFormatNumber(lastCatch.fishCaught.weight / 1000, false)}{' '}
-                                tonnes
+                                {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
                               </span>
-                            ) : (
-                              <span className="mono">
-                                {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
-                              </span>
-                            )}
-                          </p>
-                          <p className="fishing-result-value">
-                            Value:{' '}
-                            <span className="mono">
-                              {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
-                            </span>
-                          </p>
-                          <div className="fishing-result-modifiers">
-                            <span className="fishing-result-modifiers-label">Modifiers:</span>
-                            {lastCatch.fishCaught.modifiers?.length ? (
-                              <div className="fishing-result-modifier-list">
-                                {lastCatch.fishCaught.modifiers.map(mod => {
-                                  const modifier = fishModifiers.find(fm => fm.id === mod);
-                                  if (!modifier) return null;
-                                  return (
-                                    <span key={modifier.id} className="fishing-result-modifier">
-                                      <EmojiText>{modifier.icon}</EmojiText> {modifier.name}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <span className="fishing-result-none">None</span>
-                            )}
-                          </div>
+                            </p>
+                            <div className="fishing-result-modifiers">
+                              <span className="fishing-result-modifiers-label">Modifiers:</span>
+                              {lastCatch.fishCaught.modifiers?.length ? (
+                                <div className="fishing-result-modifier-list">
+                                  {lastCatch.fishCaught.modifiers.map(mod => {
+                                    const modifier = fishModifiers.find(fm => fm.id === mod);
+                                    if (!modifier) return null;
+                                    return (
+                                      <span key={modifier.id} className="fishing-result-modifier">
+                                        <EmojiText>{modifier.icon}</EmojiText> {modifier.name}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <span className="fishing-result-none">None</span>
+                              )}
+                            </div>
 
-                          <div className="fishing-result-buttons">
-                            <Button
-                              secondary
-                              onClick={() => {
-                                setIsShowingFishingResults(false);
-                                setLastCatch(null);
-                              }}
-                            >
-                              Dismiss
-                            </Button>
-                            {!wasLastCatchAutoSold ? (
+                            <div className="fishing-result-buttons">
                               <Button
-                                onClickAsync={async () => {
-                                  await sellFish(lastCatch.fishCaught.uuid);
-                                  await updateEverything();
+                                secondary
+                                onClick={() => {
                                   setIsShowingFishingResults(false);
                                   setLastCatch(null);
                                 }}
                               >
-                                Sell
+                                Dismiss
                               </Button>
-                            ) : (
-                              <span className="auto-sold">Auto-sold</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="fishing-right">
-                    <div className="fishing-vgrid">
-                      <div className="fishing-top">
-                        <div className="fishing-card">
-                          <div className="fishing-card-header">
-                            <h2>
-                              <EmojiText>🎣</EmojiText> Rods
-                            </h2>
-                            <Button onClick={() => setIsRodsModalOpen(true)}>Buy Rods</Button>
-                          </div>
-                          <div className="fishing-grid">
-                            {(user?.fishing?.rods_owned || []).length === 0 && (
-                              <p>You don't own any rods yet.</p>
-                            )}
-                            {(user?.fishing?.rods_owned || [])
-                              .sort((a, b) => {
-                                const rodA = fishingRods.find(r => r.id === a);
-                                const rodB = fishingRods.find(r => r.id === b);
-                                if (!rodA || !rodB) return 0;
-                                return rodB.multiplier - rodA.multiplier;
-                              })
-                              .map(rodId => {
-                                const rodInfo = fishingRods.find(r => r.id === rodId);
-
-                                if (!rodInfo) return null;
-
-                                const isEquipped = user?.fishing?.equipped_rod === rodId;
-
-                                return (
-                                  <div
-                                    key={rodId}
-                                    className={`fishing-grid-item ${isEquipped ? 'equipped' : ''}`}
-                                  >
-                                    <h3>{rodInfo.name}</h3>
-                                    <span className="rod-multiplier">
-                                      {rodInfo.multiplier}x Multiplier
-                                    </span>
-                                    {!isEquipped && (
-                                      <Button
-                                        onClickAsync={async () => {
-                                          await equipRod(rodId);
-                                          await updateEverything();
-                                        }}
-                                      >
-                                        Equip
-                                      </Button>
-                                    )}
-                                    {isEquipped && <Button disabled>Equipped</Button>}
-                                  </div>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="fishing-bottom">
-                        <div className="fishing-card">
-                          <span className="fishing-card-header">
-                            <h2>
-                              <EmojiText>🪱</EmojiText> Bait
-                            </h2>
-                            <Button onClick={() => setIsBaitModalOpen(true)}>Buy Bait</Button>
-                          </span>
-
-                          <div className="fishing-grid">
-                            {(user?.fishing?.bait_owned || []).length === 0 && (
-                              <p>You don't own any bait yet.</p>
-                            )}
-                            {fishingBaits
-                              .filter(b => {
-                                const quantity = user?.fishing?.bait_owned?.[b.id] || 0;
-                                return quantity > 0;
-                              })
-                              .sort((a, b) => {
-                                const quantityA = user?.fishing?.bait_owned?.[a.id] || 0;
-                                const quantityB = user?.fishing?.bait_owned?.[b.id] || 0;
-                                return quantityB - quantityA;
-                              })
-                              .map(bait => {
-                                const quantity = user?.fishing?.bait_owned?.[bait.id] || 0;
-                                const isEquipped = user?.fishing?.equipped_bait === bait.id;
-                                return (
-                                  <div
-                                    key={bait.id}
-                                    className={`fishing-grid-item ${isEquipped ? 'equipped' : ''}`}
-                                  >
-                                    <h3>{bait.name}</h3>
-                                    <div className="bait-pills">
-                                      {bait.fish_types_boosted.map(typeId => {
-                                        const typeInfo = fishTypes.find(t => t.id === typeId);
-                                        if (!typeInfo) return null;
-                                        return (
-                                          <span key={typeId} className="bait-pill">
-                                            <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                    <span className="bait-quantity">x{quantity}</span>
-                                    {!isEquipped && (
-                                      <Button
-                                        onClickAsync={async () => {
-                                          await equipBait(bait.id);
-                                          await updateEverything();
-                                        }}
-                                      >
-                                        Equip
-                                      </Button>
-                                    )}
-                                    {isEquipped && <Button disabled>Equipped</Button>}
-                                  </div>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Modal isOpen={isRodsModalOpen} onClose={() => setIsRodsModalOpen(false)} width={700}>
-                <div className="fishing-modal">
-                  <h2>
-                    <EmojiText>🎣</EmojiText> Rods Shop
-                  </h2>
-                  {rodSections.map(section => (
-                    <div key={section.id} className="fishing-modal-section">
-                      <div className="fishing-modal-section-header">
-                        <h3>{section.title}</h3>
-                        <div className="fishing-modal-section-meta">
-                          <span className="fishing-modal-section-subtitle">{section.subtitle}</span>
-                          <button
-                            className="fishing-modal-section-toggle"
-                            type="button"
-                            aria-expanded={!!openRodSections[section.id]}
-                            onClick={() => toggleRodSection(section.id)}
-                          >
-                            {openRodSections[section.id] ? 'Hide' : 'Show'}
-                          </button>
-                        </div>
-                      </div>
-                      {openRodSections[section.id] && (
-                        <div className="fishing-modal-grid">
-                          {section.rods.map(rod => (
-                            <div key={rod.id} className="fishing-modal-card">
-                              <h3>{rod.name}</h3>
-                              <p>
-                                Price: <span className="mono">{smartFormatNumber(rod.price)}</span>
-                              </p>
-                              <span>{rod.multiplier}x Multiplier</span>
-
-                              <Button
-                                disabled={
-                                  !user ||
-                                  (user.money || 0) < rod.price ||
-                                  (user.fishing?.rods_owned || []).includes(rod.id)
-                                }
-                                onClickAsync={async () => {
-                                  await buyRod(rod.id);
-                                  await updateEverything();
-                                }}
-                              >
-                                {(user?.fishing?.rods_owned || []).includes(rod.id)
-                                  ? 'Owned'
-                                  : 'Buy'}
-                              </Button>
+                              {!wasLastCatchAutoSold ? (
+                                <Button
+                                  onClickAsync={async () => {
+                                    await sellFish(lastCatch.fishCaught.uuid);
+                                    await updateEverything();
+                                    setIsShowingFishingResults(false);
+                                    setLastCatch(null);
+                                  }}
+                                >
+                                  Sell
+                                </Button>
+                              ) : (
+                                <span className="auto-sold">Auto-sold</span>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Modal>
-
-              <Modal isOpen={isBaitModalOpen} onClose={() => setIsBaitModalOpen(false)} width={700}>
-                <div className="fishing-modal">
-                  <h2>
-                    <EmojiText>🪱</EmojiText> Bait Shop
-                  </h2>
-                  {baitSections.map(section => (
-                    <div key={section.id} className="fishing-modal-section">
-                      <div className="fishing-modal-section-header">
-                        <h3>{section.title}</h3>
-                        <div className="fishing-modal-section-meta">
-                          <span className="fishing-modal-section-subtitle">{section.subtitle}</span>
-                          <button
-                            className="fishing-modal-section-toggle"
-                            type="button"
-                            aria-expanded={!!openBaitSections[section.id]}
-                            onClick={() => toggleBaitSection(section.id)}
-                          >
-                            {openBaitSections[section.id] ? 'Hide' : 'Show'}
-                          </button>
-                        </div>
+                          </div>
+                        )}
                       </div>
-                      {openBaitSections[section.id] && (
-                        <div className="fishing-modal-grid">
-                          {section.baits.map(bait => (
-                            <div key={bait.id} className="fishing-modal-card">
-                              <h3>{bait.name}</h3>
-                              <div className="bait-pills">
-                                {bait.fish_types_boosted.map(typeId => {
-                                  const typeInfo = fishTypes.find(t => t.id === typeId);
-                                  if (!typeInfo) return null;
+                    </div>
+                    <div className="fishing-right">
+                      <div className="fishing-vgrid">
+                        <div className="fishing-top">
+                          <div className="fishing-card">
+                            <div className="fishing-card-header">
+                              <h2>
+                                <EmojiText>🎣</EmojiText> Rods
+                              </h2>
+                              <Button onClick={() => setIsRodsModalOpen(true)}>Buy Rods</Button>
+                            </div>
+                            <div className="fishing-grid">
+                              {(user?.fishing?.rods_owned || []).length === 0 && (
+                                <p>You don't own any rods yet.</p>
+                              )}
+                              {(user?.fishing?.rods_owned || [])
+                                .sort((a, b) => {
+                                  const rodA = fishingRods.find(r => r.id === a);
+                                  const rodB = fishingRods.find(r => r.id === b);
+                                  if (!rodA || !rodB) return 0;
+                                  return rodB.multiplier - rodA.multiplier;
+                                })
+                                .map(rodId => {
+                                  const rodInfo = fishingRods.find(r => r.id === rodId);
+
+                                  if (!rodInfo) return null;
+
+                                  const isEquipped = user?.fishing?.equipped_rod === rodId;
+
                                   return (
-                                    <span key={typeId} className="bait-pill">
-                                      <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
-                                    </span>
+                                    <div
+                                      key={rodId}
+                                      className={`fishing-grid-item ${isEquipped ? 'equipped' : ''}`}
+                                    >
+                                      <h3>{rodInfo.name}</h3>
+                                      <span className="rod-multiplier">
+                                        {rodInfo.multiplier}x Multiplier
+                                      </span>
+                                      {!isEquipped && (
+                                        <Button
+                                          onClickAsync={async () => {
+                                            await equipRod(rodId);
+                                            await updateEverything();
+                                          }}
+                                        >
+                                          Equip
+                                        </Button>
+                                      )}
+                                      {isEquipped && <Button disabled>Equipped</Button>}
+                                    </div>
                                   );
                                 })}
-                              </div>
-                              <p>
-                                Cost:{' '}
-                                <span className="mono">
-                                  {smartFormatNumber(bait.price * (baitQuantities[bait.id] || 1))}
-                                </span>
-                              </p>
-                              <div className="bait-quantity-control">
-                                <button
-                                  type="button"
-                                  className="bait-quantity-button"
-                                  onClick={() =>
-                                    setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) - 1)
-                                  }
-                                >
-                                  -
-                                </button>
-                                <input
-                                  className="bait-quantity-input"
-                                  type="number"
-                                  min={1}
-                                  value={baitQuantities[bait.id] || 1}
-                                  onChange={event =>
-                                    setBaitQuantity(bait.id, Number(event.target.value))
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  className="bait-quantity-button"
-                                  onClick={() =>
-                                    setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) + 1)
-                                  }
-                                >
-                                  +
-                                </button>
-                              </div>
-                              <Button
-                                disabled={
-                                  !user ||
-                                  (user.money || 0) < bait.price * (baitQuantities[bait.id] || 1)
-                                }
-                                onClickAsync={async () => {
-                                  await buyBait(bait.id, baitQuantities[bait.id] || 1);
-                                  await updateEverything();
-                                }}
-                              >
-                                Buy
-                              </Button>
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Modal>
-            </div>
-          )}
-          {tab === 'aquarium' && (
-            <div className="tab-content">
-              <h2>Aquarium</h2>
-              <div className="aquarium-banner">
-                <span className="aquarium-banner-subtitle">CURRENT FISHING EVENT</span>
-                <h3 className="aquarium-banner-title">
-                  {currentFishingEvent.event ? (
-                    <>
-                      <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
-                      {currentFishingEvent.event.name}
-                    </>
-                  ) : (
-                    'No active event'
-                  )}
-                </h3>
-                <span className="aquarium-banner-remaining">
-                  {formatRemainingTime(
-                    Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
-                  )}{' '}
-                  {currentFishingEvent.event ? 'remaining' : 'until next event'}
-                </span>
-              </div>
-              <div className="aquarium-info">
-                {(() => {
-                  const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
-                  const capacity = user?.fishing?.aquarium.capacity ?? 0;
+                        <div className="fishing-bottom">
+                          <div className="fishing-card">
+                            <span className="fishing-card-header">
+                              <h2>
+                                <EmojiText>🪱</EmojiText> Bait
+                              </h2>
+                              <Button onClick={() => setIsBaitModalOpen(true)}>Buy Bait</Button>
+                            </span>
 
-                  if (fishLength === 0) {
+                            <div className="fishing-grid">
+                              {(user?.fishing?.bait_owned || []).length === 0 && (
+                                <p>You don't own any bait yet.</p>
+                              )}
+                              {fishingBaits
+                                .filter(b => {
+                                  const quantity = user?.fishing?.bait_owned?.[b.id] || 0;
+                                  return quantity > 0;
+                                })
+                                .sort((a, b) => {
+                                  const quantityA = user?.fishing?.bait_owned?.[a.id] || 0;
+                                  const quantityB = user?.fishing?.bait_owned?.[b.id] || 0;
+                                  return quantityB - quantityA;
+                                })
+                                .map(bait => {
+                                  const quantity = user?.fishing?.bait_owned?.[bait.id] || 0;
+                                  const isEquipped = user?.fishing?.equipped_bait === bait.id;
+                                  return (
+                                    <div
+                                      key={bait.id}
+                                      className={`fishing-grid-item ${isEquipped ? 'equipped' : ''}`}
+                                    >
+                                      <h3>{bait.name}</h3>
+                                      <div className="bait-pills">
+                                        {bait.fish_types_boosted.map(typeId => {
+                                          const typeInfo = fishTypes.find(t => t.id === typeId);
+                                          if (!typeInfo) return null;
+                                          return (
+                                            <span key={typeId} className="bait-pill">
+                                              <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                      <span className="bait-quantity">x{quantity}</span>
+                                      {!isEquipped && (
+                                        <Button
+                                          onClickAsync={async () => {
+                                            await equipBait(bait.id);
+                                            await updateEverything();
+                                          }}
+                                        >
+                                          Equip
+                                        </Button>
+                                      )}
+                                      {isEquipped && <Button disabled>Equipped</Button>}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Modal
+                  isOpen={isRodsModalOpen}
+                  onClose={() => setIsRodsModalOpen(false)}
+                  width={700}
+                >
+                  <div className="fishing-modal">
+                    <h2>
+                      <EmojiText>🎣</EmojiText> Rods Shop
+                    </h2>
+                    {rodSections.map(section => (
+                      <div key={section.id} className="fishing-modal-section">
+                        <div className="fishing-modal-section-header">
+                          <h3>{section.title}</h3>
+                          <div className="fishing-modal-section-meta">
+                            <span className="fishing-modal-section-subtitle">
+                              {section.subtitle}
+                            </span>
+                            <button
+                              className="fishing-modal-section-toggle"
+                              type="button"
+                              aria-expanded={!!openRodSections[section.id]}
+                              onClick={() => toggleRodSection(section.id)}
+                            >
+                              {openRodSections[section.id] ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+                        </div>
+                        {openRodSections[section.id] && (
+                          <div className="fishing-modal-grid">
+                            {section.rods.map(rod => (
+                              <div key={rod.id} className="fishing-modal-card">
+                                <h3>{rod.name}</h3>
+                                <p>
+                                  Price:{' '}
+                                  <span className="mono">{smartFormatNumber(rod.price)}</span>
+                                </p>
+                                <span>{rod.multiplier}x Multiplier</span>
+
+                                <Button
+                                  disabled={
+                                    !user ||
+                                    (user.money || 0) < rod.price ||
+                                    (user.fishing?.rods_owned || []).includes(rod.id)
+                                  }
+                                  onClickAsync={async () => {
+                                    await buyRod(rod.id);
+                                    await updateEverything();
+                                  }}
+                                >
+                                  {(user?.fishing?.rods_owned || []).includes(rod.id)
+                                    ? 'Owned'
+                                    : 'Buy'}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Modal>
+
+                <Modal
+                  isOpen={isBaitModalOpen}
+                  onClose={() => setIsBaitModalOpen(false)}
+                  width={700}
+                >
+                  <div className="fishing-modal">
+                    <h2>
+                      <EmojiText>🪱</EmojiText> Bait Shop
+                    </h2>
+                    {baitSections.map(section => (
+                      <div key={section.id} className="fishing-modal-section">
+                        <div className="fishing-modal-section-header">
+                          <h3>{section.title}</h3>
+                          <div className="fishing-modal-section-meta">
+                            <span className="fishing-modal-section-subtitle">
+                              {section.subtitle}
+                            </span>
+                            <button
+                              className="fishing-modal-section-toggle"
+                              type="button"
+                              aria-expanded={!!openBaitSections[section.id]}
+                              onClick={() => toggleBaitSection(section.id)}
+                            >
+                              {openBaitSections[section.id] ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+                        </div>
+                        {openBaitSections[section.id] && (
+                          <div className="fishing-modal-grid">
+                            {section.baits.map(bait => (
+                              <div key={bait.id} className="fishing-modal-card">
+                                <h3>{bait.name}</h3>
+                                <div className="bait-pills">
+                                  {bait.fish_types_boosted.map(typeId => {
+                                    const typeInfo = fishTypes.find(t => t.id === typeId);
+                                    if (!typeInfo) return null;
+                                    return (
+                                      <span key={typeId} className="bait-pill">
+                                        <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                                <p>
+                                  Cost:{' '}
+                                  <span className="mono">
+                                    {smartFormatNumber(bait.price * (baitQuantities[bait.id] || 1))}
+                                  </span>
+                                </p>
+                                <div className="bait-quantity-control">
+                                  <button
+                                    type="button"
+                                    className="bait-quantity-button"
+                                    onClick={() =>
+                                      setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) - 1)
+                                    }
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    className="bait-quantity-input"
+                                    type="number"
+                                    min={1}
+                                    value={baitQuantities[bait.id] || 1}
+                                    onChange={event =>
+                                      setBaitQuantity(bait.id, Number(event.target.value))
+                                    }
+                                  />
+                                  <button
+                                    type="button"
+                                    className="bait-quantity-button"
+                                    onClick={() =>
+                                      setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) + 1)
+                                    }
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <Button
+                                  disabled={
+                                    !user ||
+                                    (user.money || 0) < bait.price * (baitQuantities[bait.id] || 1)
+                                  }
+                                  onClickAsync={async () => {
+                                    await buyBait(bait.id, baitQuantities[bait.id] || 1);
+                                    await updateEverything();
+                                  }}
+                                >
+                                  Buy
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Modal>
+              </div>
+            ))}
+          {tab === 'aquarium' &&
+            (fishingDisabled ? (
+              renderFeatureDisabled('Aquarium')
+            ) : (
+              <div className="tab-content">
+                <h2>Aquarium</h2>
+                <div className="aquarium-banner">
+                  <span className="aquarium-banner-subtitle">CURRENT FISHING EVENT</span>
+                  <h3 className="aquarium-banner-title">
+                    {currentFishingEvent.event ? (
+                      <>
+                        <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
+                        {currentFishingEvent.event.name}
+                      </>
+                    ) : (
+                      'No active event'
+                    )}
+                  </h3>
+                  <span className="aquarium-banner-remaining">
+                    {formatRemainingTime(
+                      Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
+                    )}{' '}
+                    {currentFishingEvent.event ? 'remaining' : 'until next event'}
+                  </span>
+                </div>
+                <div className="aquarium-info">
+                  {(() => {
+                    const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
+                    const capacity = user?.fishing?.aquarium.capacity ?? 0;
+
+                    if (fishLength === 0) {
+                      return (
+                        <>
+                          Your aquarium is empty. Catch some fish to display them here!{' '}
+                          <span className="aquarium-data">
+                            {fishLength}/{capacity}
+                          </span>{' '}
+                          fish in aquarium.
+                        </>
+                      );
+                    }
+
+                    if (fishLength !== capacity) {
+                      return (
+                        <>
+                          You are using <span className="aquarium-data">{fishLength}</span> out of{' '}
+                          <span className="aquarium-data">{capacity}</span> capacity in your
+                          aquarium.
+                        </>
+                      );
+                    }
+
                     return (
                       <>
-                        Your aquarium is empty. Catch some fish to display them here!{' '}
+                        Your aquarium is at full capacity! Try upgrading your aquarium to fit more
+                        fish.{' '}
                         <span className="aquarium-data">
                           {fishLength}/{capacity}
                         </span>{' '}
                         fish in aquarium.
                       </>
                     );
-                  }
-
-                  if (fishLength !== capacity) {
-                    return (
-                      <>
-                        You are using <span className="aquarium-data">{fishLength}</span> out of{' '}
-                        <span className="aquarium-data">{capacity}</span> capacity in your aquarium.
-                      </>
-                    );
-                  }
-
-                  return (
-                    <>
-                      Your aquarium is at full capacity! Try upgrading your aquarium to fit more
-                      fish.{' '}
-                      <span className="aquarium-data">
-                        {fishLength}/{capacity}
-                      </span>{' '}
-                      fish in aquarium.
-                    </>
-                  );
-                })()}
-              </div>
-              <div className="aquarium-action-row">
-                <div className="aquarium-buttons">
-                  <Button
-                    onClickAsync={async () => {
-                      await upgradeAquarium();
-                      await updateEverything();
-                    }}
-                    disabled={
-                      !user ||
-                      (user.money || 0) < getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
-                    }
-                  >
-                    Upgrade Aquarium for{' '}
-                    {smartFormatNumber(getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1))}
-                  </Button>
-                  <Button
-                    onClick={() => setIsFishSellAllModalOpen(true)}
-                    disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
-                  >
-                    Sell All
-                  </Button>
+                  })()}
                 </div>
-                <div className="aquarium-controls">
-                  <div className="aquarium-control-group">
-                    <span className="aquarium-control-label">Sort</span>
-                    <Select
-                      value={aquariumSort}
-                      onChange={value => setAquariumSort(value as 'value-desc' | 'value-asc')}
-                      options={[
-                        { label: 'Value: High to Low', value: 'value-desc' },
-                        { label: 'Value: Low to High', value: 'value-asc' },
-                      ]}
-                      disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
-                    />
-                  </div>
-                  <div className="aquarium-control-group">
-                    <span className="aquarium-control-label">Filter</span>
-                    <Select
-                      value={aquariumModifierFilter}
-                      onChange={value =>
-                        setAquariumModifierFilter(value as 'all' | 'with' | 'without')
-                      }
-                      options={[
-                        { label: 'All Fish', value: 'all' },
-                        { label: 'Has Modifiers', value: 'with' },
-                        { label: 'No Modifiers', value: 'without' },
-                      ]}
-                      disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
-                    />
-                  </div>
-                </div>
-              </div>
-              {aquariumFishView.length === 0 && (user?.fishing?.aquarium.fish.length || 0) > 0 && (
-                <div className="aquarium-empty">No fish match those filters.</div>
-              )}
-              <div className="aquarium-grid">
-                {aquariumFishView.map(fish => (
-                  <div key={fish.uuid} className="aquarium-fish-card">
-                    <h3>
-                      <EmojiText>{fishTypes.find(ft => ft.id === fish.type)?.icon}</EmojiText>{' '}
-                      {fishTypes.find(ft => ft.id === fish.type)?.name}
-                    </h3>
-                    <span className="aquarium-fish-weight">
-                      {fish.weight >= 1000 ? (
-                        <span className="mono">
-                          {smartFormatNumber(fish.weight / 1000, false)} tonnes
-                        </span>
-                      ) : (
-                        <span className="mono">{smartFormatNumber(fish.weight, false)} kg</span>
-                      )}
-                    </span>
-                    <div className="aquarium-fish-modifiers">
-                      {fish.modifiers?.map(mod => (
-                        <span
-                          key={fishModifiers.find(fm => fm.id === mod)?.id}
-                          className="aquarium-fish-modifier"
-                        >
-                          <EmojiText>{fishModifiers.find(fm => fm.id === mod)?.icon}</EmojiText>{' '}
-                          {fishModifiers.find(fm => fm.id === mod)?.name}
-                        </span>
-                      ))}
-                    </div>
-                    <span>
-                      VALUE:{' '}
-                      <span className="aquarium-fish-value mono">
-                        {smartFormatNumber(getFishValue(fish))}
-                      </span>
-                    </span>
-                    <Button
-                      className="aquarium-fish-sell-button"
-                      onClick={() => {
-                        setAquariumFishToSell(fish.uuid);
-                        setIsFishSellModalOpen(true);
-                      }}
-                    >
-                      Sell
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <Modal
-                isOpen={isFishSellAllModalOpen}
-                onClose={() => setIsFishSellAllModalOpen(false)}
-              >
-                <div className="fish-sell-modal">
-                  <h2>Sell All Fish</h2>
-                  <p>
-                    Are you sure you want to sell all your fish for{' '}
-                    <span className="mono">
-                      {smartFormatNumber(
-                        (user?.fishing?.aquarium.fish ?? []).reduce(
-                          (total, fish) => total + getFishValue(fish),
-                          0
-                        )
-                      )}
-                    </span>
-                    ?
-                  </p>
-                  <div className="fish-sell-modal-buttons">
-                    <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
-                      Cancel
-                    </Button>
+                <div className="aquarium-action-row">
+                  <div className="aquarium-buttons">
                     <Button
                       onClickAsync={async () => {
-                        await sellAllFish();
-                        setIsFishSellAllModalOpen(false);
+                        await upgradeAquarium();
                         await updateEverything();
                       }}
+                      disabled={
+                        !user ||
+                        (user.money || 0) <
+                          getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                      }
+                    >
+                      Upgrade Aquarium for{' '}
+                      {smartFormatNumber(
+                        getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setIsFishSellAllModalOpen(true)}
+                      disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
                     >
                       Sell All
                     </Button>
                   </div>
-                </div>
-              </Modal>
-
-              <Modal isOpen={isFishSellModalOpen} onClose={() => setIsFishSellModalOpen(false)}>
-                <div className="fish-sell-modal">
-                  <h2>Sell Fish</h2>
-                  <p>
-                    Are you sure you want to sell this fish for{' '}
-                    <span className="mono">
-                      {smartFormatNumber(
-                        user?.fishing?.aquarium.fish.find(f => f.uuid === aquariumFishToSell)
-                          ? getFishValue(
-                              user.fishing.aquarium.fish.find(f => f.uuid === aquariumFishToSell)!
-                            )
-                          : 0
-                      )}
-                    </span>
-                    ?
-                  </p>
-                  <div className="fish-sell-modal-buttons">
-                    <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClickAsync={async () => {
-                        await sellFish(aquariumFishToSell!);
-                        setIsFishSellModalOpen(false);
-                        setAquariumFishToSell(null);
-                        await updateEverything();
-                      }}
-                    >
-                      Sell
-                    </Button>
+                  <div className="aquarium-controls">
+                    <div className="aquarium-control-group">
+                      <span className="aquarium-control-label">Sort</span>
+                      <Select
+                        value={aquariumSort}
+                        onChange={value => setAquariumSort(value as 'value-desc' | 'value-asc')}
+                        options={[
+                          { label: 'Value: High to Low', value: 'value-desc' },
+                          { label: 'Value: Low to High', value: 'value-asc' },
+                        ]}
+                        disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
+                      />
+                    </div>
+                    <div className="aquarium-control-group">
+                      <span className="aquarium-control-label">Filter</span>
+                      <Select
+                        value={aquariumModifierFilter}
+                        onChange={value =>
+                          setAquariumModifierFilter(value as 'all' | 'with' | 'without')
+                        }
+                        options={[
+                          { label: 'All Fish', value: 'all' },
+                          { label: 'Has Modifiers', value: 'with' },
+                          { label: 'No Modifiers', value: 'without' },
+                        ]}
+                        disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
+                      />
+                    </div>
                   </div>
                 </div>
-              </Modal>
-            </div>
-          )}
-          {tab === 'pets' && (
-            <div className="tab-content">
-              <h2>Pets</h2>
-              <PetsList
-                money={user?.money || 0}
-                gems={user?.gems ?? 0}
-                petSlots={user?.pet_slots}
-                refreshUser={updateEverything}
-              />
-            </div>
-          )}
+                {aquariumFishView.length === 0 &&
+                  (user?.fishing?.aquarium.fish.length || 0) > 0 && (
+                    <div className="aquarium-empty">No fish match those filters.</div>
+                  )}
+                <div className="aquarium-grid">
+                  {aquariumFishView.map(fish => (
+                    <div key={fish.uuid} className="aquarium-fish-card">
+                      <h3>
+                        <EmojiText>{fishTypes.find(ft => ft.id === fish.type)?.icon}</EmojiText>{' '}
+                        {fishTypes.find(ft => ft.id === fish.type)?.name}
+                      </h3>
+                      <span className="aquarium-fish-weight">
+                        {fish.weight >= 1000 ? (
+                          <span className="mono">
+                            {smartFormatNumber(fish.weight / 1000, false)} tonnes
+                          </span>
+                        ) : (
+                          <span className="mono">{smartFormatNumber(fish.weight, false)} kg</span>
+                        )}
+                      </span>
+                      <div className="aquarium-fish-modifiers">
+                        {fish.modifiers?.map(mod => (
+                          <span
+                            key={fishModifiers.find(fm => fm.id === mod)?.id}
+                            className="aquarium-fish-modifier"
+                          >
+                            <EmojiText>{fishModifiers.find(fm => fm.id === mod)?.icon}</EmojiText>{' '}
+                            {fishModifiers.find(fm => fm.id === mod)?.name}
+                          </span>
+                        ))}
+                      </div>
+                      <span>
+                        VALUE:{' '}
+                        <span className="aquarium-fish-value mono">
+                          {smartFormatNumber(getFishValue(fish))}
+                        </span>
+                      </span>
+                      <Button
+                        className="aquarium-fish-sell-button"
+                        onClick={() => {
+                          setAquariumFishToSell(fish.uuid);
+                          setIsFishSellModalOpen(true);
+                        }}
+                      >
+                        Sell
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Modal
+                  isOpen={isFishSellAllModalOpen}
+                  onClose={() => setIsFishSellAllModalOpen(false)}
+                >
+                  <div className="fish-sell-modal">
+                    <h2>Sell All Fish</h2>
+                    <p>
+                      Are you sure you want to sell all your fish for{' '}
+                      <span className="mono">
+                        {smartFormatNumber(
+                          (user?.fishing?.aquarium.fish ?? []).reduce(
+                            (total, fish) => total + getFishValue(fish),
+                            0
+                          )
+                        )}
+                      </span>
+                      ?
+                    </p>
+                    <div className="fish-sell-modal-buttons">
+                      <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClickAsync={async () => {
+                          await sellAllFish();
+                          setIsFishSellAllModalOpen(false);
+                          await updateEverything();
+                        }}
+                      >
+                        Sell All
+                      </Button>
+                    </div>
+                  </div>
+                </Modal>
+
+                <Modal isOpen={isFishSellModalOpen} onClose={() => setIsFishSellModalOpen(false)}>
+                  <div className="fish-sell-modal">
+                    <h2>Sell Fish</h2>
+                    <p>
+                      Are you sure you want to sell this fish for{' '}
+                      <span className="mono">
+                        {smartFormatNumber(
+                          user?.fishing?.aquarium.fish.find(f => f.uuid === aquariumFishToSell)
+                            ? getFishValue(
+                                user.fishing.aquarium.fish.find(f => f.uuid === aquariumFishToSell)!
+                              )
+                            : 0
+                        )}
+                      </span>
+                      ?
+                    </p>
+                    <div className="fish-sell-modal-buttons">
+                      <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClickAsync={async () => {
+                          await sellFish(aquariumFishToSell!);
+                          setIsFishSellModalOpen(false);
+                          setAquariumFishToSell(null);
+                          await updateEverything();
+                        }}
+                      >
+                        Sell
+                      </Button>
+                    </div>
+                  </div>
+                </Modal>
+              </div>
+            ))}
+          {tab === 'pets' &&
+            (petsDisabled ? (
+              renderFeatureDisabled('Pets')
+            ) : (
+              <div className="tab-content">
+                <h2>Pets</h2>
+                <PetsList
+                  money={user?.money || 0}
+                  gems={user?.gems ?? 0}
+                  petSlots={user?.pet_slots}
+                  refreshUser={updateEverything}
+                />
+              </div>
+            ))}
           {tab === 'relics' && (
             <div className="tab-content">
               <h2>Relics Tab</h2>
@@ -1563,16 +1673,19 @@ export default function Game() {
               <p>Content for Council will go here.</p>
             </div>
           )}
-          {tab === 'social' && (
-            <div className="tab-content">
-              <Social
-                room={socialRooms.find(r => r.uuid === socialRoom)!}
-                setRoom={room => setSocialRoom(room.uuid)}
-                rooms={socialRooms}
-                user={user!}
-              />
-            </div>
-          )}
+          {tab === 'social' &&
+            (socialDisabled ? (
+              renderFeatureDisabled('Social')
+            ) : (
+              <div className="tab-content">
+                <Social
+                  room={socialRooms.find(r => r.uuid === socialRoom)!}
+                  setRoom={room => setSocialRoom(room.uuid)}
+                  rooms={socialRooms}
+                  user={user!}
+                />
+              </div>
+            ))}
           {tab === 'games' && (
             <div className="tab-content">
               <h2>

@@ -1,10 +1,15 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware';
-import { getUserByUUID, updateUser } from '../db';
+import { getGlobalSettings, getUserByUUID, updateUser } from '../db';
 import { type IUser } from '../models/user';
 import { convertToSettings, type ISettings } from '../../common/models/settings';
 
 const router = Router();
+
+router.get('/features', requireAuth, async (req, res) => {
+  const settings = await getGlobalSettings();
+  return res.status(200).json({ settings });
+});
 
 router.post('/', requireAuth, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware

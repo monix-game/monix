@@ -1,5 +1,11 @@
 import { MongoClient, Db } from 'mongodb';
 import { type IUser, userFromDoc, userToDoc } from '../common/models/user';
+import {
+  DEFAULT_GLOBAL_SETTINGS,
+  globalSettingsFromDoc,
+  globalSettingsToDoc,
+  type IGlobalSettings,
+} from '../common/models/globalSettings';
 import { ISession, sessionFromDoc, sessionToDoc } from '../common/models/session';
 import { type IPet, petFromDoc, petToDoc } from '../common/models/pet';
 import { type IMessage, messageFromDoc, messageToDoc } from '../common/models/message';
@@ -24,6 +30,7 @@ export async function connectDB(uri: string) {
   await db.collection('rooms').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('reports').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('appeals').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('global_settings').createIndex({ key: 1 }, { unique: true });
 
   // Ensure default rooms exist
   const defaultRooms: IRoom[] = [
@@ -49,6 +56,23 @@ export async function connectDB(uri: string) {
 function ensureDB(): Db {
   if (!db) throw new Error('Database not initialized. Call connectDB first.');
   return db;
+}
+
+export async function getGlobalSettings(): Promise<IGlobalSettings> {
+  const database = ensureDB();
+  const doc = await database.collection('global_settings').findOne({ key: 'features' });
+  return doc ? globalSettingsFromDoc(doc) : DEFAULT_GLOBAL_SETTINGS;
+}
+
+export async function updateGlobalSettings(settings: IGlobalSettings): Promise<void> {
+  const database = ensureDB();
+  await database
+    .collection('global_settings')
+    .updateOne(
+      { key: 'features' },
+      { $set: { key: 'features', settings: globalSettingsToDoc(settings) } },
+      { upsert: true }
+    );
 }
 
 export async function getUserByUUID(uuid: string): Promise<IUser | null> {

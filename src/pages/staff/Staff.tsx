@@ -36,10 +36,18 @@ import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { getRemainingDuration, hasExpired } from '../../../server/common/models/punishment';
 import { IconBrush, IconCoins, IconCrown, IconPaw, IconPhoto } from '@tabler/icons-react';
+import {
+  DEFAULT_GLOBAL_SETTINGS,
+  type IFeatureFlags,
+  type IGlobalSettings,
+} from '../../../server/common/models/globalSettings';
+import { getGlobalSettings, updateGlobalSettings } from '../../helpers/globalSettings';
 
 export default function Staff() {
   // App states
-  const [tab, rawSetTab] = useState<'dashboard' | 'reports' | 'appeals' | 'users'>('dashboard');
+  const [tab, rawSetTab] = useState<'dashboard' | 'reports' | 'appeals' | 'users' | 'features'>(
+    'dashboard'
+  );
   const [timeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>(() => {
     const h = new Date().getHours();
     if (h >= 5 && h < 12) return 'morning';
@@ -111,9 +119,36 @@ export default function Staff() {
   const [editUserError, setEditUserError] = useState<string>('');
   const [editUserSaving, setEditUserSaving] = useState<boolean>(false);
 
+  const [featureSettings, setFeatureSettings] = useState<IGlobalSettings>(DEFAULT_GLOBAL_SETTINGS);
+  const [featureSettingsHydrated, setFeatureSettingsHydrated] = useState<boolean>(false);
+  const [featureSettingsSaving, setFeatureSettingsSaving] = useState<boolean>(false);
+  const [featureSettingsError, setFeatureSettingsError] = useState<string>('');
+
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
   }, [tab]);
+
+  useEffect(() => {
+    if (!hasRole(userRole || 'user', 'admin')) return;
+
+    let mounted = true;
+    const fetchSettings = async () => {
+      const settings = await getGlobalSettings();
+      if (!mounted) return;
+      if (settings) {
+        setFeatureSettings(settings);
+      }
+      setFeatureSettingsHydrated(true);
+    };
+
+    void fetchSettings();
+    const interval = setInterval(fetchSettings, 5000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [userRole]);
 
   const setTab = (newTab: typeof tab) => {
     document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
@@ -424,6 +459,34 @@ export default function Staff() {
     setEditUserPage('root');
   }, [applyUpdatedUser, editPetSlots, editUserTarget]);
 
+  const handleFeatureToggle = useCallback(
+    async (key: keyof IFeatureFlags) => {
+      if (!hasRole(userRole || 'user', 'admin')) return;
+
+      const current = featureSettings;
+      const nextSettings: IGlobalSettings = {
+        ...current,
+        features: {
+          ...current.features,
+          [key]: !current.features[key],
+        },
+      };
+
+      setFeatureSettings(nextSettings);
+      setFeatureSettingsSaving(true);
+      setFeatureSettingsError('');
+
+      const ok = await updateGlobalSettings(nextSettings);
+      setFeatureSettingsSaving(false);
+
+      if (!ok) {
+        setFeatureSettings(current);
+        setFeatureSettingsError('Failed to update feature settings.');
+      }
+    },
+    [featureSettings, userRole]
+  );
+
   const handleToggleUnlockedCosmetic = useCallback(
     (cosmeticId: string) => {
       setEditCosmeticsUnlocked(prev => {
@@ -541,6 +604,33 @@ export default function Staff() {
     },
   ] as const;
 
+  const featureToggleItems: Array<{
+    key: keyof IFeatureFlags;
+    title: string;
+    description: string;
+  }> = [
+    {
+      key: 'resourcesMarket',
+      title: 'Resources & Market',
+      description: 'Trading, prices, and resource inventory.',
+    },
+    {
+      key: 'fishingAquarium',
+      title: 'Fishing & Aquarium',
+      description: 'Fishing, rods, bait, and aquarium management.',
+    },
+    {
+      key: 'pets',
+      title: 'Pets',
+      description: 'Pet adoption, shop access, and pet slots.',
+    },
+    {
+      key: 'social',
+      title: 'Social',
+      description: 'Social rooms, messages, and moderation tools.',
+    },
+  ];
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -564,14 +654,10 @@ export default function Staff() {
                 requiredRole: 'mod',
               },
               { key: 'users', label: '👥 Users', requiredRole: 'admin' },
+              { key: 'features', label: '🧩 Features', requiredRole: 'admin' },
             ] as const;
 
-            const filteredTabs = tabs.filter(t => {
-              if (t.requiredRole === 'helper') return true;
-              if (hasRole(userRole || 'user', 'mod')) return true;
-              if (hasRole(userRole || 'user', 'admin')) return true;
-              return false;
-            });
+            const filteredTabs = tabs.filter(t => hasRole(userRole || 'user', t.requiredRole));
 
             const half = Math.ceil(filteredTabs.length / noOfRows);
             const rows = [];
@@ -999,7 +1085,8 @@ export default function Staff() {
                             }}
                             disabled={!hasPowerOver(user?.role || 'helper', u.role)}
                           >
-                            {hasPowerOver(user?.role || 'helper', u.role) && hasRole(u.role, 'admin')
+                            {hasPowerOver(user?.role || 'helper', u.role) &&
+                            hasRole(u.role, 'admin')
                               ? 'Edit User'
                               : "Can't Edit"}
                           </Button>
@@ -1009,6 +1096,39 @@ export default function Staff() {
                   </div>
                 ))}
             </div>
+          </div>
+        )}
+        {tab === 'features' && (
+          <div className="tab-content">
+            <h2>Global Features</h2>
+            <p>Toggle game systems on or off for everyone.</p>
+            {!featureSettingsHydrated && <Spinner size={28} />}
+            {featureSettingsHydrated && (
+              <div className="feature-toggle-grid">
+                {featureToggleItems.map(item => {
+                  const enabled = featureSettings.features[item.key];
+                  return (
+                    <div key={item.key} className="feature-toggle-card">
+                      <div className="feature-toggle-info">
+                        <h3>{item.title}</h3>
+                        <p>{item.description}</p>
+                      </div>
+                      <Checkbox
+                        checked={enabled}
+                        label={enabled ? 'Enabled' : 'Disabled'}
+                        onClick={() => {
+                          void handleFeatureToggle(item.key);
+                        }}
+                        disabled={featureSettingsSaving}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {featureSettingsError && (
+              <div className="feature-toggle-error">{featureSettingsError}</div>
+            )}
           </div>
         )}
       </main>

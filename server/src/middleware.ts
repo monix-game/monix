@@ -1,7 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
-import { deleteSessionByToken, getSessionByToken, getUserByUUID, updateUser } from './db';
+import {
+  deleteSessionByToken,
+  getGlobalSettings,
+  getSessionByToken,
+  getUserByUUID,
+  updateUser,
+} from './db';
 import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
+import type { IFeatureFlags, IGlobalSettings } from '../common/models/globalSettings';
 
 async function authenticateRequest(req: Request, res: Response) {
   const unauthorized = () => {
@@ -75,6 +82,19 @@ export function requireRole(role: 'admin' | 'mod' | 'helper') {
 
     if (!hasRoleResult) {
       res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    next();
+  };
+}
+
+export function requireFeatureEnabled(feature: keyof IFeatureFlags) {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const settings = (await getGlobalSettings()) as unknown as IGlobalSettings;
+    if (!settings.features[feature]) {
+      res.status(403).json({ error: 'Feature disabled' });
       return;
     }
 

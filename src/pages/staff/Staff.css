@@ -258,3 +258,37 @@
   color: var(--red-1);
   font-weight: 600;
 }
+
+.feature-toggle-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 16px;
+}
+
+.feature-toggle-card {
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.feature-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feature-toggle-info p {
+  color: var(--text-secondary);
+}
+
+.feature-toggle-error {
+  color: var(--red-1);
+  font-weight: 600;
+  margin-top: 12px;
+}

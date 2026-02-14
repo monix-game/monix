@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireActive } from '../middleware';
+import { requireActive, requireFeatureEnabled } from '../middleware';
 import {
   createPet,
   deletePetByUUID,
@@ -23,6 +23,8 @@ import {
 import { hasGems } from '../../common/math';
 
 const router = Router();
+
+router.use(requireFeatureEnabled('pets'));
 
 const FEED_COSTS: { [key: string]: number } = {
   standard: 20,

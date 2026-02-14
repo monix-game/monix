@@ -4,8 +4,10 @@ import {
   getAllAppeals,
   getAllReports,
   getAllUsers,
+  getGlobalSettings,
   getReportByUUID,
   getUserByUUID,
+  updateGlobalSettings,
   updateReport,
   updateUser,
 } from '../db';
@@ -16,6 +18,7 @@ import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
 import { hasPowerOver, hasRole } from '../../common/roles';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
+import { convertToGlobalSettings, type IGlobalSettings } from '../../common/models/globalSettings';
 
 const router = Router();
 
@@ -45,6 +48,24 @@ router.get('/dashboard', requireRole('helper'), async (req: Request, res: Respon
   };
 
   res.status(200).json({ info: dashboardInfo });
+});
+
+router.get('/features', requireRole('admin'), async (req: Request, res: Response) => {
+  const settings = await getGlobalSettings();
+  res.status(200).json({ settings });
+});
+
+router.post('/features', requireRole('admin'), async (req: Request, res: Response) => {
+  const { settings } = req.body as { settings?: IGlobalSettings };
+
+  if (!settings) {
+    return res.status(400).json({ error: 'Settings are required' });
+  }
+
+  const nextSettings = convertToGlobalSettings(settings);
+  await updateGlobalSettings(nextSettings);
+
+  return res.status(200).json({ settings: nextSettings });
 });
 
 router.get('/user/:uuid', requireRole('helper'), async (req: Request, res: Response) => {

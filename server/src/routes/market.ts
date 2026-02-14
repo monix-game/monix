@@ -1,9 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { resources } from '../../common/resources';
-import { requireActive } from '../middleware';
+import { requireActive, requireFeatureEnabled } from '../middleware';
 import { generatePrice } from '../helpers/market';
 
 const router = Router();
+
+router.use(requireFeatureEnabled('resourcesMarket'));
 
 router.get('/price/:resourceId', requireActive, (req: Request, res: Response) => {
   const { resourceId } = req.params;

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireActive } from '../middleware';
+import { requireActive, requireFeatureEnabled } from '../middleware';
 import { getUserByUUID, updateUser } from '../db';
 import { type IUser } from '../../common/models/user';
 import { fishingRods } from '../../common/fishing/fishingRods';
@@ -15,6 +15,8 @@ import { IFish } from '../models/fish';
 import { v4 } from 'uuid';
 
 const router = Router();
+
+router.use(requireFeatureEnabled('fishingAquarium'));
 
 router.get('/aquarium', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware

@@ -11,7 +11,7 @@ import {
   updateUser,
   updateMessage,
 } from '../db';
-import { requireActive } from '../middleware';
+import { requireActive, requireFeatureEnabled } from '../middleware';
 import { IMessage, messageToDoc } from '../../common/models/message';
 import { v4 } from 'uuid';
 import { roomToDoc } from '../../common/models/room';
@@ -25,6 +25,8 @@ import { checkSocialSpam } from '../helpers/spamModeration';
 import { punishUser } from '../../common/punishx/punishx';
 
 const router = Router();
+
+router.use(requireFeatureEnabled('social'));
 
 router.post('/send', requireActive, async (req, res) => {
   // @ts-expect-error Because we add authUser in the middleware
