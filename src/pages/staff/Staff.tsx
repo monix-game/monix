@@ -1063,7 +1063,9 @@ export default function Staff() {
         {tab === 'logs' && (
           <div className="tab-content">
             <h2>Staff Logs</h2>
-            <p className="staff-log-description">Audit trail for moderation actions, system updates, and staff activity.</p>
+            <p className="staff-log-description">
+              Audit trail for moderation actions, system updates, and staff activity.
+            </p>
             <div className="log-toolbar">
               <Input
                 className="log-search-input"
