@@ -86,19 +86,15 @@ router.post('/features', requireRole('admin'), async (req: Request, res: Respons
       JSON.stringify(nextSettings[key as keyof typeof nextSettings])
   );
 
-  const changedKeysData = changedKeys.map(key => ({
-    key,
-    value: JSON.stringify(nextSettings[key as keyof typeof nextSettings]),
-    inline: false,
-  }));
-
   await log({
     uuid: v4(),
     timestamp: new Date(),
     level: 'info',
     type: 'feature-flag',
     message: 'Feature settings updated',
-    data: buildRequestLogData(req, changedKeysData),
+    data: buildRequestLogData(req, [
+      { key: 'changed_flags', value: changedKeys.length > 0 ? changedKeys.join(', ') : 'none' },
+    ]),
     username: user.username,
   });
 
