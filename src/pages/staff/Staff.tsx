@@ -1267,9 +1267,9 @@ export default function Staff() {
                           onClick={() => {
                             void openPunishmentsModal(u);
                           }}
-                          disabled={!hasPowerOver(user?.role || 'helper', u.role)}
+                          disabled={!hasPowerOver(userRole || 'helper', u.role)}
                         >
-                          {hasPowerOver(user?.role || 'helper', u.role)
+                          {hasPowerOver(userRole || 'helper', u.role)
                             ? 'See Punishments'
                             : "Can't View"}
                         </Button>
@@ -1279,10 +1279,9 @@ export default function Staff() {
                             onClick={() => {
                               openEditUserModal(u);
                             }}
-                            disabled={!hasPowerOver(user?.role || 'helper', u.role)}
+                            disabled={!hasPowerOver(userRole || 'helper', u.role)}
                           >
-                            {hasPowerOver(user?.role || 'helper', u.role) &&
-                            hasRole(u.role, 'admin')
+                            {hasPowerOver(userRole || 'helper', u.role)
                               ? 'Edit User'
                               : "Can't Edit"}
                           </Button>
