@@ -23,14 +23,18 @@ export function getRequestIp(req: Request): string | undefined {
     foundIp = clientIp.trim();
   }
 
-  // Convert IPv6 loopback to IPv4 loopback for consistency
-  if (foundIp === '::1') {
-    foundIp = '127.0.0.1';
+  const loopbackIps = new Set(['::1', '127.0.0.1', '::ffff:127.0.0.1']);
+
+  if (foundIp && loopbackIps.has(foundIp)) {
+    foundIp = SERVER_PUBLIC_IP || foundIp;
   }
 
-  // Convert 192.168.1.1 to the server's own public IP
   if (foundIp === '192.168.1.1') {
     foundIp = SERVER_PUBLIC_IP || foundIp;
+  }
+
+  if (!foundIp && req.ip && loopbackIps.has(req.ip)) {
+    foundIp = SERVER_PUBLIC_IP || req.ip;
   }
 
   return foundIp || req.ip || req.socket.remoteAddress || undefined;

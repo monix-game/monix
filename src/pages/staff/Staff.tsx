@@ -1,5 +1,5 @@
 import './Staff.css';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
 import {
@@ -14,8 +14,10 @@ import {
   Spinner,
 } from '../../components';
 import { Avatar } from '../../components/avatar/Avatar';
+import 'leaflet/dist/leaflet.css';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
+import { api } from '../../helpers/api';
 import { formatRelativeTime, formatRemainingTime, titleCase } from '../../../server/common/math';
 import type { IReport } from '../../../server/common/models/report';
 import type { DashboardInfo } from '../../../server/common/models/dashboardInfo';
@@ -46,10 +48,20 @@ import {
 } from '../../../server/common/models/globalSettings';
 import { getGlobalSettings, updateGlobalSettings } from '../../helpers/globalSettings';
 
+interface IpGeoData {
+  ip: string;
+  latitude: number;
+  longitude: number;
+  city?: string;
+  region?: string;
+  country?: string;
+  isp?: string;
+}
+
 export default function Staff() {
   // App states
   const [tab, rawSetTab] = useState<
-    'dashboard' | 'reports' | 'appeals' | 'logs' | 'users' | 'features'
+    'dashboard' | 'reports' | 'appeals' | 'logs' | 'users' | 'ip' | 'features'
   >('dashboard');
   const [timeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>(() => {
     const h = new Date().getHours();
@@ -130,6 +142,14 @@ export default function Staff() {
   const [editUserError, setEditUserError] = useState<string>('');
   const [editUserSaving, setEditUserSaving] = useState<boolean>(false);
 
+  // IP states
+  const [ipTabUser, setIpTabUser] = useState<IUser | null>(null);
+  const [ipTabHydrated, setIpTabHydrated] = useState<boolean>(false);
+  const [ipSelected, setIpSelected] = useState<string>('');
+  const [ipGeoCache, setIpGeoCache] = useState<Record<string, IpGeoData>>({});
+  const [ipGeoLoading, setIpGeoLoading] = useState<boolean>(false);
+  const [ipGeoError, setIpGeoError] = useState<string>('');
+
   const [featureSettings, setFeatureSettings] = useState<IGlobalSettings>(DEFAULT_GLOBAL_SETTINGS);
   const [featureSettingsHydrated, setFeatureSettingsHydrated] = useState<boolean>(false);
   const [featureSettingsSaving, setFeatureSettingsSaving] = useState<boolean>(false);
@@ -161,10 +181,10 @@ export default function Staff() {
     };
   }, [userRole]);
 
-  const setTab = (newTab: typeof tab) => {
+  const setTab = useCallback((newTab: typeof tab) => {
     document.getElementsByTagName('body')[0].className = `tab-${newTab}`;
     rawSetTab(newTab);
-  };
+  }, []);
 
   const updateEverything = useCallback(async () => {
     const userData = await fetchUser();
@@ -338,6 +358,71 @@ export default function Staff() {
     },
     [punishmentsModalUser, setUsers]
   );
+
+  const openIpTab = useCallback(
+    async (targetUser: IUser) => {
+      setIpTabUser(targetUser);
+      setIpTabHydrated(false);
+      setTab('ip');
+
+      const freshUser = await getUserByUUID(targetUser.uuid);
+      if (freshUser) {
+        setIpTabUser(freshUser);
+        setUsers(prev =>
+          prev.map(userEntry => (userEntry.uuid === freshUser.uuid ? freshUser : userEntry))
+        );
+      }
+
+      setIpTabHydrated(true);
+    },
+    [setTab, setUsers]
+  );
+
+  const handleRefreshIpTab = useCallback(async () => {
+    if (!ipTabUser) return;
+    setIpTabHydrated(false);
+    setIpGeoError('');
+
+    const freshUser = await getUserByUUID(ipTabUser.uuid);
+    if (freshUser) {
+      setIpTabUser(freshUser);
+      setUsers(prev =>
+        prev.map(userEntry => (userEntry.uuid === freshUser.uuid ? freshUser : userEntry))
+      );
+    }
+
+    setIpTabHydrated(true);
+    // force the iframe map to recalculate bounds (forceFit)
+    const win = iframeRef.current?.contentWindow;
+    if (win) {
+      const history = (freshUser?.ip_history || ipTabUser?.ip_history || []) as {
+        ip: string;
+        timestamp: number;
+      }[];
+      const sorted = [...history].sort((a, b) => b.timestamp - a.timestamp);
+      const unique = Array.from(new Set(sorted.map(entry => entry.ip)));
+      const latestIp = sorted.length ? sorted[0].ip : undefined;
+
+      const markers = unique
+        .map(ip => {
+          const geo = ipGeoCache[ip];
+          if (!geo) return null;
+          return {
+            ip,
+            lat: geo.latitude,
+            lon: geo.longitude,
+            tooltip: [ip, geo.city, geo.region, geo.country].filter(Boolean).join(' • '),
+            isLatest: ip === latestIp,
+          };
+        })
+        .filter(Boolean);
+
+      win.postMessage(
+        { type: 'ip-map-data', markers, latestIp, forceFit: true },
+        globalThis.location?.origin || '*'
+      );
+    }
+  }, [ipTabUser, setUsers, ipGeoCache]);
 
   const openEditUserModal = useCallback((targetUser: IUser) => {
     setEditUserTarget(targetUser);
@@ -601,6 +686,88 @@ export default function Staff() {
     editUserTarget,
   ]);
 
+  useEffect(() => {
+    if (!ipTabUser) {
+      setIpSelected('');
+      return;
+    }
+
+    const history = ipTabUser.ip_history || [];
+    if (history.length === 0) {
+      setIpSelected('');
+      return;
+    }
+
+    const latest = history[history.length - 1].ip;
+    setIpSelected(latest);
+    setIpGeoError('');
+  }, [ipTabUser]);
+
+  const normalizeIp = (ip: string) => ip.replace('::ffff:', '').trim().toLowerCase();
+  const isPrivateIp = useCallback((ip: string) => {
+    const normalized = normalizeIp(ip);
+
+    if (normalized === 'localhost' || normalized === '::1') return true;
+    if (normalized.startsWith('127.')) return true;
+    if (normalized.startsWith('10.')) return true;
+    if (normalized.startsWith('192.168.')) return true;
+    if (normalized.startsWith('172.')) {
+      const octet = Number.parseInt(normalized.split('.')[1] || '', 10);
+      return Number.isFinite(octet) && octet >= 16 && octet <= 31;
+    }
+    if (
+      normalized.startsWith('fc') ||
+      normalized.startsWith('fd') ||
+      normalized.startsWith('fe80')
+    ) {
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  const loadIpGeo = useCallback(
+    async (ip: string) => {
+      if (!ip || ipGeoCache[ip]) return;
+
+      if (isPrivateIp(ip)) {
+        setIpGeoError('Private or local IP addresses do not have public location data.');
+        setIpGeoLoading(false);
+        return;
+      }
+
+      setIpGeoLoading(true);
+      setIpGeoError('');
+
+      const response = await api.get<{ geo: IpGeoData }>(
+        `/staff/ip-geo?ip=${encodeURIComponent(ip)}`
+      );
+      if (!response.success) {
+        setIpGeoError(response.error?.message || 'Unable to resolve location for this IP.');
+        setIpGeoLoading(false);
+        return;
+      }
+
+      const geo = response.data?.geo;
+      if (!geo) {
+        setIpGeoError('Unable to resolve location for this IP.');
+        setIpGeoLoading(false);
+        return;
+      }
+      setIpGeoCache(prev => ({
+        ...prev,
+        [ip]: geo,
+      }));
+      setIpGeoLoading(false);
+    },
+    [ipGeoCache, isPrivateIp]
+  );
+
+  useEffect(() => {
+    if (!ipSelected) return;
+    void loadIpGeo(ipSelected);
+  }, [ipSelected, loadIpGeo]);
+
   const punishmentsForModal = (punishmentsModalUser?.punishments || [])
     .filter(punishment => {
       if (punishmentsFilter === 'all') return true;
@@ -642,6 +809,114 @@ export default function Staff() {
         return bTime - aTime;
     }
   });
+  const ipHistorySorted = [...(ipTabUser?.ip_history || [])].sort(
+    (a, b) => b.timestamp - a.timestamp
+  );
+  const ipHistoryUnique = Array.from(new Set(ipHistorySorted.map(entry => entry.ip)));
+  // iframe-based Leaflet map: communicate positions to an isolated iframe
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const iframeSrcDoc = `
+  <!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>html,body,#map{height:100%;margin:0;padding:0}#map{border-radius:8px;}</style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const map = L.map('map', {center: [0,0], zoom: 2, worldCopyJump: true, minZoom: 1, maxZoom: 18, zoomControl: true, scrollWheelZoom: true});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      let group = L.layerGroup().addTo(map);
+      let userInteracted = false;
+
+      ['movestart','zoomstart','dragstart','touchstart','mousedown'].forEach(e => {
+        map.on(e, () => { userInteracted = true; });
+      });
+
+      function renderMarkers(data){
+        group.clearLayers();
+        const points = [];
+        (data.markers || []).forEach(m => {
+          const latlng = [m.lat, m.lon];
+          points.push(latlng);
+          const color = m.isLatest ? '#d9534f' : '#3388ff';
+          const marker = L.circleMarker(latlng, {radius: m.isLatest ? 8 : 6, color, fillColor: color, fillOpacity: 0.9, weight:2});
+          marker.bindTooltip(m.tooltip || m.ip || '');
+          marker.on('click', () => {
+            parent.postMessage({ type: 'ip-selected', ip: m.ip }, '*');
+          });
+          marker.addTo(group);
+        });
+        if(points.length){
+          // only auto-fit if the user hasn't interacted OR the incoming data requests a forced fit
+          if(!userInteracted || (data && data.forceFit)){
+            try{ map.fitBounds(L.latLngBounds(points).pad(0.25)); }catch(e){ map.setView([0,0],2); }
+          }
+        }else{ map.setView([0,0],2); }
+      }
+
+      window.addEventListener('message', ev => {
+        try{
+          const data = ev.data;
+          if(data && data.type === 'ip-map-data'){
+            // reset user interaction flag when a forcedFit is requested
+            if(data.forceFit) userInteracted = false;
+            renderMarkers(data);
+          }
+        }catch(e){/* ignore */}
+      }, false);
+
+      // signal ready
+      parent.postMessage({ type: 'ip-map-ready' }, '*');
+    </script>
+  </body>
+  </html>
+  `;
+
+  // send marker data to iframe when geo cache / history changes
+  useEffect(() => {
+    if (!iframeRef.current) return;
+    const win = iframeRef.current.contentWindow;
+    if (!win) return;
+
+    const latestIp = ipHistorySorted.length ? ipHistorySorted[0].ip : undefined;
+    const markers = ipHistoryUnique
+      .map(ip => {
+        const geo = ipGeoCache[ip];
+        if (!geo) return null;
+        return {
+          ip,
+          lat: geo.latitude,
+          lon: geo.longitude,
+          tooltip: [ip, geo.city, geo.region, geo.country].filter(Boolean).join(' • '),
+          isLatest: ip === latestIp,
+        };
+      })
+      .filter(Boolean);
+
+    win.postMessage(
+      { type: 'ip-map-data', markers, latestIp, forceFit: false },
+      globalThis.location?.origin || '*'
+    );
+  }, [ipGeoCache, ipHistoryUnique, ipHistorySorted]);
+
+  // listen for iframe marker clicks
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const data = ev.data as { type?: string; ip?: string } | undefined;
+      if (data?.type !== 'ip-selected') return;
+      if (data.ip) setIpSelected(String(data.ip));
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [setIpSelected]);
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
@@ -663,6 +938,8 @@ export default function Staff() {
     tag: cosmeticsByType.tag.filter(c => unlockedCosmetics.has(c.id)),
     frame: cosmeticsByType.frame.filter(c => unlockedCosmetics.has(c.id)),
   };
+  const selectedIpGeo: IpGeoData | undefined = ipSelected ? ipGeoCache[ipSelected] : undefined;
+
   const editNavItems = [
     {
       key: 'economy',
@@ -751,6 +1028,7 @@ export default function Staff() {
                 requiredRole: 'mod',
               },
               { key: 'users', label: '👥 Users', requiredRole: 'admin' },
+              { key: 'ip', label: '🧭 IP', requiredRole: 'admin' },
               { key: 'features', label: '🧩 Features', requiredRole: 'admin' },
             ] as const;
 
@@ -1286,11 +1564,133 @@ export default function Staff() {
                               : "Can't Edit"}
                           </Button>
                         )}
+                        {hasRole(userRole || 'user', 'admin') && (
+                          <Button
+                            color="blue"
+                            onClick={() => {
+                              void openIpTab(u);
+                            }}
+                          >
+                            IP Data
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
             </div>
+          </div>
+        )}
+        {tab === 'ip' && (
+          <div className="tab-content">
+            <div className="ip-header">
+              <div>
+                <h2>IP Data</h2>
+                <p>Review IP activity for a selected user.</p>
+              </div>
+              <Button secondary onClickAsync={handleRefreshIpTab} disabled={!ipTabUser}>
+                Refetch
+              </Button>
+            </div>
+            {!ipTabUser && <p>Select a user from the Users tab to view IP details.</p>}
+            {ipTabUser && (
+              <div className="ip-layout">
+                <div className="ip-card">
+                  <h3>User Snapshot</h3>
+                  <div className="staff-info-list">
+                    <div className="staff-info-line">
+                      <span>User</span>
+                      <span className="mono">{ipTabUser.username}</span>
+                    </div>
+                    <div className="staff-info-line">
+                      <span>UUID</span>
+                      <span className="mono">{ipTabUser.uuid}</span>
+                    </div>
+                    <div className="staff-info-line">
+                      <span>Current IP</span>
+                      <span className="mono">
+                        {ipTabUser.ip_history?.length
+                          ? ipTabUser.ip_history[ipTabUser.ip_history.length - 1].ip
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="staff-info-line">
+                      <span>Last Seen</span>
+                      <span className="mono">
+                        {ipTabUser.ip_history?.length
+                          ? formatRelativeTime(
+                              new Date(
+                                ipTabUser.ip_history[ipTabUser.ip_history.length - 1].timestamp
+                              )
+                            )
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="ip-card">
+                  <h3>IP History</h3>
+                  {!ipTabHydrated && <Spinner size={28} />}
+                  {ipTabHydrated && (ipTabUser.ip_history || []).length === 0 && (
+                    <p>No IP history recorded for this user.</p>
+                  )}
+                  {ipTabHydrated && (ipTabUser.ip_history || []).length > 0 && (
+                    <div className="ip-history-list">
+                      {ipHistorySorted.map(entry => (
+                        <div
+                          key={`${entry.ip}-${entry.timestamp}`}
+                          className={`ip-history-item ${entry.ip === ipSelected ? 'active' : ''}`}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setIpSelected(entry.ip)}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setIpSelected(entry.ip);
+                            }
+                          }}
+                        >
+                          <span className="mono">{entry.ip}</span>
+                          <span className="mono">
+                            {formatRelativeTime(new Date(entry.timestamp))}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="ip-card ip-map-card">
+                  <div className="ip-map-header">
+                    <h3>Saved IP Map</h3>
+                    <div className="ip-map-select" />
+                  </div>
+                  <div className="ip-map-body">
+                    {!ipSelected && <p>No saved IPs available.</p>}
+                    {ipSelected && ipGeoLoading && <Spinner size={28} />}
+                    {ipSelected && !ipGeoLoading && ipGeoError && (
+                      <p className="ip-error">{ipGeoError}</p>
+                    )}
+                    {ipSelected && !ipGeoLoading && !ipGeoError && selectedIpGeo && (
+                      <iframe
+                        ref={iframeRef}
+                        title={'IP Map'}
+                        srcDoc={iframeSrcDoc}
+                        className="ip-map"
+                        aria-hidden={false}
+                      />
+                    )}
+                  </div>
+                  {ipSelected && selectedIpGeo && (
+                    <div className="ip-map-meta">
+                      {[selectedIpGeo.city, selectedIpGeo.region, selectedIpGeo.country]
+                        .filter(Boolean)
+                        .join(', ') || 'Location unavailable'}
+                      {selectedIpGeo.isp ? ` • ${selectedIpGeo.isp}` : ''}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
         {tab === 'features' && (

@@ -4,6 +4,21 @@ import { api } from './api';
 import type { DashboardInfo } from '../../server/common/models/dashboardInfo';
 import type { LogEntry } from '../../server/common/models/logEntry';
 
+export interface IpGeoData {
+  ip: string;
+  latitude: number;
+  longitude: number;
+  city?: string;
+  region?: string;
+  country?: string;
+  isp?: string;
+}
+
+export interface IpGeoResult {
+  geo: IpGeoData | null;
+  error?: string;
+}
+
 export async function getDashboardInfo(): Promise<DashboardInfo | null> {
   try {
     const resp = await api.get<{ info: DashboardInfo }>('/staff/dashboard');
@@ -168,5 +183,21 @@ export async function updateStaffUser(
   } catch (err) {
     console.error('Error updating staff user', err);
     return null;
+  }
+}
+
+export async function getIpGeo(ip: string): Promise<IpGeoResult> {
+  try {
+    const resp = await api.get<{ geo: IpGeoData }>(`/staff/ip-geo?ip=${encodeURIComponent(ip)}`);
+    if (resp?.success) {
+      return { geo: resp.data?.geo || null };
+    }
+    return { geo: null, error: resp.error?.message || 'Unable to resolve IP location.' };
+  } catch (err) {
+    console.error('Error fetching IP geolocation', err);
+    return {
+      geo: null,
+      error: err instanceof Error ? err.message : 'Unable to resolve IP location.',
+    };
   }
 }
