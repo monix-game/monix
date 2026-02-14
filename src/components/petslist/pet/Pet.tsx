@@ -12,7 +12,7 @@ import {
   isPetAsleep,
 } from '../../../../server/common/pet';
 import type { IPet } from '../../../../server/common/models/pet';
-import { smartFormatNumber } from '../../../helpers/utils';
+import { smartFormatNumber } from '../../../../server/common/math';
 
 interface PetProps {
   pet: IPet;

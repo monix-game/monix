@@ -11,6 +11,7 @@ import {
 } from '../db';
 import { v4 } from 'uuid';
 import { IAppeal } from '../../common/models/appeal';
+import { buildRequestLogData, log } from '../helpers/logging';
 
 const router = Router();
 
@@ -63,6 +64,20 @@ router.post('/submit', requireAuth, async (req: Request, res: Response) => {
   };
 
   await createAppeal(appeal);
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'appeal',
+    message: 'Appeal submitted',
+    data: buildRequestLogData(req, [
+      { key: 'submitter', value: user.username },
+      { key: 'punishment_category', value: punishment.category.name },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 
   return res.status(201).json({ message: 'Appeal submitted successfully', appeal });
 });
@@ -143,6 +158,19 @@ router.post('/review', requireRole('mod'), async (req: Request, res: Response) =
       }
     }
   }
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'appeal',
+    message: 'Appeal reviewed',
+    data: buildRequestLogData(req, [
+      { key: 'review_status', value: status },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 
   return res.status(200).json({ message: 'Appeal reviewed successfully', appeal });
 });

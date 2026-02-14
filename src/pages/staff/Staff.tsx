@@ -16,7 +16,7 @@ import {
 import { Avatar } from '../../components/avatar/Avatar';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
-import { formatRelativeTime, formatRemainingTime, titleCase } from '../../helpers/utils';
+import { formatRelativeTime, formatRemainingTime, titleCase } from '../../../server/common/math';
 import type { IReport } from '../../../server/common/models/report';
 import type { DashboardInfo } from '../../../server/common/models/dashboardInfo';
 import {

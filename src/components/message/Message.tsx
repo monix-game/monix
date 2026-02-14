@@ -1,6 +1,6 @@
 import React from 'react';
 import './Message.css';
-import { formatRelativeTime, titleCase } from '../../helpers/utils';
+import { formatRelativeTime, titleCase } from '../../../server/common/math';
 import { EmojiText } from '../EmojiText';
 import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';

@@ -8,6 +8,8 @@ import {
 } from '../constants';
 import { getUserByUsername, updateUser } from '../db';
 import Stripe from 'stripe';
+import { v4 } from 'uuid';
+import { buildRequestLogData, log } from '../helpers/logging';
 
 const router = Router();
 
@@ -38,6 +40,18 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
 
       if (!username || !item_key) {
         console.error('⚠️  Missing metadata in Stripe session');
+        await log({
+          uuid: v4(),
+          timestamp: new Date(),
+          level: 'warn',
+          type: 'payment',
+          message: 'Stripe webhook missing metadata',
+          data: buildRequestLogData(req, [
+            { key: 'event', value: event.type },
+            { key: 'username', value: username },
+            { key: 'item', value: item_key },
+          ]),
+        });
         return res.status(400).send('Missing metadata');
       }
 
@@ -45,24 +59,86 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
 
       if (!user) {
         console.error('⚠️  User not found for username:', username);
+        await log({
+          uuid: v4(),
+          timestamp: new Date(),
+          level: 'warn',
+          type: 'payment',
+          message: 'Stripe webhook user not found',
+          data: buildRequestLogData(req, [
+            { key: 'event', value: event.type },
+            { key: 'username', value: username },
+            { key: 'item', value: item_key },
+          ]),
+        });
         return res.status(404).send('User not found');
       }
 
       const gemsAmount = GEMS_LOOKUP[item_key];
       if (!gemsAmount) {
         console.error('⚠️  Unknown gems product ID:', item_key);
+        await log({
+          uuid: v4(),
+          timestamp: new Date(),
+          level: 'warn',
+          type: 'payment',
+          message: 'Stripe webhook unknown product',
+          data: buildRequestLogData(req, [
+            { key: 'event', value: event.type },
+            { key: 'username', value: username },
+            { key: 'item', value: item_key },
+          ]),
+          username: user.username,
+          avatar_uri: user.avatar_data_uri,
+        });
         return res.status(400).send('Unknown gems product ID');
       }
 
       user.gems += gemsAmount;
       await updateUser(user);
+
+      await log({
+        uuid: v4(),
+        timestamp: new Date(),
+        level: 'info',
+        type: 'payment',
+        message: 'Stripe webhook credited gems',
+        data: buildRequestLogData(req, [
+          { key: 'event', value: event.type },
+          { key: 'username', value: username },
+          { key: 'item', value: item_key },
+          { key: 'gems', value: gemsAmount },
+        ]),
+        username: user.username,
+        avatar_uri: user.avatar_data_uri,
+      });
     }
   } catch (err) {
     if (err instanceof Stripe.errors.StripeSignatureVerificationError) {
       console.error('⚠️  Webhook signature verification failed.', err.message);
+      await log({
+        uuid: v4(),
+        timestamp: new Date(),
+        level: 'error',
+        type: 'payment',
+        message: 'Stripe webhook signature verification failed',
+        data: buildRequestLogData(req, [
+          { key: 'error', value: err.message, inline: false },
+        ]),
+      });
       return res.status(400).send(`Webhook Error: ${err.message}`);
     } else {
       console.error('⚠️  Webhook error:', err);
+      await log({
+        uuid: v4(),
+        timestamp: new Date(),
+        level: 'error',
+        type: 'payment',
+        message: 'Stripe webhook error',
+        data: buildRequestLogData(req, [
+          { key: 'error', value: err instanceof Error ? err.message : 'Unknown error' },
+        ]),
+      });
       return res
         .status(400)
         .send(`Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -86,6 +162,17 @@ router.post('/session', async (req, res) => {
 
   const priceId = PRICE_IDS[item];
   if (!priceId) {
+    await log({
+      uuid: v4(),
+      timestamp: new Date(),
+      level: 'error',
+      type: 'payment',
+      message: 'Stripe session price ID missing',
+      data: buildRequestLogData(req, [
+        { key: 'item', value: item },
+        { key: 'username', value: username },
+      ]),
+    });
     return res.status(500).json({ error: 'Price ID not configured for this item' });
   }
 
@@ -101,6 +188,18 @@ router.post('/session', async (req, res) => {
     return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error('⚠️  Stripe error:', err);
+    await log({
+      uuid: v4(),
+      timestamp: new Date(),
+      level: 'error',
+      type: 'payment',
+      message: 'Stripe session creation failed',
+      data: buildRequestLogData(req, [
+        { key: 'item', value: item },
+        { key: 'username', value: username },
+        { key: 'error', value: err instanceof Error ? err.message : 'Stripe error' },
+      ]),
+    });
     return res.status(500).json({ error: 'Stripe error' });
   }
 });

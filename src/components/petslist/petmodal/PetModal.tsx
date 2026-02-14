@@ -23,7 +23,7 @@ import {
   levelUpPet,
   revivePet,
 } from '../../../helpers/pets';
-import { smartFormatNumber } from '../../../helpers/utils';
+import { smartFormatNumber } from '../../../../server/common/math';
 
 interface PetModalProps {
   isOpen: boolean;

@@ -12,6 +12,7 @@ import { type IMessage, messageFromDoc, messageToDoc } from '../common/models/me
 import { type IRoom, roomFromDoc, roomToDoc } from '../common/models/room';
 import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
+import { LogEntry, logEntryFromDoc, logEntryToDoc } from './models/logEntry';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -31,6 +32,8 @@ export async function connectDB(uri: string) {
   await db.collection('reports').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('appeals').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('global_settings').createIndex({ key: 1 }, { unique: true });
+  await db.collection('logs').createIndex({ timestamp: -1 });
+  await db.collection('logs').createIndex({ uuid: 1 }, { unique: true });
 
   // Ensure default rooms exist
   const defaultRooms: IRoom[] = [
@@ -329,4 +332,31 @@ export async function updateAppeal(appeal: IAppeal): Promise<void> {
   await database
     .collection('appeals')
     .updateOne({ uuid: appeal.uuid }, { $set: appealToDoc(appeal) });
+}
+
+export async function createLogEntry(entry: LogEntry): Promise<void> {
+  const database = ensureDB();
+  await database.collection('logs').insertOne(logEntryToDoc(entry));
+}
+
+export async function getLogEntryByUUID(uuid: string): Promise<LogEntry | null> {
+  const database = ensureDB();
+  const doc = await database.collection('logs').findOne({ uuid });
+  return doc ? logEntryFromDoc(doc) : null;
+}
+
+export async function updateLogEntry(entry: LogEntry): Promise<void> {
+  const database = ensureDB();
+  await database.collection('logs').updateOne({ uuid: entry.uuid }, { $set: logEntryToDoc(entry) });
+}
+
+export async function getRecentLogEntries(limit = 100): Promise<LogEntry[]> {
+  const database = ensureDB();
+  const docs = await database
+    .collection('logs')
+    .find({})
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .toArray();
+  return docs.map(logEntryFromDoc);
 }

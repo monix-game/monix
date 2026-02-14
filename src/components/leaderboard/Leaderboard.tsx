@@ -7,7 +7,7 @@ import {
   type LeaderboardEntry,
 } from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
-import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../helpers/utils';
+import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../../server/common/math';
 import { Avatar } from '../avatar/Avatar';
 import { Checkbox } from '../checkbox/Checkbox';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';

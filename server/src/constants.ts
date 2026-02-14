@@ -1,6 +1,7 @@
 import Filter from '../common/filter/filter';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
+import { DiscordClient } from './helpers/discord';
 
 dotenv.config();
 
@@ -21,5 +22,8 @@ export const PRICE_ID_GEMS_PACK_500 = process.env.PRICE_ID_GEMS_PACK_500 || '';
 export const PRICE_ID_GEMS_PACK_1000 = process.env.PRICE_ID_GEMS_PACK_1000 || '';
 
 export const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover' });
+
+export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';
+export const discordClient = new DiscordClient(DISCORD_WEBHOOK_URL);
 
 export const profanityFilter = new Filter();

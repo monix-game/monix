@@ -13,12 +13,15 @@ import {
 } from '../db';
 import { processAvatar } from '../helpers/avatar';
 import { getActivePunishments, punishUser } from '../../common/punishx/punishx';
-import { getCategoryById } from '../../common/punishx/categories';
+import { getCategoryById, punishXCategories } from '../../common/punishx/categories';
 import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
 import { hasPowerOver, hasRole } from '../../common/roles';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
 import { convertToGlobalSettings, type IGlobalSettings } from '../../common/models/globalSettings';
+import { v4 } from 'uuid';
+import { buildRequestLogData, log } from '../helpers/logging';
+import { formatRemainingTime } from '../../common/math';
 
 const router = Router();
 
@@ -56,14 +59,49 @@ router.get('/features', requireRole('admin'), async (req: Request, res: Response
 });
 
 router.post('/features', requireRole('admin'), async (req: Request, res: Response) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
   const { settings } = req.body as { settings?: IGlobalSettings };
 
   if (!settings) {
     return res.status(400).json({ error: 'Settings are required' });
   }
 
+  const oldSettings = await getGlobalSettings();
   const nextSettings = convertToGlobalSettings(settings);
   await updateGlobalSettings(nextSettings);
+
+  const changedKeys = Object.keys(nextSettings).filter(
+    key =>
+      JSON.stringify(oldSettings[key as keyof typeof oldSettings]) !==
+      JSON.stringify(nextSettings[key as keyof typeof nextSettings])
+  );
+
+  const changedKeysData = changedKeys.map(key => ({
+    key,
+    value: JSON.stringify(nextSettings[key as keyof typeof nextSettings]),
+    inline: false,
+  }));
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'feature-flag',
+    message: 'Feature settings updated',
+    data: buildRequestLogData(req, changedKeysData),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 
   return res.status(200).json({ settings: nextSettings });
 });
@@ -149,6 +187,16 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
       frame?: string;
     };
   };
+
+  const changes: string[] = [
+    money !== undefined ? 'money' : undefined,
+    gems !== undefined ? 'gems' : undefined,
+    avatar_url !== undefined || remove_avatar ? 'avatar' : undefined,
+    role !== undefined ? 'role' : undefined,
+    pet_slots !== undefined ? 'pet_slots' : undefined,
+    cosmetics_unlocked !== undefined ? 'cosmetics_unlocked' : undefined,
+    equipped_cosmetics !== undefined ? 'equipped_cosmetics' : undefined,
+  ].filter(Boolean) as string[];
 
   if (money !== undefined) {
     if (typeof money !== 'number' || !Number.isFinite(money) || money < 0) {
@@ -244,6 +292,22 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
 
   await updateUser(targetUser);
 
+  const changesText = changes.length > 0 ? changes.join(', ') : 'no changes';
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'moderation',
+    message: 'User edited',
+    data: buildRequestLogData(req, [
+      { key: 'target_user', value: targetUser.username },
+      { key: 'changes', value: changesText },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
+
   return res.status(200).json({ user: targetUser });
 });
 
@@ -285,8 +349,27 @@ router.post('/punish', requireRole('mod'), async (req: Request, res: Response) =
     return res.status(404).json({ error: 'Punishment category not found' });
   }
 
-  punishUser(targetUser, category, user.uuid, reason);
+  const punishment = punishUser(targetUser, category, user.uuid, reason);
   await updateUser(targetUser);
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'moderation',
+    message: 'User punished',
+    data: buildRequestLogData(req, [
+      { key: 'target_user', value: targetUser.username },
+      { key: 'category_id', value: category_id },
+      { key: 'reason', value: reason, inline: false },
+      {
+        key: 'duration',
+        value: formatRemainingTime(category.levels[punishment.level] * 60),
+      },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 
   res.status(200).json({ message: 'User punished successfully' });
 });
@@ -335,6 +418,20 @@ router.post('/pardon', requireRole('mod'), async (req: Request, res: Response) =
   punishment.lifted_at = Date.now();
   await updateUser(targetUser);
 
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'moderation',
+    message: 'Punishment lifted',
+    data: buildRequestLogData(req, [
+      { key: 'target_user', value: targetUser.username },
+      { key: 'punishment_category', value: punishment.category.name },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
+
   res.status(200).json({ message: 'Punishment lifted successfully' });
 });
 
@@ -379,8 +476,24 @@ router.post('/punishment/delete', requireRole('mod'), async (req: Request, res: 
     return res.status(404).json({ error: 'Punishment not found' });
   }
 
+  const punishment = targetUser.punishments[punishmentIndex];
+
   targetUser.punishments.splice(punishmentIndex, 1);
   await updateUser(targetUser);
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'moderation',
+    message: 'Punishment deleted',
+    data: buildRequestLogData(req, [
+      { key: 'target_user', value: targetUser.username },
+      { key: 'punishment_category', value: punishment.category.name },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 
   res.status(200).json({ message: 'Punishment deleted successfully' });
 });
@@ -441,9 +554,34 @@ router.post('/reports/:report_uuid/review', requireRole('mod'), async (req, res)
   }
 
   res.status(200).json({ report });
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'report',
+    message: 'Report reviewed',
+    data: buildRequestLogData(req, [
+      { key: 'report_category', value: report.reason },
+      { key: 'action', value: action },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 });
 
 router.post('/reports/:report_uuid/change-category', requireRole('mod'), async (req, res) => {
+  // @ts-expect-error Because we add authUser in the middleware
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const authUser = req.authUser;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const user_uuid: string = authUser?.uuid;
+  const user = await getUserByUUID(user_uuid);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
   const { report_uuid } = req.params;
   const { new_category_id } = req.body as { new_category_id: string };
 
@@ -464,6 +602,23 @@ router.post('/reports/:report_uuid/change-category', requireRole('mod'), async (
   await updateReport(report);
 
   res.status(200).json({ report });
+
+  await log({
+    uuid: v4(),
+    timestamp: new Date(),
+    level: 'info',
+    type: 'report',
+    message: 'Report category changed',
+    data: buildRequestLogData(req, [
+      { key: 'original_category', value: report.reason },
+      {
+        key: 'new_category',
+        value: punishXCategories.find(c => c.id === new_category_id)?.name || new_category_id,
+      },
+    ]),
+    username: user.username,
+    avatar_uri: user.avatar_data_uri,
+  });
 });
 
 export default router;

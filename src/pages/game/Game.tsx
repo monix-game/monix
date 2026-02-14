@@ -40,7 +40,7 @@ import {
   formatRemainingTime,
   smartFormatNumber,
   titleCase,
-} from '../../helpers/utils';
+} from '../../../server/common/math';
 import { createPaymentSession } from '../../helpers/payments';
 import type { IRoom } from '../../../server/common/models/room';
 import { getAllRooms } from '../../helpers/social';

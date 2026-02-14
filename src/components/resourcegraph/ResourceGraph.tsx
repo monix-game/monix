@@ -6,7 +6,7 @@ import type { ResourceInfo } from '../../../server/common/resources';
 import { EmojiText } from '../EmojiText';
 import { Spinner } from '../spinner/Spinner';
 import { Button } from '../button/Button';
-import { smartFormatNumber } from '../../helpers/utils';
+import { smartFormatNumber } from '../../../server/common/math';
 
 interface ResourceGraphProps {
   resource: ResourceInfo;
