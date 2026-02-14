@@ -358,6 +358,34 @@ export default function Game() {
   // Social states
   const [socialRoom, setSocialRoom] = useState<string>('general');
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
+  const [socialHasUnread, setSocialHasUnread] = useState<boolean>(false);
+  useEffect(() => {
+    try {
+      const val = localStorage.getItem('social:hasUnread');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSocialHasUnread(val === '1');
+    } catch {
+      setSocialHasUnread(false);
+    }
+
+    const handler = (ev: Event) => {
+      try {
+        // event detail may be present
+        const detail = (ev as CustomEvent).detail as { hasUnread?: boolean } | undefined;
+        if (detail && typeof detail.hasUnread === 'boolean') setSocialHasUnread(detail.hasUnread);
+        else {
+          const v = localStorage.getItem('social:hasUnread');
+          setSocialHasUnread(v === '1');
+        }
+      } catch {
+        const v = localStorage.getItem('social:hasUnread');
+        setSocialHasUnread(v === '1');
+      }
+    };
+
+    globalThis.addEventListener('social-unread-changed', handler as EventListener);
+    return () => globalThis.removeEventListener('social-unread-changed', handler as EventListener);
+  }, []);
 
   // Appeal states
   const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
@@ -847,7 +875,12 @@ export default function Game() {
                     }
                   }}
                 >
-                  <EmojiText>{t.label}</EmojiText>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <EmojiText>{t.label}</EmojiText>
+                    {t.key === 'social' && socialHasUnread && tab !== 'social' && (
+                      <span className="tab-unread-dot" />
+                    )}
+                  </div>
                 </span>
               );
 

@@ -82,6 +82,15 @@ html[data-theme='dark'] .app-logo-light {
   background-color: var(--dark-bg);
 }
 
+.tab-unread-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red-1);
+  box-shadow: 0 0 0 2px var(--bg);
+  display: inline-block;
+}
+
 .feature-disabled {
   display: flex;
   flex-direction: column;

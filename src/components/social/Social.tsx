@@ -41,6 +41,8 @@ const areMessagesEqual = (msgs1: IMessage[], msgs2: IMessage[]) => {
 
 export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) => {
   const [messages, setMessages] = React.useState<IMessage[]>([]);
+  const [roomLatest, setRoomLatest] = React.useState<Record<string, number>>({});
+  const [unreadRooms, setUnreadRooms] = React.useState<Record<string, boolean>>({});
   const [messageInput, setMessageInput] = React.useState<string>('');
   const profanityFilter = React.useMemo(() => new Filter(), []);
   const messagesRef = React.useRef<IMessage[]>([]);
@@ -66,6 +68,28 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const [hydrated, setHydrated] = React.useState<boolean>(false);
 
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const recomputeUnread = useCallback(() => {
+    try {
+      const next: Record<string, boolean> = {};
+      let anyUnread = false;
+      rooms.forEach(r => {
+        const lastMsg = roomLatest[r.uuid] || 0;
+        const lastSeen = Number(localStorage.getItem(`social:lastSeen:${r.uuid}`) || '0');
+        const isUnread = lastMsg > 0 && lastMsg > lastSeen;
+        // do not mark the currently open room as unread
+        next[r.uuid] = isUnread && r.uuid !== room.uuid;
+        if (next[r.uuid]) anyUnread = true;
+      });
+      setUnreadRooms(next);
+      localStorage.setItem('social:hasUnread', anyUnread ? '1' : '0');
+      globalThis.dispatchEvent(
+        new CustomEvent('social-unread-changed', { detail: { hasUnread: anyUnread } })
+      );
+    } catch {
+      // ignore
+    }
+  }, [roomLatest, rooms, room.uuid]);
 
   useEffect(() => {
     const previousMessages = prevMessagesRef.current;
@@ -99,9 +123,23 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
 
   useEffect(() => {
     currentRoomUuidRef.current = room.uuid;
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages([]);
     setHydrated(false);
+    // mark this room as viewed
+    try {
+      const key = `social:lastSeen:${room.uuid}`;
+      const now = Date.now();
+      localStorage.setItem(key, String(now));
+      // clear overall flag if needed
+      localStorage.setItem('social:hasUnread', '0');
+      globalThis.dispatchEvent(
+        new CustomEvent('social-unread-changed', { detail: { hasUnread: false } })
+      );
+    } catch {
+      // ignore
+    }
   }, [room.uuid]);
 
   const fetchMessages = useCallback(
@@ -113,9 +151,55 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       if (!areMessagesEqual(messagesRef.current, msgs)) {
         setMessages(msgs);
       }
+      // update latest time for this room
+      try {
+        const latest = msgs.length ? Math.max(...msgs.map(m => m.time_sent || 0)) : 0;
+        setRoomLatest(prev => ({ ...prev, [targetRoomUuid]: latest }));
+        // mark current room as viewed
+        const key = `social:lastSeen:${targetRoomUuid}`;
+        localStorage.setItem(key, String(Date.now()));
+        // recompute unread map
+        recomputeUnread();
+      } catch {
+        // ignore
+      }
     },
-    [room.uuid]
+    [recomputeUnread, room.uuid]
   );
+
+  // periodically fetch latest message time for all rooms
+  useEffect(() => {
+    let mounted = true;
+    const fetchAll = async () => {
+      const promises = rooms.map(async r => {
+        try {
+          const msgs = await getRoomMessages(r.uuid);
+          const latest = msgs.length ? Math.max(...msgs.map(m => m.time_sent || 0)) : 0;
+          return { uuid: r.uuid, latest };
+        } catch {
+          return { uuid: r.uuid, latest: 0 };
+        }
+      });
+
+      const results = await Promise.all(promises);
+      if (!mounted) return;
+      const next: Record<string, number> = {};
+      results.forEach(r => {
+        next[r.uuid] = r.latest;
+      });
+      setRoomLatest(prev => ({ ...prev, ...next }));
+      recomputeUnread();
+    };
+
+    void fetchAll();
+    const interval = setInterval(() => {
+      void fetchAll();
+    }, 3000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [rooms, recomputeUnread]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -311,7 +395,12 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 role="button"
                 tabIndex={0}
               >
-                <EmojiText>{r.name}</EmojiText>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <EmojiText>{r.name}</EmojiText>
+                  {unreadRooms[r.uuid] && r.uuid !== room.uuid && (
+                    <span className="social-unread-dot" />
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -53,6 +53,15 @@
   background-color: var(--primary-1);
 }
 
+.social-unread-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red-1);
+  box-shadow: 0 0 0 2px var(--bg);
+  display: inline-block;
+}
+
 .social-main {
   margin-left: 300px;
   padding: 20px;
@@ -128,7 +137,7 @@
   margin-right: 8px;
 }
 
-.context-menu-item > * {
+.context-menu-item>* {
   vertical-align: middle;
 }
 
