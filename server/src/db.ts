@@ -12,7 +12,7 @@ import { type IMessage, messageFromDoc, messageToDoc } from '../common/models/me
 import { type IRoom, roomFromDoc, roomToDoc } from '../common/models/room';
 import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
-import { LogEntry, logEntryFromDoc, logEntryToDoc } from './models/logEntry';
+import { LogEntry, logEntryFromDoc, logEntryToDoc } from '../common/models/logEntry';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
