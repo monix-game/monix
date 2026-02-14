@@ -215,7 +215,8 @@ export function formatRelativeTime(date: Date): string {
  */
 export function titleCase(str: string): string {
   return str
-    .replace('_', ' ')
+    .replaceAll('_', ' ')
+    .replaceAll('-', ' ')
     .toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
