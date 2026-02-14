@@ -72,9 +72,9 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
     <>
       <div className="pets-list-buttons">
         <Button
-          cost={2000}
+          cost={10000}
           onClickAsync={adoptAPet}
-          disabled={money < 2000 || !hydrated || pets.length >= maxSlots}
+          disabled={money < 10000 || !hydrated || pets.length >= maxSlots}
         >
           Adopt a Pet
         </Button>

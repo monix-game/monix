@@ -130,6 +130,15 @@ router.post('/adopt', requireActive, async (req, res) => {
       .json({ error: `You have reached the maximum number of pets (${maxPets})` });
   }
 
+  // Check if the user has enough money to adopt a pet
+  if ((user.money || 0) < 10000) {
+    return res.status(400).json({ error: 'Insufficient funds to adopt a pet' });
+  }
+
+  // Deduct the money from the user
+  user.money = (user.money || 0) - 10000;
+  await updateUser(user);
+
   // Get a random pet type from the available pet types
   const i = Math.floor(Math.random() * petTypes.length);
   const petType = petTypes[i];
