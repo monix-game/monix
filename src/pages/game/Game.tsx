@@ -393,6 +393,7 @@ export default function Game() {
 
   // Shop states
   const [hideBoughtCosmetics, setHideBoughtCosmetics] = useState<boolean>(true);
+  const [storeView, setStoreView] = useState<'cosmetics' | 'gems'>('cosmetics');
 
   // Fishing states
   const [isShowingFishingResults, setIsShowingFishingResults] = useState<boolean>(false);
@@ -844,13 +845,10 @@ export default function Game() {
                     { key: 'fishing', label: '🎣 Fishing' },
                     { key: 'aquarium', label: '🐠 Aquarium' },
                     { key: 'pets', label: '🐶 Pets' },
-                    { key: 'relics', label: '🦴 Relics' },
-                    { key: 'council', label: '🏛️ Council' },
                     { key: 'social', label: '💬 Social' },
                     { key: 'games', label: '🎮 Games' },
                     { key: 'radio', label: '📻 Radio' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
-                    { key: 'gems', label: '💎 Gems' },
                     { key: 'store', label: '🛒 Store' },
                     { key: 'cosmetics', label: '🎨 Cosmetics' },
                     { key: 'settings', label: '⚙️ Settings' },
@@ -1808,117 +1806,137 @@ export default function Game() {
               <Leaderboard />
             </div>
           )}
-          {tab === 'gems' && (
-            <div className="tab-content">
-              <h2>Gems Store</h2>
-              <div className="gem-card-list">
-                <GemCard
-                  amount={100}
-                  price="A$1.00"
-                  onClickAsync={async () => {
-                    const url = await createPaymentSession('gems_pack_100', user!.username);
-                    if (url) {
-                      globalThis.location.href = url;
-                    }
-                  }}
-                />
-                <GemCard
-                  amount={500}
-                  price="A$4.50"
-                  onClickAsync={async () => {
-                    const url = await createPaymentSession('gems_pack_500', user!.username);
-                    if (url) {
-                      globalThis.location.href = url;
-                    }
-                  }}
-                />
-                <GemCard
-                  amount={1000}
-                  price="A$8.50"
-                  onClickAsync={async () => {
-                    const url = await createPaymentSession('gems_pack_1000', user!.username);
-                    if (url) {
-                      globalThis.location.href = url;
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          )}
+          {/* Gems moved into the Store tab as a subview */}
           {tab === 'store' && (
             <div className="tab-content">
-              <h2>Cosmetic Store</h2>
-              <Checkbox
-                label="Hide already bought cosmetics"
-                checked={hideBoughtCosmetics}
-                onClick={setHideBoughtCosmetics}
-              />
-              <div className="cosmetics-grid">
-                {cosmetics.filter(
-                  c =>
-                    c.buyable && (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
-                ).length === 0 && (
-                  <p className="no-cosmetics-message">
-                    No cosmetics are available for purchase at this time. Please check back later or
-                    remove filters.
-                  </p>
-                )}
-                {cosmetics
-                  .filter(
-                    c =>
-                      c.buyable &&
-                      (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
-                  )
-                  .map(cosmetic => (
-                    <div key={cosmetic.id} className="cosmetic-card">
-                      <h2 className="cosmetic-name">{cosmetic.name}</h2>
-                      <span className="cosmetic-rarity">
-                        <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
-                        {titleCase(cosmetic.rarity)}
-                      </span>
-                      <div className="cosmetic-preview">
-                        {cosmetic.type === 'nameplate' && (
-                          <Nameplate
-                            text="Monix User"
-                            styleKey={cosmetic.nameplateStyle}
-                            className="nameplate-preview"
-                          />
-                        )}
-                        {cosmetic.type === 'tag' && (
-                          <span
-                            className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
-                          >
-                            <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
-                          </span>
-                        )}
-                        {cosmetic.type === 'frame' && (
-                          <Avatar
-                            src={user?.avatar_data_uri}
-                            size={24}
-                            styleKey={cosmetic.frameStyle}
-                            className="avatar-preview"
-                          />
-                        )}
-                      </div>
-                      <div className="spacer"></div>
-                      <Button
-                        className="cosmetic-action"
-                        disabled={
-                          user?.cosmetics_unlocked?.includes(cosmetic.id) ||
-                          ((user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1)
-                        }
-                        onClickAsync={async () => {
-                          await buyCosmetic(cosmetic.id);
-                          await updateEverything();
-                        }}
-                      >
-                        {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
-                        {!user?.cosmetics_unlocked?.includes(cosmetic.id) &&
-                          `Buy for ${smartFormatNumber(cosmetic.price || 0, false, true)} Gems`}
-                      </Button>
-                    </div>
-                  ))}
+              <div className="store-header">
+                <h2>Store</h2>
+                <div className="store-subtabs">
+                  <button
+                    type="button"
+                    className={`store-subtab ${storeView === 'cosmetics' ? 'active' : ''}`}
+                    onClick={() => setStoreView('cosmetics')}
+                  >
+                    🎨 Cosmetics
+                  </button>
+                  <button
+                    type="button"
+                    className={`store-subtab ${storeView === 'gems' ? 'active' : ''}`}
+                    onClick={() => setStoreView('gems')}
+                  >
+                    💎 Gems
+                  </button>
+                </div>
               </div>
+
+              {storeView === 'gems' && (
+                <div className="gems-section">
+                  <h3>Gems Store</h3>
+                  <div className="gem-card-list">
+                    <GemCard
+                      amount={100}
+                      price="A$1.00"
+                      onClickAsync={async () => {
+                        const url = await createPaymentSession('gems_pack_100', user!.username);
+                        if (url) globalThis.location.href = url;
+                      }}
+                    />
+                    <GemCard
+                      amount={500}
+                      price="A$4.50"
+                      onClickAsync={async () => {
+                        const url = await createPaymentSession('gems_pack_500', user!.username);
+                        if (url) globalThis.location.href = url;
+                      }}
+                    />
+                    <GemCard
+                      amount={1000}
+                      price="A$8.50"
+                      onClickAsync={async () => {
+                        const url = await createPaymentSession('gems_pack_1000', user!.username);
+                        if (url) globalThis.location.href = url;
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {storeView === 'cosmetics' && (
+                <>
+                  <Checkbox
+                    label="Hide already bought cosmetics"
+                    checked={hideBoughtCosmetics}
+                    onClick={setHideBoughtCosmetics}
+                  />
+                  <div className="cosmetics-grid">
+                    {cosmetics.filter(
+                      c =>
+                        c.buyable &&
+                        (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
+                    ).length === 0 && (
+                      <p className="no-cosmetics-message">
+                        No cosmetics are available for purchase at this time. Please check back
+                        later or remove filters.
+                      </p>
+                    )}
+                    {cosmetics
+                      .filter(
+                        c =>
+                          c.buyable &&
+                          (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
+                      )
+                      .map(cosmetic => (
+                        <div key={cosmetic.id} className="cosmetic-card">
+                          <h2 className="cosmetic-name">{cosmetic.name}</h2>
+                          <span className="cosmetic-rarity">
+                            <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
+                            {titleCase(cosmetic.rarity)}
+                          </span>
+                          <div className="cosmetic-preview">
+                            {cosmetic.type === 'nameplate' && (
+                              <Nameplate
+                                text="Monix User"
+                                styleKey={cosmetic.nameplateStyle}
+                                className="nameplate-preview"
+                              />
+                            )}
+                            {cosmetic.type === 'tag' && (
+                              <span
+                                className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
+                              >
+                                <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
+                              </span>
+                            )}
+                            {cosmetic.type === 'frame' && (
+                              <Avatar
+                                src={user?.avatar_data_uri}
+                                size={24}
+                                styleKey={cosmetic.frameStyle}
+                                className="avatar-preview"
+                              />
+                            )}
+                          </div>
+                          <div className="spacer"></div>
+                          <Button
+                            className="cosmetic-action"
+                            disabled={
+                              user?.cosmetics_unlocked?.includes(cosmetic.id) ||
+                              ((user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1)
+                            }
+                            onClickAsync={async () => {
+                              await buyCosmetic(cosmetic.id);
+                              await updateEverything();
+                            }}
+                          >
+                            {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
+                            {!user?.cosmetics_unlocked?.includes(cosmetic.id) &&
+                              `Buy for ${smartFormatNumber(cosmetic.price || 0, false, true)} Gems`}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
           {tab === 'cosmetics' && (

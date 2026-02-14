@@ -800,6 +800,50 @@ html[data-theme='dark'] .app-logo-light {
   gap: 5px;
 }
 
+/* Store subtabs */
+.store-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.store-subtabs {
+  display: flex;
+  gap: 8px;
+}
+
+.store-subtab {
+  background: transparent;
+  border: 2px solid var(--primary-2);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.store-subtab:hover {
+  background-color: var(--dark-bg);
+}
+
+.store-subtab.active {
+  background-color: var(--dark-bg);
+  border-color: var(--primary-3);
+}
+
+.gems-section {
+  margin-top: 8px;
+}
+
+.gems-section .gem-card-list {
+  gap: 14px;
+}
+
 .fishing-grid-item.equipped {
   border: 2px solid var(--primary-3);
 }
