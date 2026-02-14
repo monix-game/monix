@@ -337,17 +337,17 @@ export default function Staff() {
   const handleSaveEconomyEdits = useCallback(async () => {
     if (!editUserTarget) return;
 
-    const moneyValue = Number(editMoney);
-    const gemsValue = Number(editGems);
+    const moneyValue = Number.parseFloat(editMoney);
+    const gemsValue = Number.parseFloat(editGems);
     if (
       editMoney.trim().length === 0 ||
       editGems.trim().length === 0 ||
       !Number.isFinite(moneyValue) ||
       !Number.isFinite(gemsValue) ||
       moneyValue < 0 ||
-      gemsValue < 0
+      (gemsValue < 0 && gemsValue !== -1)
     ) {
-      setEditUserError('Money and gems must be non-negative numbers.');
+      setEditUserError('Money and gems must be non-negative numbers (except -1 for infinity).');
       return;
     }
 
@@ -1343,7 +1343,7 @@ export default function Staff() {
                     predicates={[
                       {
                         isValid: value => {
-                          const num = Number.parseInt(value, 10);
+                          const num = Number.parseFloat(value);
                           return value.trim().length > 0 && !Number.isNaN(num) && num >= 0;
                         },
                         message: 'Enter a non-negative number.',
@@ -1357,7 +1357,7 @@ export default function Staff() {
                     predicates={[
                       {
                         isValid: value => {
-                          const num = Number.parseInt(value, 10);
+                          const num = Number.parseFloat(value);
                           return (
                             value.trim().length > 0 &&
                             !Number.isNaN(num) &&
