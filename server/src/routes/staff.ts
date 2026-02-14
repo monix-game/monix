@@ -221,8 +221,8 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
   }
 
   if (gems !== undefined) {
-    if (typeof gems !== 'number' || !Number.isFinite(gems) || gems < 0) {
-      return res.status(400).json({ error: 'Gems must be a non-negative number' });
+    if (typeof gems !== 'number' || !Number.isFinite(gems) || (gems < 0 && gems !== -1)) {
+      return res.status(400).json({ error: 'Gems must be a non-negative number (except -1)' });
     }
     targetUser.gems = Math.floor(gems);
   }

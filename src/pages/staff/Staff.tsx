@@ -1342,8 +1342,11 @@ export default function Staff() {
                     onValueChange={value => setEditMoney(value)}
                     predicates={[
                       {
-                        isValid: value => value.trim().length > 0 && /^\d+$/.test(value),
-                        message: 'Enter a non-negative whole number.',
+                        isValid: value => {
+                          const num = Number.parseInt(value, 10);
+                          return value.trim().length > 0 && !Number.isNaN(num) && num >= 0;
+                        },
+                        message: 'Enter a non-negative number.',
                       },
                     ]}
                   />
@@ -1353,8 +1356,15 @@ export default function Staff() {
                     onValueChange={value => setEditGems(value)}
                     predicates={[
                       {
-                        isValid: value => value.trim().length > 0 && /^\d+$/.test(value),
-                        message: 'Enter a non-negative whole number.',
+                        isValid: value => {
+                          const num = Number.parseInt(value, 10);
+                          return (
+                            value.trim().length > 0 &&
+                            !Number.isNaN(num) &&
+                            (num >= 0 || num === -1)
+                          );
+                        },
+                        message: 'Enter a non-negative number or -1 for infinity.',
                       },
                     ]}
                   />
