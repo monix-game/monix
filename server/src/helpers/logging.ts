@@ -68,7 +68,7 @@ export function buildRequestLogData(req: Request, fields: LogFieldInput[] = []) 
 
 export async function logToDiscord(entry: LogEntry) {
   const embed: DiscordEmbed = {
-    title: `[${entry.level.toUpperCase()}] ${entry.type}`,
+    title: `[${entry.level.toUpperCase()}] ${titleCase(entry.type)}`,
     description: entry.message,
     color: colorMap[entry.level],
     timestamp: new Date().toISOString(),
