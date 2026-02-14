@@ -22,7 +22,7 @@ export interface LogEntry {
   data?: {
     key: string;
     value: string;
-    inline: boolean;
+    inline?: boolean;
   }[];
   username?: string;
   avatar_uri?: string;

@@ -2,8 +2,9 @@ import { sendNyxMessage } from './nyx';
 import { IMessage } from '../../common/models/message';
 import { IUser } from '../../common/models/user';
 import { hasRole } from '../../common/roles';
-import { getUserByUsername, markMessagesDeletedByRoomUUID } from '../db';
+import { getRoomByUUID, getUserByUsername, markMessagesDeletedByRoomUUID } from '../db';
 import { v4 } from 'uuid';
+import { log } from './logging';
 
 export interface CommandResult {
   message: IMessage | null;
@@ -72,6 +73,23 @@ const commands: Command[] = [
         }
       }
 
+      const room = await getRoomByUUID(room_uuid);
+
+      await log({
+        uuid: v4(),
+        timestamp: new Date(),
+        level: 'info',
+        type: 'command',
+        message: `User ${user.username} executed clear command`,
+        data: [
+          { key: 'executor_username', value: user.username },
+          { key: 'room_name', value: room?.name || room_uuid },
+          { key: 'num_messages', value: numMessages.toString() },
+        ],
+        username: user.username,
+        avatar_uri: user.avatar_data_uri,
+      });
+
       // Clear the messages
       await markMessagesDeletedByRoomUUID(room_uuid, numMessages);
       await sendNyxMessage(
@@ -110,6 +128,21 @@ const commands: Command[] = [
         );
         return { message, error: 'Target user not found for sudo command.' };
       }
+
+      await log({
+        uuid: v4(),
+        timestamp: new Date(),
+        level: 'info',
+        type: 'command',
+        message: `User ${user.username} executed sudo command on user ${targetUsername}`,
+        data: [
+          { key: 'executor_username', value: user.username },
+          { key: 'target_username', value: targetUser.username },
+          { key: 'message', value: sudoMessageContent },
+        ],
+        username: user.username,
+        avatar_uri: user.avatar_data_uri,
+      });
 
       // Create a new message as the target user
       const sudoMessage: IMessage = {
