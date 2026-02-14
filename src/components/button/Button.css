@@ -90,7 +90,7 @@
 
 .btn-cost {
   font-size: 0.55rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-top: -10px;
 }
 

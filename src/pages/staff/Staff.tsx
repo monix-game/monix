@@ -25,6 +25,7 @@ import {
   getAllReports,
   getAllUsers,
   getDashboardInfo,
+  getStaffLogs,
   getUserByUUID,
   reviewReport,
   updateStaffUser,
@@ -35,6 +36,7 @@ import type { IAppeal } from '../../../server/common/models/appeal';
 import { getAllAppeals, reviewAppeal } from '../../helpers/appeals';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { getRemainingDuration, hasExpired } from '../../../server/common/models/punishment';
+import type { LogEntry, LogLevel, LogType } from '../../../server/common/models/logEntry';
 import { IconBrush, IconCoins, IconCrown, IconPaw, IconPhoto } from '@tabler/icons-react';
 import {
   DEFAULT_GLOBAL_SETTINGS,
@@ -45,9 +47,9 @@ import { getGlobalSettings, updateGlobalSettings } from '../../helpers/globalSet
 
 export default function Staff() {
   // App states
-  const [tab, rawSetTab] = useState<'dashboard' | 'reports' | 'appeals' | 'users' | 'features'>(
-    'dashboard'
-  );
+  const [tab, rawSetTab] = useState<
+    'dashboard' | 'reports' | 'appeals' | 'logs' | 'users' | 'features'
+  >('dashboard');
   const [timeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>(() => {
     const h = new Date().getHours();
     if (h >= 5 && h < 12) return 'morning';
@@ -88,6 +90,14 @@ export default function Staff() {
   const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
   const [selectedAppeal, setSelectedAppeal] = useState<IAppeal | null>(null);
   const [selectedAppealAction, setSelectedAppealAction] = useState<'approve' | 'deny' | null>(null);
+
+  // Logs states
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logsHydrated, setLogsHydrated] = useState<boolean>(false);
+  const [logsSearch, setLogsSearch] = useState<string>('');
+  const [logsLevelFilter, setLogsLevelFilter] = useState<'all' | LogLevel>('all');
+  const [logsTypeFilter, setLogsTypeFilter] = useState<'all' | LogType>('all');
+  const [logsSort, setLogsSort] = useState<'newest' | 'oldest' | 'level' | 'type'>('newest');
 
   // Users states
   const [filter, setFilter] = useState<string>('');
@@ -185,6 +195,29 @@ export default function Staff() {
     return () => clearInterval(interval);
   }, [updateEverything]);
 
+  useEffect(() => {
+    if (!hasRole(userRole || 'user', 'mod') || tab !== 'logs') return;
+
+    let mounted = true;
+    const loadLogs = async (showLoading = false) => {
+      if (showLoading) setLogsHydrated(false);
+      const entries = await (getStaffLogs as (limit?: number) => Promise<LogEntry[]>)(200);
+      if (!mounted) return;
+      setLogs(entries);
+      setLogsHydrated(true);
+    };
+
+    void loadLogs(true);
+    const interval = setInterval(() => {
+      void loadLogs(false);
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [tab, userRole]);
+
   const fetchUsers = useCallback(async (nextFilter: string) => {
     setUsersHydrated(false);
     const normalizedFilter = nextFilter.trim();
@@ -197,6 +230,13 @@ export default function Staff() {
     } finally {
       setUsersHydrated(true);
     }
+  }, []);
+
+  const handleRefreshLogs = useCallback(async () => {
+    setLogsHydrated(false);
+    const entries = await (getStaffLogs as (limit?: number) => Promise<LogEntry[]>)(200);
+    setLogs(entries);
+    setLogsHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -550,6 +590,40 @@ export default function Staff() {
       return punishmentsFilter === 'active' ? active : !active;
     })
     .sort((a, b) => b.issued_at - a.issued_at);
+  const normalizedLogsSearch = logsSearch.trim().toLowerCase();
+  const logTypeLabel = (value: LogType) => titleCase(value.replaceAll('-', ' '));
+  const logLevelOrder: Record<LogLevel, number> = { error: 0, warn: 1, info: 2 };
+  const filteredLogs = logs.filter(entry => {
+    if (logsLevelFilter !== 'all' && entry.level !== logsLevelFilter) return false;
+    if (logsTypeFilter !== 'all' && entry.type !== logsTypeFilter) return false;
+    if (!normalizedLogsSearch.length) return true;
+
+    const dataText = entry.data
+      ? entry.data.map(field => `${field.key} ${field.value}`).join(' ')
+      : '';
+    const target =
+      `${entry.message} ${entry.username || ''} ${entry.level} ${entry.type} ${dataText}`
+        .toLowerCase()
+        .trim();
+
+    return target.includes(normalizedLogsSearch);
+  });
+  const sortedLogs = [...filteredLogs].sort((a, b) => {
+    const aTime = new Date(a.timestamp).getTime();
+    const bTime = new Date(b.timestamp).getTime();
+
+    switch (logsSort) {
+      case 'oldest':
+        return aTime - bTime;
+      case 'level':
+        return logLevelOrder[a.level] - logLevelOrder[b.level] || bTime - aTime;
+      case 'type':
+        return a.type.localeCompare(b.type) || bTime - aTime;
+      case 'newest':
+      default:
+        return bTime - aTime;
+    }
+  });
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
@@ -651,6 +725,11 @@ export default function Staff() {
               {
                 key: 'appeals',
                 label: '⚖️ Appeals',
+                requiredRole: 'mod',
+              },
+              {
+                key: 'logs',
+                label: '📜 Logs',
                 requiredRole: 'mod',
               },
               { key: 'users', label: '👥 Users', requiredRole: 'admin' },
@@ -978,6 +1057,103 @@ export default function Staff() {
                       </div>
                     </div>
                   ))}
+            </div>
+          </div>
+        )}
+        {tab === 'logs' && (
+          <div className="tab-content">
+            <h2>Staff Logs</h2>
+            <p className="staff-log-description">Audit trail for moderation actions, system updates, and staff activity.</p>
+            <div className="log-toolbar">
+              <Input
+                className="log-search-input"
+                placeholder="Search message, user, or data..."
+                value={logsSearch}
+                onValueChange={value => setLogsSearch(value)}
+              />
+              <Select
+                value={logsLevelFilter}
+                onChange={value => setLogsLevelFilter(value as typeof logsLevelFilter)}
+                options={[
+                  { value: 'all', label: 'All Levels' },
+                  { value: 'info', label: 'Info' },
+                  { value: 'warn', label: 'Warn' },
+                  { value: 'error', label: 'Error' },
+                ]}
+              />
+              <Select
+                value={logsTypeFilter}
+                onChange={value => setLogsTypeFilter(value as typeof logsTypeFilter)}
+                options={[
+                  { value: 'all', label: 'All Types' },
+                  { value: 'system', label: 'System' },
+                  { value: 'command', label: 'Command' },
+                  { value: 'payment', label: 'Payment' },
+                  { value: 'feature-flag', label: 'Feature Flag' },
+                  { value: 'report', label: 'Report' },
+                  { value: 'appeal', label: 'Appeal' },
+                  { value: 'moderation', label: 'Moderation' },
+                  { value: 'other', label: 'Other' },
+                ]}
+              />
+              <Select
+                value={logsSort}
+                onChange={value => setLogsSort(value as typeof logsSort)}
+                options={[
+                  { value: 'newest', label: 'Newest First' },
+                  { value: 'oldest', label: 'Oldest First' },
+                  { value: 'level', label: 'Level' },
+                  { value: 'type', label: 'Type' },
+                ]}
+              />
+              <Button secondary onClickAsync={handleRefreshLogs}>
+                Refresh
+              </Button>
+            </div>
+            {logsHydrated && (
+              <div className="log-summary">
+                Showing {sortedLogs.length} of {logs.length} logs
+              </div>
+            )}
+            <div className="log-list">
+              {!logsHydrated && <Spinner size={28} />}
+              {logsHydrated && sortedLogs.length === 0 && <b>No logs to show.</b>}
+              {logsHydrated &&
+                sortedLogs.map(entry => (
+                  <div key={entry.uuid} className="log-card">
+                    <div className="log-header">
+                      <div className="log-title">
+                        <span className={`log-badge level-${entry.level}`}>
+                          {entry.level.toUpperCase()}
+                        </span>
+                        <span className="log-badge log-type">{logTypeLabel(entry.type)}</span>
+                        <span className="log-message">{entry.message}</span>
+                      </div>
+                      <span className="log-time">
+                        {formatRelativeTime(new Date(entry.timestamp))}
+                      </span>
+                    </div>
+                    <div className="log-meta">
+                      <span className="log-user">
+                        {entry.username ? `by ${entry.username}` : 'system'}
+                      </span>
+                      <span className="mono log-uuid">{entry.uuid}</span>
+                    </div>
+                    {entry.data && entry.data.length > 0 && (
+                      <div className="staff-info-list log-data-list">
+                        {entry.data.map(field => (
+                          <div
+                            key={`${entry.uuid}-${field.key}-${field.value}`}
+                            className="staff-info-line log-data-line"
+                          >
+                            <span>{field.key}</span>
+                            <span className="mono log-data-value">{field.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
           </div>
         )}

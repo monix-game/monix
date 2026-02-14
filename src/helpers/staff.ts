@@ -2,6 +2,7 @@ import type { IUser } from '../../server/common/models/user';
 import type { IReport } from '../../server/common/models/report';
 import { api } from './api';
 import type { DashboardInfo } from '../../server/common/models/dashboardInfo';
+import type { LogEntry } from '../../server/common/models/logEntry';
 
 export async function getDashboardInfo(): Promise<DashboardInfo | null> {
   try {
@@ -93,6 +94,19 @@ export async function getAllReports(): Promise<IReport[]> {
     } else {
       return [];
     }
+  } catch {
+    return [];
+  }
+}
+
+export async function getStaffLogs(limit?: number): Promise<LogEntry[]> {
+  try {
+    const query = typeof limit === 'number' ? `?limit=${limit}` : '';
+    const resp = await api.get<{ logs: LogEntry[] }>(`/staff/logs${query}`);
+    if (resp?.success) {
+      return resp.data?.logs || [];
+    }
+    return [];
   } catch {
     return [];
   }

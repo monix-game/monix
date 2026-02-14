@@ -5,6 +5,7 @@ import {
   getAllReports,
   getAllUsers,
   getGlobalSettings,
+  getRecentLogEntries,
   getReportByUUID,
   getUserByUUID,
   updateGlobalSettings,
@@ -51,6 +52,14 @@ router.get('/dashboard', requireRole('helper'), async (req: Request, res: Respon
   };
 
   res.status(200).json({ info: dashboardInfo });
+});
+
+router.get('/logs', requireRole('mod'), async (req: Request, res: Response) => {
+  const rawLimit = Number(req.query.limit);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 200;
+  const logs = await getRecentLogEntries(limit);
+
+  res.status(200).json({ logs });
 });
 
 router.get('/features', requireRole('admin'), async (req: Request, res: Response) => {

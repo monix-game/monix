@@ -89,7 +89,7 @@ html[data-theme='dark'] .app-logo-light {
 }
 
 .feature-disabled p {
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .user-info {
