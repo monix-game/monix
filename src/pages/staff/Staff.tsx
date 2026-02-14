@@ -27,6 +27,7 @@ import {
   getDashboardInfo,
   getStaffLogs,
   getUserByUUID,
+  pardonUser,
   reviewReport,
   updateStaffUser,
 } from '../../helpers/staff';
@@ -308,6 +309,23 @@ export default function Staff() {
     async (punishmentId: string) => {
       if (!punishmentsModalUser) return;
       const ok = await deletePunishment(punishmentsModalUser.uuid, punishmentId);
+      if (!ok) return;
+
+      const freshUser = await getUserByUUID(punishmentsModalUser.uuid);
+      if (freshUser) {
+        setPunishmentsModalUser(freshUser);
+        setUsers(prev =>
+          prev.map(userEntry => (userEntry.uuid === freshUser.uuid ? freshUser : userEntry))
+        );
+      }
+    },
+    [punishmentsModalUser, setUsers]
+  );
+
+  const handlePardonPunishment = useCallback(
+    async (punishmentId: string) => {
+      if (!punishmentsModalUser) return;
+      const ok = await pardonUser(punishmentsModalUser.uuid, punishmentId);
       if (!ok) return;
 
       const freshUser = await getUserByUUID(punishmentsModalUser.uuid);
@@ -1435,12 +1453,30 @@ export default function Staff() {
                       </div>
                     </div>
                     <div className="review-buttons">
+                      {isActive && (
+                        <Button
+                          color="red"
+                          onClickAsync={async () => {
+                            await handlePardonPunishment(punishment.uuid);
+                          }}
+                          disabled={
+                            !hasRole(userRole || 'user', 'admin') ||
+                            !isActive ||
+                            !hasPowerOver(userRole || 'user', punishmentsModalUser?.role || 'user')
+                          }
+                        >
+                          {hasRole(userRole || 'user', 'admin') ? 'Pardon' : "Can't Pardon"}
+                        </Button>
+                      )}
                       <Button
                         color="red"
                         onClickAsync={async () => {
                           await handleDeletePunishment(punishment.uuid);
                         }}
-                        disabled={!hasRole(userRole || 'user', 'admin')}
+                        disabled={
+                          !hasRole(userRole || 'user', 'admin') ||
+                          !hasPowerOver(userRole || 'user', punishmentsModalUser?.role || 'user')
+                        }
                       >
                         {hasRole(userRole || 'user', 'admin') ? 'Delete' : "Can't Delete"}
                       </Button>

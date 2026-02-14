@@ -396,7 +396,7 @@ router.post('/punish', requireRole('mod'), async (req: Request, res: Response) =
   res.status(200).json({ message: 'User punished successfully' });
 });
 
-router.post('/pardon', requireRole('mod'), async (req: Request, res: Response) => {
+router.post('/pardon', requireRole('admin'), async (req: Request, res: Response) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const authUser = req.authUser;
@@ -456,7 +456,7 @@ router.post('/pardon', requireRole('mod'), async (req: Request, res: Response) =
   res.status(200).json({ message: 'Punishment lifted successfully' });
 });
 
-router.post('/punishment/delete', requireRole('mod'), async (req: Request, res: Response) => {
+router.post('/punishment/delete', requireRole('admin'), async (req: Request, res: Response) => {
   // @ts-expect-error Because we add authUser in the middleware
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const authUser = req.authUser;
