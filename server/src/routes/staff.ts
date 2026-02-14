@@ -18,7 +18,10 @@ import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
 import { hasPowerOver, hasRole } from '../../common/roles';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
-import { convertToGlobalSettings, type IGlobalSettings } from '../../common/models/globalSettings';
+import {
+  convertToGlobalSettings,
+  type IGlobalSettings,
+} from '../../common/models/globalSettings';
 import { v4 } from 'uuid';
 import { buildRequestLogData, log } from '../helpers/logging';
 import { formatRemainingTime } from '../../common/math';
@@ -76,7 +79,7 @@ router.post('/features', requireRole('admin'), async (req: Request, res: Respons
     return res.status(400).json({ error: 'Settings are required' });
   }
 
-  const oldSettings = await getGlobalSettings();
+  const oldSettings = (await getGlobalSettings()).features;
   const nextSettings = convertToGlobalSettings(settings);
   await updateGlobalSettings(nextSettings);
 
@@ -86,15 +89,28 @@ router.post('/features', requireRole('admin'), async (req: Request, res: Respons
       JSON.stringify(nextSettings[key as keyof typeof nextSettings])
   );
 
+  const formatSettingValue = (value: boolean) => {
+    return value ? 'enabled' : 'disabled';
+  };
+
+  const changeLogEntries = changedKeys.length
+    ? changedKeys.map(key => {
+        const previousValue = oldSettings[key as keyof typeof oldSettings];
+        const nextValue = nextSettings.features[key as keyof typeof nextSettings.features];
+        return {
+          key,
+          value: `${formatSettingValue(previousValue)} -> ${formatSettingValue(nextValue)}`,
+        };
+      })
+    : [{ key: 'changed_flags', value: 'none' }];
+
   await log({
     uuid: v4(),
     timestamp: new Date(),
     level: 'info',
     type: 'feature-flag',
     message: 'Feature settings updated',
-    data: buildRequestLogData(req, [
-      { key: 'changed_flags', value: changedKeys.length > 0 ? changedKeys.join(', ') : 'none' },
-    ]),
+    data: buildRequestLogData(req, changeLogEntries),
     username: user.username,
   });
 
