@@ -76,7 +76,6 @@ router.post('/submit', requireAuth, async (req: Request, res: Response) => {
       { key: 'punishment_category', value: punishment.category.name },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   return res.status(201).json({ message: 'Appeal submitted successfully', appeal });
@@ -169,7 +168,6 @@ router.post('/review', requireRole('mod'), async (req: Request, res: Response) =
       { key: 'review_status', value: status },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   return res.status(200).json({ message: 'Appeal reviewed successfully', appeal });

@@ -100,7 +100,6 @@ router.post('/features', requireRole('admin'), async (req: Request, res: Respons
     message: 'Feature settings updated',
     data: buildRequestLogData(req, changedKeysData),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   return res.status(200).json({ settings: nextSettings });
@@ -305,7 +304,6 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
       { key: 'changes', value: changesText },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   return res.status(200).json({ user: targetUser });
@@ -368,7 +366,6 @@ router.post('/punish', requireRole('mod'), async (req: Request, res: Response) =
       },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   res.status(200).json({ message: 'User punished successfully' });
@@ -429,7 +426,6 @@ router.post('/pardon', requireRole('mod'), async (req: Request, res: Response) =
       { key: 'punishment_category', value: punishment.category.name },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   res.status(200).json({ message: 'Punishment lifted successfully' });
@@ -492,7 +488,6 @@ router.post('/punishment/delete', requireRole('mod'), async (req: Request, res: 
       { key: 'punishment_category', value: punishment.category.name },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 
   res.status(200).json({ message: 'Punishment deleted successfully' });
@@ -566,7 +561,6 @@ router.post('/reports/:report_uuid/review', requireRole('mod'), async (req, res)
       { key: 'action', value: action },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 });
 
@@ -617,7 +611,6 @@ router.post('/reports/:report_uuid/change-category', requireRole('mod'), async (
       },
     ]),
     username: user.username,
-    avatar_uri: user.avatar_data_uri,
   });
 });
 

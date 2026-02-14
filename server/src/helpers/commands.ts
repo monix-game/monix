@@ -87,7 +87,6 @@ const commands: Command[] = [
           { key: 'num_messages', value: numMessages.toString() },
         ],
         username: user.username,
-        avatar_uri: user.avatar_data_uri,
       });
 
       // Clear the messages
@@ -141,7 +140,6 @@ const commands: Command[] = [
           { key: 'message', value: sudoMessageContent },
         ],
         username: user.username,
-        avatar_uri: user.avatar_data_uri,
       });
 
       // Create a new message as the target user

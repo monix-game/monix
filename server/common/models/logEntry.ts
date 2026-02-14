@@ -25,7 +25,6 @@ export interface LogEntry {
     inline?: boolean;
   }[];
   username?: string;
-  avatar_uri?: string;
 }
 
 export function logEntryToDoc(entry: LogEntry) {
@@ -37,7 +36,6 @@ export function logEntryToDoc(entry: LogEntry) {
     message: entry.message,
     data: entry.data,
     username: entry.username,
-    avatar_uri: entry.avatar_uri,
   };
 }
 
@@ -50,6 +48,5 @@ export function logEntryFromDoc(doc: any): LogEntry {
     message: doc.message,
     data: doc.data,
     username: doc.username,
-    avatar_uri: doc.avatar_uri,
   };
 }

@@ -74,8 +74,7 @@ export async function logToDiscord(entry: LogEntry) {
     timestamp: new Date().toISOString(),
     url: 'https://monixga.me/staff',
     author: {
-      name: entry.username || 'N/A',
-      icon_url: entry.avatar_uri || undefined,
+      name: entry.username ? `Moderator/User: ${entry.username}` : 'N/A',
     },
     fields: entry.data?.map(d => ({
       name: d.key,

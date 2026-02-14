@@ -89,7 +89,6 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
             { key: 'item', value: item_key },
           ]),
           username: user.username,
-          avatar_uri: user.avatar_data_uri,
         });
         return res.status(400).send('Unknown gems product ID');
       }
@@ -110,7 +109,6 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
           { key: 'gems', value: gemsAmount },
         ]),
         username: user.username,
-        avatar_uri: user.avatar_data_uri,
       });
     }
   } catch (err) {

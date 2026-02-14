@@ -42,7 +42,6 @@ export class DiscordClient {
 
   async sendMessage(message: DiscordMessage) {
     if (!this.webhookUrl) {
-      console.warn('Discord webhook URL not configured. Skipping sending message.');
       return;
     }
 
