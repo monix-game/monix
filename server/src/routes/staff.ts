@@ -18,10 +18,7 @@ import { DashboardInfo } from '../../common/models/dashboardInfo';
 import type { IPunishment } from '../../common/models/punishment';
 import { hasPowerOver, hasRole } from '../../common/roles';
 import { cosmetics } from '../../common/cosmetics/cosmetics';
-import {
-  convertToGlobalSettings,
-  type IGlobalSettings,
-} from '../../common/models/globalSettings';
+import { convertToGlobalSettings, type IGlobalSettings } from '../../common/models/globalSettings';
 import { v4 } from 'uuid';
 import { buildRequestLogData, log } from '../helpers/logging';
 import { formatRemainingTime } from '../../common/math';
@@ -83,10 +80,10 @@ router.post('/features', requireRole('admin'), async (req: Request, res: Respons
   const nextSettings = convertToGlobalSettings(settings);
   await updateGlobalSettings(nextSettings);
 
-  const changedKeys = Object.keys(nextSettings).filter(
+  const changedKeys = Object.keys(nextSettings.features).filter(
     key =>
       JSON.stringify(oldSettings[key as keyof typeof oldSettings]) !==
-      JSON.stringify(nextSettings[key as keyof typeof nextSettings])
+      JSON.stringify(nextSettings.features[key as keyof typeof nextSettings.features])
   );
 
   const formatSettingValue = (value: boolean) => {
