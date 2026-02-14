@@ -45,6 +45,10 @@ export interface IUser {
     last_fished_at?: number;
   };
   punishments?: IPunishment[];
+  ip_history?: {
+    ip: string;
+    timestamp: number;
+  }[];
 }
 
 export function userToDoc(u: IUser): IUser {
@@ -69,6 +73,7 @@ export function userToDoc(u: IUser): IUser {
     equipped_cosmetics: u.equipped_cosmetics || {},
     fishing: u.fishing,
     punishments: u.punishments,
+    ip_history: u.ip_history || [],
   };
 }
 
@@ -99,5 +104,6 @@ export function userFromDoc(doc: any): IUser {
       aquarium: { capacity: 10, level: 1, fish: [] },
     },
     punishments: doc.punishments || [],
+    ip_history: doc.ip_history || [],
   };
 }

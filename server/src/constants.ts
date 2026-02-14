@@ -26,4 +26,6 @@ export const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.cl
 export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';
 export const discordClient = new DiscordClient(DISCORD_WEBHOOK_URL);
 
+export const SERVER_PUBLIC_IP = process.env.SERVER_PUBLIC_IP || '';
+
 export const profanityFilter = new Filter();

@@ -9,6 +9,7 @@ import {
 import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
 import type { IFeatureFlags, IGlobalSettings } from '../common/models/globalSettings';
+import { getRequestIp } from './helpers/ip';
 
 async function authenticateRequest(req: Request, res: Response) {
   const unauthorized = () => {
@@ -50,6 +51,21 @@ async function authenticateRequest(req: Request, res: Response) {
 
   // Update last_seen timestamp
   user.last_seen = Date.now();
+
+  // Add IP to user's IP history
+  const ip = getRequestIp(req);
+  if (ip) {
+    user.ip_history = user.ip_history || [];
+    // Only add to history if it's not the same as the last recorded IP to avoid duplicates
+    if (user.ip_history.length === 0 || user.ip_history[user.ip_history.length - 1].ip !== ip) {
+      user.ip_history.push({ ip, timestamp: Date.now() });
+      // Keep only the last 10 IPs to prevent unbounded growth
+      if (user.ip_history.length > 10) {
+        user.ip_history.shift();
+      }
+    }
+  }
+
   await updateUser(user);
 
   return user;
@@ -91,7 +107,6 @@ export function requireRole(role: 'admin' | 'mod' | 'helper') {
 
 export function requireFeatureEnabled(feature: keyof IFeatureFlags) {
   return async function (req: Request, res: Response, next: NextFunction) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const settings = (await getGlobalSettings()) as unknown as IGlobalSettings;
     if (!settings.features[feature]) {
       res.status(403).json({ error: 'Feature disabled' });

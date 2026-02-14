@@ -4,6 +4,7 @@ import { DiscordEmbed } from './discord';
 import { createLogEntry } from '../db';
 import type { Request } from 'express';
 import { titleCase } from '../../common/math';
+import { getRequestIp } from './ip';
 
 const colorMap: Record<LogLevel, number> = {
   info: 0x3498db, // blue
@@ -16,24 +17,6 @@ type LogFieldInput = {
   value?: string | number | boolean | null;
   inline?: boolean;
 };
-
-export function getRequestIp(req: Request): string | undefined {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (Array.isArray(forwarded) && forwarded.length > 0) {
-    return forwarded[0].split(',')[0]?.trim();
-  }
-
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0]?.trim();
-  }
-
-  const realIp = req.headers['x-real-ip'];
-  if (typeof realIp === 'string' && realIp.trim() !== '') {
-    return realIp.trim();
-  }
-
-  return req.ip || req.socket.remoteAddress || undefined;
-}
 
 export function buildRequestLogData(req: Request, fields: LogFieldInput[] = []) {
   const data: NonNullable<LogEntry['data']> = [];
