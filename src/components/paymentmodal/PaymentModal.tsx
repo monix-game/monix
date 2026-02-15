@@ -61,7 +61,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
         </div>
         <span className="payment-disclaimer">
-          Pressing the purchase button means you're claiming a limited license to use this item in
+          Pressing the purchase button means you're claiming a limited license to use this product/item in
           Monix.{' '}
           <span className="payment-disclaimer-secondary">
             Purchases are non-refundable. Once purchased, items will be delivered to your account
