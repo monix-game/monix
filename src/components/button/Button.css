@@ -1,4 +1,5 @@
 .btn {
+  position: relative;
   border-radius: var(--border-radius);
   font-weight: 500;
   cursor: pointer;
@@ -14,6 +15,28 @@
   color: var(--text);
   min-height: 44px;
   white-space: nowrap;
+}
+
+.btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.btn.loading .btn-content {
+  visibility: hidden;
 }
 
 .btn.primary:not(.btn-secondary) {

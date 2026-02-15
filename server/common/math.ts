@@ -70,7 +70,8 @@ export function hasGems(gems: number, cost: number): boolean {
 export function smartFormatNumber(
   num: number,
   includeDollarSign = true,
-  canBeInfinity = false
+  canBeInfinity = false,
+  trailingZeros = true
 ): string {
   if (canBeInfinity && num === -1) return '∞';
   if (num === 0) return includeDollarSign ? '$0.00' : '0.00';
@@ -106,6 +107,10 @@ export function smartFormatNumber(
   } else {
     // if we exceed our largest unit, just use scientific notation
     formattedValue = rounded.toExponential(2);
+  }
+
+  if (!trailingZeros) {
+    formattedValue = formattedValue.replace(/\.00$/, ''); // remove trailing .00
   }
 
   const prefix = includeDollarSign ? '$' : '';

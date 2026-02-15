@@ -20,6 +20,7 @@ import {
   Avatar,
   Checkbox,
   Select,
+  PaymentModal,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -819,6 +820,10 @@ export default function Game() {
       <p>This feature has been disabled by staff.</p>
     </div>
   );
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+  const [isLoadingPaymentModal, setIsLoadingPaymentModal] = useState<boolean>(false);
+  const [paymentModalCosmeticId, setPaymentModalCosmeticId] = useState<string | null>(null);
 
   return (
     <>
@@ -1923,14 +1928,15 @@ export default function Game() {
                               user?.cosmetics_unlocked?.includes(cosmetic.id) ||
                               ((user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1)
                             }
-                            onClickAsync={async () => {
-                              await buyCosmetic(cosmetic.id);
-                              await updateEverything();
+                            onClick={() => {
+                              if (user?.cosmetics_unlocked?.includes(cosmetic.id)) return;
+                              setIsPaymentModalOpen(true);
+                              setPaymentModalCosmeticId(cosmetic.id);
                             }}
                           >
                             {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
                             {!user?.cosmetics_unlocked?.includes(cosmetic.id) &&
-                              `Buy for ${smartFormatNumber(cosmetic.price || 0, false, true)} Gems`}
+                              `Buy for ${smartFormatNumber(cosmetic.price || 0, false, false, false)} Gems`}
                           </Button>
                         </div>
                       ))}
@@ -2235,6 +2241,31 @@ export default function Game() {
           </div>
         </div>
       </Modal>
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        isLoading={isLoadingPaymentModal}
+        type="gems"
+        amount={cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0}
+        balance={user?.gems ?? 0}
+        productName={
+          cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic'
+        }
+        onClose={() => setIsPaymentModalOpen(false)}
+        onPurchase={async () => {
+          setIsLoadingPaymentModal(true);
+
+          // Artificial delay, since the purchase is usually instant
+          await new Promise(resolve => setTimeout(resolve, 750));
+
+          // Purchase the cosmetic
+          await buyCosmetic(paymentModalCosmeticId!);
+          await updateEverything();
+
+          setIsLoadingPaymentModal(false);
+          setIsPaymentModalOpen(false);
+        }}
+      />
     </>
   );
 }

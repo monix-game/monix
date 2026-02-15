@@ -7,8 +7,8 @@ import { adoptPet, buyPetSlot, getAllPets } from '../../helpers/pets';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
-import { Modal } from '../modal/Modal';
-import { hasGems } from '../../../server/common/math';
+import { PaymentModal } from '../paymentmodal/PaymentModal';
+import { petTypes } from '../../../server/common/petTypes';
 
 interface PetsListProps {
   money: number;
@@ -22,39 +22,18 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
   const [petShopModalOpen, setPetShopModalOpen] = useState<boolean>(false);
-  const [petSlotConfirmOpen, setPetSlotConfirmOpen] = useState<boolean>(false);
   const maxSlots = Math.min(Math.max(petSlots ?? 3, 3), 10);
+
+  const [isBuyingPet, setIsBuyingPet] = useState<boolean>(false);
+  const [petTypeToBuy, setPetTypeToBuy] = useState<string | null>(null);
+  const [isPetPurchaseLoading, setIsPetPurchaseLoading] = useState<boolean>(false);
+
+  const [isBuyingSlot, setIsBuyingSlot] = useState<boolean>(false);
+  const [isSlotPurchaseLoading, setIsSlotPurchaseLoading] = useState<boolean>(false);
 
   const fetchPets = async () => {
     const fetchedPets = await getAllPets();
     setPets(fetchedPets);
-  };
-
-  const adoptAPet = async () => {
-    const pet = await adoptPet();
-
-    if (!pet) {
-      return;
-    }
-
-    await fetchPets();
-
-    // Set the newly adopted pet's modal to open
-    setPetModalsOpen(prev => {
-      const newPet = pets.find(p => p.uuid === pet.uuid);
-      return { ...prev, [newPet ? newPet.uuid : pet.uuid]: true };
-    });
-  };
-
-  const buySlot = async () => {
-    const ok = await buyPetSlot();
-    if (!ok) return;
-    await refreshUser();
-  };
-
-  const confirmBuySlot = async () => {
-    await buySlot();
-    setPetSlotConfirmOpen(false);
   };
 
   useEffect(() => {
@@ -72,9 +51,8 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
     <>
       <div className="pets-list-buttons">
         <Button
-          cost={10000}
-          onClickAsync={adoptAPet}
-          disabled={money < 10000 || !hydrated || pets.length >= maxSlots}
+          onClick={() => setIsBuyingPet(true)}
+          disabled={!hydrated || pets.length >= maxSlots}
         >
           Adopt a Pet
         </Button>
@@ -84,12 +62,7 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
         >
           Open Pet Shop
         </Button>
-        <Button
-          cost={50}
-          costType="gems"
-          onClick={() => setPetSlotConfirmOpen(true)}
-          disabled={!hydrated || maxSlots >= 10 || !hasGems(gems, 50)}
-        >
+        <Button onClick={() => setIsBuyingSlot(true)} disabled={!hydrated || maxSlots >= 10}>
           Buy Pet Slot
         </Button>
       </div>
@@ -132,6 +105,7 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
           money={money}
         />
       ))}
+
       <PetShopModal
         isOpen={petShopModalOpen}
         onClose={() => setPetShopModalOpen(false)}
@@ -140,24 +114,64 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
           void fetchPets();
         }}
       />
-      <Modal
-        isOpen={petSlotConfirmOpen}
-        onClose={() => setPetSlotConfirmOpen(false)}
-        ariaLabel="Confirm buy pet slot"
-      >
-        <div className="pet-slot-confirm">
-          <h3>Buy a pet slot?</h3>
-          <p>This costs 50 gems and increases your pet slots to {maxSlots + 1}.</p>
-          <div className="pet-slot-confirm-buttons">
-            <Button secondary onClick={() => setPetSlotConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button cost={50} costType="gems" onClickAsync={confirmBuySlot}>
-              Confirm
-            </Button>
-          </div>
-        </div>
-      </Modal>
+
+      <PaymentModal
+        isOpen={isBuyingPet}
+        isLoading={isPetPurchaseLoading}
+        onClose={() => setIsBuyingPet(false)}
+        type="money"
+        amount={10000}
+        balance={money}
+        productName={
+          petTypeToBuy
+            ? petTypes.find(p => p.id === petTypeToBuy)?.name || 'Unknown Pet'
+            : 'Random Pet'
+        }
+        onPurchase={async () => {
+          setIsPetPurchaseLoading(true);
+
+          // Artificial delay
+          await new Promise(resolve => setTimeout(resolve, 750));
+
+          const pet = await adoptPet();
+          setIsPetPurchaseLoading(false);
+          if (!pet) {
+            return;
+          }
+          await fetchPets();
+          setPetTypeToBuy(null);
+          setIsBuyingPet(false);
+
+          // Set the newly adopted pet's modal to open
+          setPetModalsOpen(prev => {
+            const newPet = pets.find(p => p.uuid === pet.uuid);
+            return { ...prev, [newPet ? newPet.uuid : pet.uuid]: true };
+          });
+        }}
+      />
+
+      <PaymentModal
+        isOpen={isBuyingSlot}
+        isLoading={isSlotPurchaseLoading}
+        onClose={() => setIsBuyingSlot(false)}
+        type="gems"
+        amount={50}
+        balance={gems}
+        productName="Pet Slot Upgrade"
+        onPurchase={async () => {
+          setIsSlotPurchaseLoading(true);
+
+          // Artificial delay
+          await new Promise(resolve => setTimeout(resolve, 750));
+
+          await buyPetSlot();
+          await fetchPets();
+          await refreshUser();
+
+          setIsSlotPurchaseLoading(false);
+          setIsBuyingSlot(false);
+        }}
+      />
     </>
   );
 };

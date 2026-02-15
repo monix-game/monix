@@ -1,0 +1,71 @@
+.payment-modal {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.review-subtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.payment-modal h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.payment-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  background-color: var(--dark-bg);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.payment-gems-amount {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.payment-disclaimer {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.payment-disclaimer-secondary {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.payment-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.payment-secure {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.payment-secure span {
+  font-weight: 600;
+}

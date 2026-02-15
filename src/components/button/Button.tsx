@@ -27,7 +27,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
-      className={`btn ${secondary ? 'btn-secondary' : ''} ${color} ${className || ''}`}
+      className={`btn ${secondary ? 'btn-secondary' : ''} ${color} ${isLoading ? 'loading' : ''} ${className || ''}`}
       disabled={disabled || isLoading}
       onClick={() => {
         if (onClickAsync) {
@@ -36,16 +36,24 @@ export const Button: React.FC<ButtonProps> = ({
       }}
       {...props}
     >
-      {isLoading ? <Spinner size={16} /> : children}
-      {cost !== null && (
-        <span className="btn-cost">
-          (
-          {costType === 'money' ? (
-            <>Cost: {smartFormatNumber(cost)}</>
-          ) : (
-            <>Cost: {smartFormatNumber(cost, false)} Gems</>
-          )}
-          )
+      <span className="btn-content">
+        {children}
+        {cost !== null && (
+          <span className="btn-cost">
+            (
+            {costType === 'money' ? (
+              <>Cost: {smartFormatNumber(cost)}</>
+            ) : (
+              <>Cost: {smartFormatNumber(cost, false)} Gems</>
+            )}
+            )
+          </span>
+        )}
+      </span>
+
+      {isLoading && (
+        <span className="btn-loading-spinner">
+          <Spinner size={16} />
         </span>
       )}
     </button>
