@@ -374,7 +374,6 @@ export default function Game() {
   // Social states
   const [socialRoom, setSocialRoom] = useState<string>('general');
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
-  const [socialHasUnread, setSocialHasUnread] = useState<boolean>(false);
   const [polls, setPolls] = useState<PollView[]>([]);
   const [pollsLoading, setPollsLoading] = useState<boolean>(false);
   const [pollsError, setPollsError] = useState<string | null>(null);
@@ -390,10 +389,6 @@ export default function Game() {
   const [pollCreateSubmitting, setPollCreateSubmitting] = useState<boolean>(false);
   const [pollVotePending, setPollVotePending] = useState<string | null>(null);
   const [isPollCreateOpen, setIsPollCreateOpen] = useState<boolean>(false);
-  const pollsNeedAttention = useMemo(
-    () => polls.some(poll => poll.status === 'active' && !poll.has_voted),
-    [polls]
-  );
   const activePolls = useMemo(
     () => polls.filter(poll => poll.status !== 'ended').sort((a, b) => a.ends_at - b.ends_at),
     [polls]
@@ -403,34 +398,6 @@ export default function Game() {
     [polls]
   );
   const canCreatePoll = userRole === 'admin' || userRole === 'owner';
-  useEffect(() => {
-    try {
-      const val = localStorage.getItem('social:hasUnread');
-
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSocialHasUnread(val === '1');
-    } catch {
-      setSocialHasUnread(false);
-    }
-
-    const handler = (ev: Event) => {
-      try {
-        // event detail may be present
-        const detail = (ev as CustomEvent).detail as { hasUnread?: boolean } | undefined;
-        if (detail && typeof detail.hasUnread === 'boolean') setSocialHasUnread(detail.hasUnread);
-        else {
-          const v = localStorage.getItem('social:hasUnread');
-          setSocialHasUnread(v === '1');
-        }
-      } catch {
-        const v = localStorage.getItem('social:hasUnread');
-        setSocialHasUnread(v === '1');
-      }
-    };
-
-    globalThis.addEventListener('social-unread-changed', handler as EventListener);
-    return () => globalThis.removeEventListener('social-unread-changed', handler as EventListener);
-  }, []);
 
   const refreshPolls = useCallback(
     async (showLoading = false) => {
@@ -1048,31 +1015,22 @@ export default function Game() {
                 rows.push(tabs.slice(i * half, i * half + half));
               }
 
-              const renderTab = (t: { key: typeof tab; label: string }, index: number) => {
-                const isAttention = t.key === 'polls' && pollsNeedAttention && tab !== 'polls';
-                return (
-                  <span
-                    key={t.key}
-                    className={`tab ${tab === t.key ? 'active' : ''} ${isAttention ? 'attention' : ''} ${!gameHydrated || isFeatureTabDisabled(t.key) ? 'disabled' : ''}`}
-                    onClick={() => setTabTo(t.key)}
-                    role="tab"
-                    tabIndex={index}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        setTabTo(t.key);
-                      }
-                    }}
-                  >
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <EmojiText>{t.label}</EmojiText>
-                      {t.key === 'social' && socialHasUnread && tab !== 'social' && (
-                        <span className="tab-unread-dot" />
-                      )}
-                      {t.key === 'polls' && isAttention && <span className="tab-attention-dot" />}
-                    </div>
-                  </span>
-                );
-              };
+              const renderTab = (t: { key: typeof tab; label: string }, index: number) => (
+                <span
+                  key={t.key}
+                  className={`tab ${tab === t.key ? 'active' : ''} ${!gameHydrated || isFeatureTabDisabled(t.key) ? 'disabled' : ''}`}
+                  onClick={() => setTabTo(t.key)}
+                  role="tab"
+                  tabIndex={index}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setTabTo(t.key);
+                    }
+                  }}
+                >
+                  <EmojiText>{t.label}</EmojiText>
+                </span>
+              );
 
               return (
                 <>

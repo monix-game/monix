@@ -82,43 +82,6 @@ html[data-theme='dark'] .app-logo-light {
   background-color: var(--dark-bg);
 }
 
-.tab-unread-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--red-1);
-  box-shadow: 0 0 0 2px var(--bg);
-  display: inline-block;
-}
-
-.nav-tabs .tab.attention {
-  border-color: var(--blue-2);
-  background: linear-gradient(135deg, rgba(114, 212, 255, 0.3), rgba(74, 185, 227, 0.15));
-  box-shadow: 0 0 0 2px rgba(74, 185, 227, 0.25), 0 0 12px rgba(114, 212, 255, 0.35);
-  animation: tabPulse 2.5s ease-in-out infinite;
-}
-
-.tab-attention-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--blue-2);
-  box-shadow: 0 0 0 2px var(--bg);
-  display: inline-block;
-}
-
-@keyframes tabPulse {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-1px);
-  }
-}
-
 .feature-disabled {
   display: flex;
   flex-direction: column;
