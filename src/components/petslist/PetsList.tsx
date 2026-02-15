@@ -8,7 +8,6 @@ import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
 import { PaymentModal } from '../paymentmodal/PaymentModal';
-import { petTypes } from '../../../server/common/petTypes';
 
 interface PetsListProps {
   money: number;
@@ -25,7 +24,6 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
   const maxSlots = Math.min(Math.max(petSlots ?? 3, 3), 10);
 
   const [isBuyingPet, setIsBuyingPet] = useState<boolean>(false);
-  const [petTypeToBuy, setPetTypeToBuy] = useState<string | null>(null);
   const [isPetPurchaseLoading, setIsPetPurchaseLoading] = useState<boolean>(false);
 
   const [isBuyingSlot, setIsBuyingSlot] = useState<boolean>(false);
@@ -122,11 +120,7 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
         type="money"
         amount={10000}
         balance={money}
-        productName={
-          petTypeToBuy
-            ? petTypes.find(p => p.id === petTypeToBuy)?.name || 'Unknown Pet'
-            : 'Random Pet'
-        }
+        productName="Random Pet"
         onPurchase={async () => {
           setIsPetPurchaseLoading(true);
 
@@ -139,7 +133,6 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
             return;
           }
           await fetchPets();
-          setPetTypeToBuy(null);
           setIsBuyingPet(false);
 
           // Set the newly adopted pet's modal to open
