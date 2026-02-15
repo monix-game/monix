@@ -276,6 +276,25 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
     return res.status(404).json({ error: 'Target user not found' });
   }
 
+  type _Equipped = { nameplate?: string; tag?: string; frame?: string };
+  const originalUser: {
+    money: number;
+    gems: number;
+    avatar_data_uri?: string;
+    role: string;
+    pet_slots: number;
+    cosmetics_unlocked: string[];
+    equipped_cosmetics: _Equipped;
+  } = {
+    money: targetUser.money,
+    gems: targetUser.gems,
+    avatar_data_uri: targetUser.avatar_data_uri,
+    role: targetUser.role,
+    pet_slots: targetUser.pet_slots,
+    cosmetics_unlocked: targetUser.cosmetics_unlocked ? [...targetUser.cosmetics_unlocked] : [],
+    equipped_cosmetics: (targetUser.equipped_cosmetics as _Equipped) || {},
+  };
+
   if (!hasPowerOver(user.role, targetUser.role) || !hasRole(user.role, 'admin')) {
     return res.status(403).json({ error: 'You do not have permission to edit this user' });
   }
@@ -303,16 +322,6 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
       frame?: string;
     };
   };
-
-  const changes: string[] = [
-    money !== undefined ? 'money' : undefined,
-    gems !== undefined ? 'gems' : undefined,
-    avatar_url !== undefined || remove_avatar ? 'avatar' : undefined,
-    role !== undefined ? 'role' : undefined,
-    pet_slots !== undefined ? 'pet_slots' : undefined,
-    cosmetics_unlocked !== undefined ? 'cosmetics_unlocked' : undefined,
-    equipped_cosmetics !== undefined ? 'equipped_cosmetics' : undefined,
-  ].filter(Boolean) as string[];
 
   if (money !== undefined) {
     if (typeof money !== 'number' || !Number.isFinite(money) || money < 0) {
@@ -408,7 +417,54 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
 
   await updateUser(targetUser);
 
-  const changesText = changes.length > 0 ? changes.join(', ') : 'no changes';
+  const changeDetails: { key: string; value: string; inline?: boolean }[] = [];
+
+  if (money !== undefined) {
+    changeDetails.push({ key: 'money', value: `${originalUser.money} -> ${targetUser.money}` });
+  }
+
+  if (gems !== undefined) {
+    changeDetails.push({ key: 'gems', value: `${originalUser.gems} -> ${targetUser.gems}` });
+  }
+
+  if (role !== undefined) {
+    changeDetails.push({ key: 'role', value: `${originalUser.role} -> ${targetUser.role}` });
+  }
+
+  if (pet_slots !== undefined) {
+    changeDetails.push({ key: 'pet_slots', value: `${originalUser.pet_slots} -> ${targetUser.pet_slots}` });
+  }
+
+  if (remove_avatar) {
+    changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> removed` });
+  } else if (avatar_url) {
+    changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> set to ${avatar_url}` });
+  }
+
+  if (cosmetics_unlocked !== undefined) {
+    const prev = originalUser.cosmetics_unlocked || [];
+    const next = targetUser.cosmetics_unlocked || [];
+    const added = next.filter(id => !prev.includes(id));
+    const removed = prev.filter(id => !next.includes(id));
+    const parts: string[] = [];
+    if (added.length) parts.push(`added: [${added.join(', ')}]`);
+    if (removed.length) parts.push(`removed: [${removed.join(', ')}]`);
+    if (!parts.length) parts.push('no changes');
+    changeDetails.push({ key: 'cosmetics_unlocked', value: parts.join('; ') });
+  }
+
+  if (equipped_cosmetics !== undefined) {
+    const prevEq = originalUser.equipped_cosmetics;
+    const nextEq = (targetUser.equipped_cosmetics as _Equipped) || {};
+    const keys: Array<keyof _Equipped> = ['nameplate', 'tag', 'frame'];
+    keys.forEach(k => {
+      const prevVal = prevEq[k] ?? 'none';
+      const nextVal = nextEq[k] ?? 'none';
+      if (prevVal !== nextVal) {
+        changeDetails.push({ key: `equipped_${k}`, value: `${prevVal} -> ${nextVal}` });
+      }
+    });
+  }
 
   await log({
     uuid: v4(),
@@ -416,10 +472,7 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
     level: 'info',
     type: 'moderation',
     message: 'User edited',
-    data: buildRequestLogData(req, [
-      { key: 'target_user', value: targetUser.username },
-      { key: 'changes', value: changesText },
-    ]),
+    data: buildRequestLogData(req, [{ key: 'target', value: targetUser.username }, ...changeDetails]),
     username: user.username,
   });
 
@@ -474,8 +527,8 @@ router.post('/punish', requireRole('mod'), async (req: Request, res: Response) =
     type: 'moderation',
     message: 'User punished',
     data: buildRequestLogData(req, [
-      { key: 'target_user', value: targetUser.username },
-      { key: 'category_id', value: category_id },
+      { key: 'target', value: targetUser.username },
+      { key: 'category', value: category.name },
       { key: 'reason', value: reason, inline: false },
       {
         key: 'duration',
@@ -539,7 +592,7 @@ router.post('/pardon', requireRole('admin'), async (req: Request, res: Response)
     type: 'moderation',
     message: 'Punishment lifted',
     data: buildRequestLogData(req, [
-      { key: 'target_user', value: targetUser.username },
+      { key: 'target', value: targetUser.username },
       { key: 'punishment_category', value: punishment.category.name },
     ]),
     username: user.username,
@@ -601,7 +654,7 @@ router.post('/punishment/delete', requireRole('admin'), async (req: Request, res
     type: 'moderation',
     message: 'Punishment deleted',
     data: buildRequestLogData(req, [
-      { key: 'target_user', value: targetUser.username },
+      { key: 'target', value: targetUser.username },
       { key: 'punishment_category', value: punishment.category.name },
     ]),
     username: user.username,

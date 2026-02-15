@@ -135,8 +135,7 @@ const commands: Command[] = [
         type: 'command',
         message: `User ${user.username} executed sudo command on user ${targetUsername}`,
         data: [
-          { key: 'executor_username', value: user.username },
-          { key: 'target_username', value: targetUser.username },
+          { key: 'target', value: targetUser.username },
           { key: 'message', value: sudoMessageContent },
         ],
         username: user.username,
