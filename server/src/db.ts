@@ -13,6 +13,7 @@ import { type IRoom, roomFromDoc, roomToDoc } from '../common/models/room';
 import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
 import { LogEntry, logEntryFromDoc, logEntryToDoc } from '../common/models/logEntry';
+import { type IPoll, pollFromDoc, pollToDoc } from '../common/models/poll';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -34,6 +35,7 @@ export async function connectDB(uri: string) {
   await db.collection('global_settings').createIndex({ key: 1 }, { unique: true });
   await db.collection('logs').createIndex({ timestamp: -1 });
   await db.collection('logs').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('polls').createIndex({ uuid: 1 }, { unique: true });
 
   // Ensure default rooms exist
   const defaultRooms: IRoom[] = [
@@ -359,4 +361,26 @@ export async function getRecentLogEntries(limit = 100): Promise<LogEntry[]> {
     .limit(limit)
     .toArray();
   return docs.map(logEntryFromDoc);
+}
+
+export async function createPoll(poll: IPoll): Promise<void> {
+  const database = ensureDB();
+  await database.collection('polls').insertOne(pollToDoc(poll));
+}
+
+export async function updatePoll(poll: IPoll): Promise<void> {
+  const database = ensureDB();
+  await database.collection('polls').updateOne({ uuid: poll.uuid }, { $set: pollToDoc(poll) });
+}
+
+export async function getPollByUUID(uuid: string): Promise<IPoll | null> {
+  const database = ensureDB();
+  const doc = await database.collection('polls').findOne({ uuid });
+  return doc ? pollFromDoc(doc) : null;
+}
+
+export async function getAllPolls(): Promise<IPoll[]> {
+  const database = ensureDB();
+  const docs = await database.collection('polls').find({}).toArray();
+  return docs.map(pollFromDoc);
 }

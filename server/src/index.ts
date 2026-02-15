@@ -16,6 +16,7 @@ import staffRouter from './routes/staff';
 import appealRouter from './routes/appeals';
 import fishingRouter from './routes/fishing';
 import pingRouter from './routes/ping';
+import pollsRouter from './routes/polls';
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/staff', staffRouter);
 app.use('/api/appeals', appealRouter);
 app.use('/api/fishing', fishingRouter);
 app.use('/api/ping', pingRouter);
+app.use('/api/polls', pollsRouter);
 
 async function start() {
   await connectDB(MONGO_URI);

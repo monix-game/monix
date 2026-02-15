@@ -81,6 +81,20 @@ import {
   type IGlobalSettings,
 } from '../../../server/common/models/globalSettings';
 import { getGlobalSettings } from '../../helpers/globalSettings';
+import { createPoll, fetchPolls, type PollView, voteInPoll } from '../../helpers/polls';
+
+const toLocalInputDateTime = (timeMs: number) => {
+  const offsetMs = new Date(timeMs).getTimezoneOffset() * 60000;
+  return new Date(timeMs - offsetMs).toISOString().slice(0, 16);
+};
+
+const fromLocalInputDateTime = (value: string) => new Date(value).getTime();
+
+const createPollDraftOption = () => ({
+  id: `opt-${Math.random().toString(36).slice(2, 9)}`,
+  label: '',
+  emoji: '',
+});
 
 export default function Game() {
   const debugOverlayPositions = ['topleft', 'topright', 'bottomleft', 'bottomright'] as const;
@@ -103,6 +117,7 @@ export default function Game() {
     | 'relics'
     | 'council'
     | 'social'
+    | 'polls'
     | 'games'
     | 'radio'
     | 'leaderboard'
@@ -360,9 +375,38 @@ export default function Game() {
   const [socialRoom, setSocialRoom] = useState<string>('general');
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
   const [socialHasUnread, setSocialHasUnread] = useState<boolean>(false);
+  const [polls, setPolls] = useState<PollView[]>([]);
+  const [pollsLoading, setPollsLoading] = useState<boolean>(false);
+  const [pollsError, setPollsError] = useState<string | null>(null);
+  const [pollQuestion, setPollQuestion] = useState<string>('');
+  const [pollStartsAt, setPollStartsAt] = useState<string>(() => toLocalInputDateTime(Date.now()));
+  const [pollEndsAt, setPollEndsAt] = useState<string>(() =>
+    toLocalInputDateTime(Date.now() + 24 * 60 * 60 * 1000)
+  );
+  const [pollOptionsDraft, setPollOptionsDraft] = useState<
+    { id: string; label: string; emoji: string }[]
+  >(() => [createPollDraftOption(), createPollDraftOption()]);
+  const [pollCreateError, setPollCreateError] = useState<string | null>(null);
+  const [pollCreateSubmitting, setPollCreateSubmitting] = useState<boolean>(false);
+  const [pollVotePending, setPollVotePending] = useState<string | null>(null);
+  const [isPollCreateOpen, setIsPollCreateOpen] = useState<boolean>(false);
+  const pollsNeedAttention = useMemo(
+    () => polls.some(poll => poll.status === 'active' && !poll.has_voted),
+    [polls]
+  );
+  const activePolls = useMemo(
+    () => polls.filter(poll => poll.status !== 'ended').sort((a, b) => a.ends_at - b.ends_at),
+    [polls]
+  );
+  const completedPolls = useMemo(
+    () => polls.filter(poll => poll.status === 'ended').sort((a, b) => b.ends_at - a.ends_at),
+    [polls]
+  );
+  const canCreatePoll = userRole === 'admin' || userRole === 'owner';
   useEffect(() => {
     try {
       const val = localStorage.getItem('social:hasUnread');
+
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSocialHasUnread(val === '1');
     } catch {
@@ -387,6 +431,142 @@ export default function Game() {
     globalThis.addEventListener('social-unread-changed', handler as EventListener);
     return () => globalThis.removeEventListener('social-unread-changed', handler as EventListener);
   }, []);
+
+  const refreshPolls = useCallback(
+    async (showLoading = false) => {
+      if (showLoading) setPollsLoading(true);
+      setPollsError(null);
+      const nextPolls = await fetchPolls();
+      if (nextPolls !== null) {
+        setPolls(nextPolls);
+      } else {
+        setPollsError('Failed to load polls. Please try again soon.');
+      }
+      if (showLoading) setPollsLoading(false);
+    },
+    [setPolls, setPollsError, setPollsLoading]
+  );
+
+  useEffect(() => {
+    if (banned) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshPolls(true);
+    const interval = setInterval(() => {
+      void refreshPolls(false);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [banned, refreshPolls]);
+
+  useEffect(() => {
+    if (tab !== 'polls') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshPolls(false);
+  }, [tab, refreshPolls]);
+
+  const addPollOption = useCallback(() => {
+    setPollOptionsDraft(prev => {
+      if (prev.length >= 8) return prev;
+      return [...prev, createPollDraftOption()];
+    });
+  }, []);
+
+  const updatePollOption = useCallback((id: string, field: 'label' | 'emoji', value: string) => {
+    setPollOptionsDraft(prev =>
+      prev.map(option => (option.id === id ? { ...option, [field]: value } : option))
+    );
+  }, []);
+
+  const removePollOption = useCallback((id: string) => {
+    setPollOptionsDraft(prev => {
+      if (prev.length <= 2) return prev;
+      return prev.filter(option => option.id !== id);
+    });
+  }, []);
+
+  const resetPollForm = useCallback(() => {
+    const now = Date.now();
+    setPollQuestion('');
+    setPollStartsAt(toLocalInputDateTime(now));
+    setPollEndsAt(toLocalInputDateTime(now + 24 * 60 * 60 * 1000));
+    setPollOptionsDraft([createPollDraftOption(), createPollDraftOption()]);
+    setPollCreateError(null);
+  }, []);
+
+  const handleCreatePoll = useCallback(async () => {
+    if (pollCreateSubmitting) return;
+    setPollCreateError(null);
+
+    const question = pollQuestion.trim();
+    if (!question) {
+      setPollCreateError('Poll question is required.');
+      return;
+    }
+
+    const startsAt = fromLocalInputDateTime(pollStartsAt);
+    const endsAt = fromLocalInputDateTime(pollEndsAt);
+    if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt)) {
+      setPollCreateError('Please provide valid start and end times.');
+      return;
+    }
+
+    if (endsAt <= startsAt) {
+      setPollCreateError('Poll end time must be after the start time.');
+      return;
+    }
+
+    const options = pollOptionsDraft
+      .map(option => ({
+        label: option.label.trim(),
+        emoji: option.emoji.trim() || undefined,
+      }))
+      .filter(option => option.label.length > 0);
+
+    if (options.length < 2) {
+      setPollCreateError('Polls need at least two options.');
+      return;
+    }
+
+    setPollCreateSubmitting(true);
+    const created = await createPoll({
+      question,
+      options,
+      starts_at: startsAt,
+      ends_at: endsAt,
+    });
+
+    if (!created) {
+      setPollCreateError('Failed to create poll.');
+    } else {
+      resetPollForm();
+      setIsPollCreateOpen(false);
+      void refreshPolls(false);
+    }
+
+    setPollCreateSubmitting(false);
+  }, [
+    pollCreateSubmitting,
+    pollQuestion,
+    pollStartsAt,
+    pollEndsAt,
+    pollOptionsDraft,
+    refreshPolls,
+    resetPollForm,
+  ]);
+
+  const handleVote = useCallback(
+    async (pollId: string, optionId: string) => {
+      if (pollVotePending) return;
+      setPollVotePending(pollId);
+      setPollsError(null);
+      const result = await voteInPoll(pollId, optionId);
+      if (!result) {
+        setPollsError('Failed to cast vote. Please try again.');
+      }
+      void refreshPolls(false);
+      setPollVotePending(null);
+    },
+    [pollVotePending, refreshPolls]
+  );
 
   // Appeal states
   const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
@@ -655,12 +835,14 @@ export default function Game() {
 
   useEffect(() => {
     if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsTutorialOpen(true);
   }, [user, isTutorialOpen, banned]);
 
   useEffect(() => {
     if (!isTutorialOpen || !currentTutorialStep?.tab) return;
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTabTo(currentTutorialStep.tab);
   }, [currentTutorialStep, isTutorialOpen, setTabTo]);
@@ -851,6 +1033,7 @@ export default function Game() {
                     { key: 'aquarium', label: '🐠 Aquarium' },
                     { key: 'pets', label: '🐶 Pets' },
                     { key: 'social', label: '💬 Social' },
+                    { key: 'polls', label: '🗳️ Polls' },
                     { key: 'games', label: '🎮 Games' },
                     { key: 'radio', label: '📻 Radio' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
@@ -865,27 +1048,31 @@ export default function Game() {
                 rows.push(tabs.slice(i * half, i * half + half));
               }
 
-              const renderTab = (t: { key: typeof tab; label: string }, index: number) => (
-                <span
-                  key={t.key}
-                  className={`tab ${tab === t.key ? 'active' : ''} ${!gameHydrated || isFeatureTabDisabled(t.key) ? 'disabled' : ''}`}
-                  onClick={() => setTabTo(t.key)}
-                  role="tab"
-                  tabIndex={index}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setTabTo(t.key);
-                    }
-                  }}
-                >
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <EmojiText>{t.label}</EmojiText>
-                    {t.key === 'social' && socialHasUnread && tab !== 'social' && (
-                      <span className="tab-unread-dot" />
-                    )}
-                  </div>
-                </span>
-              );
+              const renderTab = (t: { key: typeof tab; label: string }, index: number) => {
+                const isAttention = t.key === 'polls' && pollsNeedAttention && tab !== 'polls';
+                return (
+                  <span
+                    key={t.key}
+                    className={`tab ${tab === t.key ? 'active' : ''} ${isAttention ? 'attention' : ''} ${!gameHydrated || isFeatureTabDisabled(t.key) ? 'disabled' : ''}`}
+                    onClick={() => setTabTo(t.key)}
+                    role="tab"
+                    tabIndex={index}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setTabTo(t.key);
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <EmojiText>{t.label}</EmojiText>
+                      {t.key === 'social' && socialHasUnread && tab !== 'social' && (
+                        <span className="tab-unread-dot" />
+                      )}
+                      {t.key === 'polls' && isAttention && <span className="tab-attention-dot" />}
+                    </div>
+                  </span>
+                );
+              };
 
               return (
                 <>
@@ -1722,6 +1909,297 @@ export default function Game() {
                 />
               </div>
             ))}
+          {tab === 'polls' && (
+            <div className="tab-content polls-tab">
+              <div className="polls-header">
+                <h2>Polls</h2>
+                <div className="polls-header-actions">
+                  {canCreatePoll && (
+                    <Button onClick={() => setIsPollCreateOpen(true)}>Create Poll</Button>
+                  )}
+                  <Button secondary onClick={() => void refreshPolls(true)} disabled={pollsLoading}>
+                    {pollsLoading ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                </div>
+              </div>
+
+              {pollsError && <div className="polls-error">{pollsError}</div>}
+
+              {pollsLoading && polls.length === 0 ? (
+                <p>Loading polls...</p>
+              ) : (
+                <div className="polls-sections">
+                  <div className="polls-section">
+                    <h3>Active Polls</h3>
+                    {activePolls.length === 0 && (
+                      <p className="polls-empty">No active polls right now.</p>
+                    )}
+                    {activePolls.map(poll => {
+                      const totalVotes =
+                        poll.total_votes ??
+                        poll.results?.reduce((total, result) => total + result.count, 0) ??
+                        0;
+                      const showResults = Boolean(poll.results);
+                      const myVoteLabel = poll.options.find(
+                        option => option.id === poll.my_vote
+                      )?.label;
+                      const remainingStart = Math.max(
+                        0,
+                        Math.floor((poll.starts_at - eventNow) / 1000)
+                      );
+                      const remainingEnd = Math.max(
+                        0,
+                        Math.floor((poll.ends_at - eventNow) / 1000)
+                      );
+                      const timeLabel =
+                        poll.status === 'upcoming'
+                          ? `Starts in ${formatRemainingTime(remainingStart) || '0s'}`
+                          : `Ends in ${formatRemainingTime(remainingEnd) || '0s'}`;
+
+                      return (
+                        <div key={poll.uuid} className="poll-card">
+                          <div className="poll-card-header">
+                            <span className="poll-question">{poll.question}</span>
+                            <span className="poll-status">{timeLabel}</span>
+                          </div>
+                          <div className="poll-meta">
+                            <span>Asked by {poll.created_by_username}</span>
+                            {poll.has_voted && myVoteLabel && (
+                              <span className="poll-voted">You voted for {myVoteLabel}</span>
+                            )}
+                          </div>
+
+                          {poll.status === 'upcoming' && (
+                            <p className="polls-empty">Voting opens when the poll starts.</p>
+                          )}
+
+                          {poll.status === 'active' && !poll.has_voted && (
+                            <div className="poll-options">
+                              {poll.options.map(option => (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  className="poll-option-button"
+                                  onClick={() => void handleVote(poll.uuid, option.id)}
+                                  disabled={pollVotePending === poll.uuid}
+                                >
+                                  <span className="poll-option-label">
+                                    {option.emoji && (
+                                      <span className="poll-option-emoji">
+                                        <EmojiText>{option.emoji}</EmojiText>
+                                      </span>
+                                    )}
+                                    {option.label}
+                                  </span>
+                                  <span className="poll-option-action">Vote</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {showResults ? (
+                            <div className="poll-results">
+                              {poll.options.map(option => {
+                                const count =
+                                  poll.results?.find(result => result.option_id === option.id)
+                                    ?.count || 0;
+                                const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+                                return (
+                                  <div key={option.id} className="poll-result-row">
+                                    <div className="poll-result-meta">
+                                      <span className="poll-result-label">
+                                        {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
+                                        {option.label}
+                                      </span>
+                                      <span className="poll-result-count">
+                                        {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}
+                                        %)
+                                      </span>
+                                    </div>
+                                    <div className="poll-result-track">
+                                      <div
+                                        className="poll-result-bar"
+                                        style={{ width: `${percent}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              <div className="poll-result-total">Total votes: {totalVotes}</div>
+                            </div>
+                          ) : (
+                            poll.status === 'active' && (
+                              <div className="poll-results-hidden">Vote to reveal the results.</div>
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="polls-section">
+                    <h3>Completed Polls</h3>
+                    {completedPolls.length === 0 && (
+                      <p className="polls-empty">No completed polls yet.</p>
+                    )}
+                    {completedPolls.map(poll => {
+                      const totalVotes =
+                        poll.total_votes ??
+                        poll.results?.reduce((total, result) => total + result.count, 0) ??
+                        0;
+                      const endedLabel = new Date(poll.ends_at).toLocaleString();
+                      return (
+                        <div key={poll.uuid} className="poll-card">
+                          <div className="poll-card-header">
+                            <span className="poll-question">{poll.question}</span>
+                            <span className="poll-status">Ended {endedLabel}</span>
+                          </div>
+                          <div className="poll-meta">
+                            <span>Asked by {poll.created_by_username}</span>
+                          </div>
+                          <div className="poll-results">
+                            {poll.options.map(option => {
+                              const count =
+                                poll.results?.find(result => result.option_id === option.id)
+                                  ?.count || 0;
+                              const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+                              return (
+                                <div key={option.id} className="poll-result-row">
+                                  <div className="poll-result-meta">
+                                    <span className="poll-result-label">
+                                      {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
+                                      {option.label}
+                                    </span>
+                                    <span className="poll-result-count">
+                                      {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}%)
+                                    </span>
+                                  </div>
+                                  <div className="poll-result-track">
+                                    <div
+                                      className="poll-result-bar"
+                                      style={{ width: `${percent}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div className="poll-result-total">Total votes: {totalVotes}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {canCreatePoll && (
+                <Modal
+                  isOpen={isPollCreateOpen}
+                  onClose={() => setIsPollCreateOpen(false)}
+                  width={700}
+                >
+                  <div className="poll-create">
+                    <div className="poll-create-header">
+                      <h3>Create Poll</h3>
+                      <Button secondary onClick={resetPollForm} disabled={pollCreateSubmitting}>
+                        Reset
+                      </Button>
+                    </div>
+                    <label className="poll-form-field">
+                      <span>Question</span>
+                      <input
+                        className="poll-input"
+                        type="text"
+                        value={pollQuestion}
+                        onChange={event => setPollQuestion(event.target.value)}
+                        placeholder="Ask the community a question"
+                        maxLength={140}
+                      />
+                    </label>
+                    <div className="poll-form-grid">
+                      <label className="poll-form-field">
+                        <span>Starts At</span>
+                        <input
+                          className="poll-input"
+                          type="datetime-local"
+                          value={pollStartsAt}
+                          onChange={event => setPollStartsAt(event.target.value)}
+                        />
+                      </label>
+                      <label className="poll-form-field">
+                        <span>Ends At</span>
+                        <input
+                          className="poll-input"
+                          type="datetime-local"
+                          value={pollEndsAt}
+                          onChange={event => setPollEndsAt(event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <div className="poll-options-editor">
+                      <div className="poll-options-header">
+                        <span>Options</span>
+                        <Button
+                          secondary
+                          onClick={addPollOption}
+                          disabled={pollOptionsDraft.length >= 8}
+                        >
+                          Add Option
+                        </Button>
+                      </div>
+                      {pollOptionsDraft.map(option => (
+                        <div key={option.id} className="poll-option-row">
+                          <input
+                            className="poll-input poll-emoji-input"
+                            type="text"
+                            value={option.emoji}
+                            onChange={event =>
+                              updatePollOption(option.id, 'emoji', event.target.value)
+                            }
+                            placeholder="Emoji"
+                            maxLength={8}
+                          />
+                          <input
+                            className="poll-input"
+                            type="text"
+                            value={option.label}
+                            onChange={event =>
+                              updatePollOption(option.id, 'label', event.target.value)
+                            }
+                            placeholder="Option label"
+                            maxLength={60}
+                          />
+                          <Button
+                            onClick={() => removePollOption(option.id)}
+                            disabled={pollOptionsDraft.length <= 2}
+                            color="red"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    {pollCreateError && <div className="polls-error">{pollCreateError}</div>}
+                    <div className="poll-create-actions">
+                      <Button
+                        secondary
+                        onClick={() => setIsPollCreateOpen(false)}
+                        disabled={pollCreateSubmitting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => void handleCreatePoll()}
+                        disabled={pollCreateSubmitting}
+                      >
+                        {pollCreateSubmitting ? 'Creating...' : 'Create Poll'}
+                      </Button>
+                    </div>
+                  </div>
+                </Modal>
+              )}
+            </div>
+          )}
           {tab === 'games' && (
             <div className="tab-content">
               <h2>
