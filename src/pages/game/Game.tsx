@@ -1917,8 +1917,13 @@ export default function Game() {
                   {canCreatePoll && (
                     <Button onClick={() => setIsPollCreateOpen(true)}>Create Poll</Button>
                   )}
-                  <Button secondary onClick={() => void refreshPolls(true)} disabled={pollsLoading}>
-                    {pollsLoading ? 'Refreshing...' : 'Refresh'}
+                  <Button
+                    secondary
+                    onClick={() => void refreshPolls(true)}
+                    disabled={pollsLoading}
+                    isLoading={pollsLoading}
+                  >
+                    Refresh
                   </Button>
                 </div>
               </div>
