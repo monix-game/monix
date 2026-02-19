@@ -65,6 +65,8 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: req => getRequestIp(req) ?? req.ip ?? 'unknown',
   message: { error: 'Too many requests, please try again later.' },
+  // Do not rate limit Stripe webhooks to avoid missing payment notifications
+  skip: req => req.path.startsWith('/api/hooks/stripe'),
 });
 
 app.use('/api/', generalLimiter);
