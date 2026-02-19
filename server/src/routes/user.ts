@@ -314,6 +314,13 @@ router.post('/upload/avatar', requireActive, async (req: Request, res: Response)
   if (!dataUriMatch || !dataUriMatch[1].toLowerCase().startsWith('image/')) {
     return res.status(400).json({ error: 'Avatar URL must be an image data URI' });
   }
+
+  // Limit data URI size to 20 MB to prevent memory exhaustion
+  const MAX_AVATAR_SIZE = 20 * 1024 * 1024;
+  if (avatar_url.length > MAX_AVATAR_SIZE) {
+    return res.status(400).json({ error: 'Avatar image is too large' });
+  }
+
   // Process the avatar: crop to square if needed and convert to data URI
   try {
     const processedAvatar = await processAvatar(avatar_url);
