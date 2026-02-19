@@ -304,11 +304,9 @@ router.post('/upload/avatar', requireActive, async (req: Request, res: Response)
 
   if (!avatar_url) return res.status(400).json({ error: 'Missing avatar URL' });
 
-  // Simple URL validation
-  try {
-    new URL(avatar_url);
-  } catch {
-    return res.status(400).json({ error: 'Invalid avatar URL' });
+  // Only allow data URIs to prevent SSRF attacks
+  if (!avatar_url.startsWith('data:image/')) {
+    return res.status(400).json({ error: 'Avatar URL must be a data URI' });
   }
 
   // Process the avatar: crop to square if needed and convert to data URI
