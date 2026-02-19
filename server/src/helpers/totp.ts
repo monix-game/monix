@@ -1,4 +1,5 @@
 import { TokenGenerator } from 'totp-generator-ts';
+import * as crypto from 'crypto';
 
 /**
  * Create a new TOTP secret
@@ -6,9 +7,11 @@ import { TokenGenerator } from 'totp-generator-ts';
  */
 export function createSecret(): string {
   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 characters
+  const length = 16;
+  const randomBytes = crypto.randomBytes(length);
   let secret = '';
-  for (let i = 0; i < 16; i++) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
+  for (let i = 0; i < length; i++) {
+    const randomIndex = randomBytes[i] & 0x1f; // 0–31, perfectly maps to charset length
     secret += charset[randomIndex];
   }
   return secret;
