@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import { rateLimit } from 'express-rate-limit';
 import { connectDB } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
+import { getRequestIp } from './helpers/ip';
 
 import userRouter from './routes/user';
 import marketRouter from './routes/market';
@@ -54,6 +56,48 @@ if (CORS_ORIGINS.includes('*')) {
     })
   );
 }
+
+// General rate limiter: 200 requests per 15 minutes per IP
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 200,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: req => {
+    const ip = getRequestIp(req) ?? req.ip;
+    if (ip) {
+      return ip;
+    }
+
+    // Fallback: derive a more specific key when IP cannot be determined
+    const userAgentHeader = req.headers['user-agent'];
+    const acceptLanguageHeader = req.headers['accept-language'];
+
+    const userAgent = Array.isArray(userAgentHeader)
+      ? userAgentHeader.join(', ')
+      : userAgentHeader || 'unknown-ua';
+
+    const acceptLanguage = Array.isArray(acceptLanguageHeader)
+      ? acceptLanguageHeader.join(', ')
+      : acceptLanguageHeader || 'unknown-lang';
+
+    const fallbackKey = `noip:${userAgent}:${acceptLanguage}`;
+
+    // Log for monitoring potential abuse when IP is unavailable
+    console.warn('Rate limit fallback key used (no IP detected)', {
+      path: req.path,
+      ua: userAgent,
+      lang: acceptLanguage,
+    });
+
+    return fallbackKey;
+  },
+  message: { error: 'Too many requests, please try again later.' },
+  // Do not rate limit Stripe webhooks to avoid missing payment notifications
+  skip: req => req.path.startsWith('/api/hooks/stripe'),
+});
+
+app.use('/api/', generalLimiter);
 
 app.use('/api/user', userRouter);
 app.use('/api/market', marketRouter);

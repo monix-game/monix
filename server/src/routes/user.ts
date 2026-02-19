@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import {
   getUserByUsername,
   createUser,
@@ -23,10 +24,40 @@ import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
 import { applyAquariumEventModifiers, getCurrentFishingEvent } from '../../common/fishing/fishing';
 import { hasGems } from '../../common/math';
 import { getTimeZoneDayIndex, SYDNEY_TIME_ZONE } from '../../common/timezone';
+import { getRequestIp } from '../helpers/ip';
 
 const router = Router();
 
-router.post('/register', async (req: Request, res: Response) => {
+const getRateLimitKey = (req: Request): string => {
+  const ip = getRequestIp(req) ?? req.ip;
+  if (ip) {
+    return ip;
+  }
+
+  const userAgent = (req.headers['user-agent'] as string | undefined) ?? 'unknown-ua';
+  const method = req.method ?? 'UNKNOWN_METHOD';
+  const path = (req.originalUrl ?? req.url ?? 'UNKNOWN_PATH') as string;
+
+  // Log when we cannot determine an IP address to monitor potential abuse patterns.
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[authLimiter] Unable to determine IP address for request: ${method} ${path} UA=${userAgent}`,
+  );
+
+  return `noip:${method}:${path}:${userAgent}`;
+};
+
+// Stricter rate limiter for auth endpoints: 10 requests per 15 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: getRateLimitKey,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+router.post('/register', authLimiter, async (req: Request, res: Response) => {
   const { username, password } = (req.body as { username?: string; password?: string }) || {};
   if (!username || !password) {
     return res.status(400).json({ error: 'Missing username or password' });
@@ -75,7 +106,7 @@ router.post('/register', async (req: Request, res: Response) => {
   return res.status(201).json({ message: 'User registered successfully' });
 });
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', authLimiter, async (req: Request, res: Response) => {
   const { username, password, token } =
     (req.body as { username?: string; password?: string; token?: string }) || {};
   if (!username || !password)
@@ -112,7 +143,7 @@ router.post('/login', async (req: Request, res: Response) => {
   return res.status(200).json({ message: 'Login successful', session: sessionToDoc(session) });
 });
 
-router.post('/needs-2fa', async (req: Request, res: Response) => {
+router.post('/needs-2fa', authLimiter, async (req: Request, res: Response) => {
   const { username, password } = (req.body as { username?: string; password?: string }) || {};
   if (!username || !password)
     return res.status(400).json({ error: 'Missing username or password' });
