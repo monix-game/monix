@@ -28,13 +28,32 @@ import { getRequestIp } from '../helpers/ip';
 
 const router = Router();
 
+const getRateLimitKey = (req: Request): string => {
+  const ip = getRequestIp(req) ?? req.ip;
+  if (ip) {
+    return ip;
+  }
+
+  const userAgent = (req.headers['user-agent'] as string | undefined) ?? 'unknown-ua';
+  const method = req.method ?? 'UNKNOWN_METHOD';
+  const path = (req.originalUrl ?? req.url ?? 'UNKNOWN_PATH') as string;
+
+  // Log when we cannot determine an IP address to monitor potential abuse patterns.
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[authLimiter] Unable to determine IP address for request: ${method} ${path} UA=${userAgent}`,
+  );
+
+  return `noip:${method}:${path}:${userAgent}`;
+};
+
 // Stricter rate limiter for auth endpoints: 10 requests per 15 minutes per IP
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  keyGenerator: req => getRequestIp(req) ?? req.ip ?? 'unknown',
+  keyGenerator: getRateLimitKey,
   message: { error: 'Too many requests, please try again later.' },
 });
 
