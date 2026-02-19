@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import { rateLimit } from 'express-rate-limit';
 import { connectDB } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
+import { getRequestIp } from './helpers/ip';
 
 import userRouter from './routes/user';
 import marketRouter from './routes/market';
@@ -54,6 +56,18 @@ if (CORS_ORIGINS.includes('*')) {
     })
   );
 }
+
+// General rate limiter: 200 requests per 15 minutes per IP
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 200,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: req => getRequestIp(req) ?? req.ip ?? 'unknown',
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+app.use('/api/', generalLimiter);
 
 app.use('/api/user', userRouter);
 app.use('/api/market', marketRouter);
