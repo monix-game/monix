@@ -304,11 +304,16 @@ router.post('/upload/avatar', requireActive, async (req: Request, res: Response)
 
   if (!avatar_url) return res.status(400).json({ error: 'Missing avatar URL' });
 
-  // Only allow data URIs to prevent SSRF attacks
-  if (!avatar_url.startsWith('data:image/')) {
+  // Only allow image data URIs to prevent SSRF attacks
+  if (!avatar_url.toLowerCase().startsWith('data:image/')) {
     return res.status(400).json({ error: 'Avatar URL must be a data URI' });
   }
 
+  // Validate that the data URI has an image MIME type and is base64-encoded
+  const dataUriMatch = /^data:([^;]+);base64,/i.exec(avatar_url);
+  if (!dataUriMatch || !dataUriMatch[1].toLowerCase().startsWith('image/')) {
+    return res.status(400).json({ error: 'Avatar URL must be an image data URI' });
+  }
   // Process the avatar: crop to square if needed and convert to data URI
   try {
     const processedAvatar = await processAvatar(avatar_url);
