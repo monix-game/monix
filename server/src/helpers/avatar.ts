@@ -12,10 +12,10 @@ import sharp from 'sharp';
  */
 export async function processAvatar(avatarUrl: string): Promise<string> {
   try {
-    // Only accept data URIs to prevent SSRF attacks
-    const dataUriMatch = avatarUrl.match(/^data:([^;]+);base64,(.+)$/);
+    // Only accept image data URIs to prevent SSRF attacks and ensure valid avatar content
+    const dataUriMatch = avatarUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
     if (!dataUriMatch) {
-      throw new Error('Avatar must be provided as a data URI');
+      throw new Error('Avatar must be provided as an image data URI');
     }
 
     const imageBuffer = Buffer.from(dataUriMatch[2], 'base64');
