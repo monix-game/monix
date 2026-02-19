@@ -2,25 +2,23 @@ import sharp from 'sharp';
 
 /**
  * Processes an avatar image by:
- * 1. Downloading it from the URL
+ * 1. Decoding it from a data URI
  * 2. Checking its dimensions
  * 3. If not square, zooming/cropping to the center to make it square
  * 4. Converting to a data URI
  *
- * @param avatarUrl - The URL of the avatar image
+ * @param avatarUrl - The avatar image as a data URI
  * @returns The processed avatar as a data URI
  */
 export async function processAvatar(avatarUrl: string): Promise<string> {
   try {
-    // Fetch the image from the URL
-    const response = await fetch(avatarUrl);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch avatar: ${response.status}`);
+    // Only accept image data URIs to prevent SSRF attacks and ensure valid avatar content
+    const dataUriMatch = avatarUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    if (!dataUriMatch) {
+      throw new Error('Avatar must be provided as an image data URI');
     }
 
-    const buffer = await response.arrayBuffer();
-    const imageBuffer = Buffer.from(buffer);
+    const imageBuffer = Buffer.from(dataUriMatch[2], 'base64');
 
     // Get image metadata to check dimensions
     const metadata = await sharp(imageBuffer).metadata();
