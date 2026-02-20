@@ -405,7 +405,7 @@ router.post('/user/:uuid/edit', requireRole('admin'), async (req: Request, res: 
     }
 
     const avatarDataUriMatch = /^data:([^;]+);base64,/i.exec(avatar_url);
-    if (!avatarDataUriMatch || !avatarDataUriMatch[1].toLowerCase().startsWith('image/')) {
+    if (!avatarDataUriMatch?.[1].toLowerCase().startsWith('image/')) {
       return res.status(400).json({ error: 'Avatar URL must be an image data URI' });
     }
 

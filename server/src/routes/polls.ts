@@ -70,7 +70,6 @@ router.get('/', requireActive, async (req, res) => {
   const authUser = req.authUser as { uuid?: string } | undefined;
   const userUuid = authUser?.uuid || '';
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
   const polls: IPoll[] = await getAllPolls();
   const now = Date.now();
   const payload = polls.map(poll => buildPollView(poll, userUuid, now));
@@ -134,7 +133,6 @@ router.post('/', requireRole('admin'), async (req, res) => {
     ends_at: Number(ends_at),
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   await createPoll(poll);
 
   const view = buildPollView(poll, authUser?.uuid || '', Date.now());
@@ -153,7 +151,6 @@ router.post('/:uuid/vote', requireActive, async (req, res) => {
     return res.status(400).json({ error: 'Missing poll or option' });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
   const poll: IPoll | null = await getPollByUUID(uuid);
   if (!poll) {
     return res.status(404).json({ error: 'Poll not found' });
@@ -183,7 +180,6 @@ router.post('/:uuid/vote', requireActive, async (req, res) => {
   };
 
   poll.votes.push(vote);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   await updatePoll(poll);
 
   const view = buildPollView(poll, userUuid, now);

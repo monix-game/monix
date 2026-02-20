@@ -13,7 +13,7 @@ import sharp from 'sharp';
 export async function processAvatar(avatarUrl: string): Promise<string> {
   try {
     // Only accept image data URIs to prevent SSRF attacks and ensure valid avatar content
-    const dataUriMatch = avatarUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    const dataUriMatch = new RegExp(/^data:(image\/[^;]+);base64,(.+)$/).exec(avatarUrl);
     if (!dataUriMatch) {
       throw new Error('Avatar must be provided as an image data URI');
     }

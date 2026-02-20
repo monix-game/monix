@@ -1,7 +1,7 @@
-import express from 'express';
+import express, { Request, RequestHandler } from 'express';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
-import { connectDB } from './db';
+import { connectDB, getSessionByToken } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { getRequestIp } from './helpers/ip';
@@ -58,15 +58,26 @@ if (CORS_ORIGINS.includes('*')) {
 }
 
 // General rate limiter: 200 requests per 15 minutes per IP
-const generalLimiter = rateLimit({
+const generalLimiter = (rateLimit as (options: Record<string, unknown>) => RequestHandler)({
   windowMs: 15 * 60 * 1000,
   limit: 200,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  keyGenerator: req => {
+  keyGenerator: async (req: Request) => {
     const ip = getRequestIp(req) ?? req.ip;
+
+    // Attempt to get the user uuid from token if available for more accurate rate limiting
+    const authHeader = req.headers['authorization'];
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const session = await getSessionByToken(token);
+      if (session) {
+        return `user:${session.user_uuid}:${ip}`;
+      }
+    }
+
     if (ip) {
-      return ip;
+      return `ip:${ip}`;
     }
 
     // Fallback: derive a more specific key when IP cannot be determined
@@ -94,7 +105,7 @@ const generalLimiter = rateLimit({
   },
   message: { error: 'Too many requests, please try again later.' },
   // Do not rate limit Stripe webhooks to avoid missing payment notifications
-  skip: req => req.path.startsWith('/api/hooks/stripe'),
+  skip: (req: Request) => req.path.startsWith('/api/hooks/stripe'),
 });
 
 app.use('/api/', generalLimiter);

@@ -1,5 +1,5 @@
 import { TokenGenerator } from 'totp-generator-ts';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 /**
  * Create a new TOTP secret

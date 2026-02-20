@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import {
   getUserByUsername,
@@ -34,12 +34,11 @@ const getRateLimitKey = (req: Request): string => {
     return ip;
   }
 
-  const userAgent = (req.headers['user-agent'] as string | undefined) ?? 'unknown-ua';
+  const userAgent = (req.headers['user-agent']) ?? 'unknown-ua';
   const method = req.method ?? 'UNKNOWN_METHOD';
-  const path = (req.originalUrl ?? req.url ?? 'UNKNOWN_PATH') as string;
+  const path = (req.originalUrl ?? req.url ?? 'UNKNOWN_PATH');
 
   // Log when we cannot determine an IP address to monitor potential abuse patterns.
-  // eslint-disable-next-line no-console
   console.warn(
     `[authLimiter] Unable to determine IP address for request: ${method} ${path} UA=${userAgent}`,
   );
@@ -48,7 +47,7 @@ const getRateLimitKey = (req: Request): string => {
 };
 
 // Stricter rate limiter for auth endpoints: 10 requests per 15 minutes per IP
-const authLimiter = rateLimit({
+const authLimiter = (rateLimit as (options: Record<string, unknown>) => RequestHandler)({
   windowMs: 15 * 60 * 1000,
   limit: 10,
   standardHeaders: 'draft-8',
@@ -342,7 +341,7 @@ router.post('/upload/avatar', requireActive, async (req: Request, res: Response)
 
   // Validate that the data URI has an image MIME type and is base64-encoded
   const dataUriMatch = /^data:([^;]+);base64,/i.exec(avatar_url);
-  if (!dataUriMatch || !dataUriMatch[1].toLowerCase().startsWith('image/')) {
+  if (!dataUriMatch?.[1].toLowerCase().startsWith('image/')) {
     return res.status(400).json({ error: 'Avatar URL must be an image data URI' });
   }
 
