@@ -1,7 +1,7 @@
 import express, { Request, RequestHandler } from 'express';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
-import { connectDB, getSessionByToken } from './db';
+import { connectDB } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { getRequestIp } from './helpers/ip';
@@ -63,52 +63,21 @@ const generalLimiter = (rateLimit as (options: Record<string, unknown>) => Reque
   limit: 200,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  keyGenerator: async (req: Request) => {
-    const ip = getRequestIp(req) ?? req.ip;
+  keyGenerator: (req: Request) => {
+    const ip = getRequestIp(req) ?? req.ip ?? 'unknown-ip';
+    const userAgent = req.get('user-agent') || 'unknown-ua';
+    const acceptLanguage = req.get('accept-language') || 'unknown-lang';
+    const forwardedProto = req.get('x-forwarded-proto') || 'unknown-proto';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const userId = (req as any).authUser?.uuid || 'anonymous';
 
-    // Attempt to get the user uuid from token if available for more accurate rate limiting
-    const authHeader = req.headers['authorization'];
-    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const session = await getSessionByToken(token);
-      if (session) {
-        return `user:${session.user_uuid}:${ip}`;
-      }
-    }
+    const key = `${ip}:${userId}:${userAgent}:${acceptLanguage}:${forwardedProto}`;
 
-    if (ip) {
-      return `ip:${ip}`;
-    }
-
-    // Fallback: derive a more specific key when IP cannot be determined
-    const userAgentHeader = req.headers['user-agent'];
-    const acceptLanguageHeader = req.headers['accept-language'];
-
-    const userAgent = Array.isArray(userAgentHeader)
-      ? userAgentHeader.join(', ')
-      : userAgentHeader || 'unknown-ua';
-
-    const acceptLanguage = Array.isArray(acceptLanguageHeader)
-      ? acceptLanguageHeader.join(', ')
-      : acceptLanguageHeader || 'unknown-lang';
-
-    const fallbackKey = `noip:${userAgent}:${acceptLanguage}`;
-
-    // Log for monitoring potential abuse when IP is unavailable
-    console.warn('Rate limit fallback key used (no IP detected)', {
-      path: req.path,
-      ua: userAgent,
-      lang: acceptLanguage,
-    });
-
-    return fallbackKey;
+    return key;
   },
   message: { error: 'Too many requests, please try again later.' },
-  // Do not rate limit Stripe webhooks to avoid missing payment notifications
   skip: (req: Request) => req.path.startsWith('/api/hooks/stripe'),
 });
-
-app.use('/api/', generalLimiter);
 
 app.use('/api/user', userRouter);
 app.use('/api/market', marketRouter);
@@ -123,6 +92,8 @@ app.use('/api/appeals', appealRouter);
 app.use('/api/fishing', fishingRouter);
 app.use('/api/ping', pingRouter);
 app.use('/api/polls', pollsRouter);
+
+app.use('/api/', generalLimiter);
 
 async function start() {
   await connectDB(MONGO_URI);
