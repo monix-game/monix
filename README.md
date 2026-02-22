@@ -2,6 +2,14 @@
 
 <h1 align="center">Monix</h1>
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/880f1003-cf0d-4a33-8556-f0f42049a0cf/deploy-status)](https://app.netlify.com/projects/monixgame/deploys)
+![GitHub repo size](https://img.shields.io/github/repo-size/monix-game/monix)
+![GitHub Issues](https://img.shields.io/github/issues/monix-game/monix)
+![GitHub Pull Requests](https://img.shields.io/github/issues-pr/monix-game/monix)
+![GitHub contributors](https://img.shields.io/github/contributors-anon/monix-game/monix)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/t/monix-game/monix)
+![Discord](https://img.shields.io/discord/1469843953695195337)
+
 Monix is a addictive, calming economy game where you buy, sell, and invest your way to the top!
 
 ## Development Setup
