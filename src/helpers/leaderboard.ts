@@ -6,6 +6,7 @@ export interface LeaderboardEntry {
   money: number;
   avatar?: string;
   role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
+  magic_jellybean_active?: boolean;
   cosmetics: {
     nameplate?: string;
     user_tag?: string;
@@ -19,6 +20,7 @@ export interface FishLeaderboardEntry {
   fishCaught: number;
   avatar?: string;
   role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
+  magic_jellybean_active?: boolean;
   cosmetics: {
     nameplate?: string;
     user_tag?: string;

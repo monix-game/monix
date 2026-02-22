@@ -11,6 +11,7 @@ import {
   getCurrentFishingEvent,
   applyAquariumEventModifiers,
 } from '../../common/fishing/fishing';
+import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrades';
 import { IFish } from '../models/fish';
 import { v4 } from 'uuid';
 
@@ -375,9 +376,12 @@ router.post('/fish', requireActive, async (req, res) => {
 
   const { auto_sell } = req.body as { auto_sell?: boolean };
 
-  // Check if the user has fished within the last 5 seconds to prevent spamming
   const now = Date.now();
-  if (user.fishing?.last_fished_at && now - user.fishing.last_fished_at < 5000) {
+  const hasMagicJellybean = isUpgradeActive(user.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, now);
+  const fishingCooldownMs = hasMagicJellybean ? 2500 : 5000;
+
+  // Check if the user has fished within cooldown to prevent spamming
+  if (user.fishing?.last_fished_at && now - user.fishing.last_fished_at < fishingCooldownMs) {
     return res.status(400).json({ error: 'You are fishing too frequently. Please wait a moment.' });
   }
 

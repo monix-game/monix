@@ -246,7 +246,11 @@ export const Message: React.FC<MessageProps> = ({
           <span className="message-username">
             <Nameplate
               text={message.sender_username}
-              styleKey={cosmetics.find(c => c.id === message.nameplate)?.nameplateStyle || null}
+              styleKey={
+                message.sender_magic_jellybean_active
+                  ? 'rainbow'
+                  : cosmetics.find(c => c.id === message.nameplate)?.nameplateStyle || null
+              }
             />
           </span>
           {message.user_tag && (

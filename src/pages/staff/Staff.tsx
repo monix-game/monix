@@ -154,6 +154,7 @@ export default function Staff() {
   const [featureSettingsHydrated, setFeatureSettingsHydrated] = useState<boolean>(false);
   const [featureSettingsSaving, setFeatureSettingsSaving] = useState<boolean>(false);
   const [featureSettingsError, setFeatureSettingsError] = useState<string>('');
+  const [renderNow, setRenderNow] = useState<number>(() => Date.now());
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -212,6 +213,7 @@ export default function Staff() {
 
     const interval = setInterval(async () => {
       await updateEverything();
+      setRenderNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
   }, [updateEverything]);
@@ -920,6 +922,19 @@ export default function Staff() {
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
+  let currentUserNameplateStyle: string | null = null;
+  if (user) {
+    const hasActiveJellybean =
+      Boolean(user.upgrades?.magic_jellybean?.expires_at) &&
+      (user.upgrades?.magic_jellybean?.expires_at || 0) > renderNow;
+
+    if (hasActiveJellybean) {
+      currentUserNameplateStyle = 'rainbow';
+    } else {
+      currentUserNameplateStyle =
+        cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle || null;
+    }
+  }
   const availableRoles = (['owner', 'admin', 'mod', 'helper', 'user'] as const).filter(role =>
     user?.role ? hasPowerOver(user.role, role) : false
   );
@@ -1078,12 +1093,7 @@ export default function Staff() {
             />
             <Nameplate
               text={user ? user.username : 'User'}
-              styleKey={
-                user
-                  ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)
-                      ?.nameplateStyle || null
-                  : null
-              }
+              styleKey={currentUserNameplateStyle}
               className="username clickable"
               onClick={() => {
                 globalThis.location.href = '/game';
@@ -1473,111 +1483,123 @@ export default function Staff() {
               {!usersHydrated && <Spinner size={28} />}
               {usersHydrated && users.length === 0 && <p>No users found.</p>}
               {usersHydrated &&
-                users.map(u => (
-                  <div key={u.uuid} className="user-card">
-                    <div className="user-card-header">
-                      <div className="user-card-avatar">
-                        <Avatar
-                          src={u.avatar_data_uri || undefined}
-                          alt="User Avatar"
-                          className="user-avatar"
-                          size={34}
-                          styleKey={
-                            u.equipped_cosmetics?.frame
-                              ? cosmetics.find(c => c.id === u.equipped_cosmetics?.frame)
-                                  ?.frameStyle
-                              : undefined
-                          }
+                users.map(u => {
+                  let cardNameplateStyle: string | null = null;
+                  const hasActiveJellybean =
+                    Boolean(u.upgrades?.magic_jellybean?.expires_at) &&
+                    (u.upgrades?.magic_jellybean?.expires_at || 0) > renderNow;
+
+                  if (hasActiveJellybean) {
+                    cardNameplateStyle = 'rainbow';
+                  } else if (u.equipped_cosmetics?.nameplate) {
+                    cardNameplateStyle =
+                      cosmetics.find(c => c.id === u.equipped_cosmetics?.nameplate)
+                        ?.nameplateStyle || null;
+                  }
+
+                  return (
+                    <div key={u.uuid} className="user-card">
+                      <div className="user-card-header">
+                        <div className="user-card-avatar">
+                          <Avatar
+                            src={u.avatar_data_uri || undefined}
+                            alt="User Avatar"
+                            className="user-avatar"
+                            size={34}
+                            styleKey={
+                              u.equipped_cosmetics?.frame
+                                ? cosmetics.find(c => c.id === u.equipped_cosmetics?.frame)
+                                    ?.frameStyle
+                                : undefined
+                            }
+                          />
+                        </div>
+                        <Nameplate
+                          text={u.username}
+                          styleKey={cardNameplateStyle}
+                          className="staff-username"
                         />
-                      </div>
-                      <Nameplate
-                        text={u.username}
-                        styleKey={
-                          u.equipped_cosmetics?.nameplate
-                            ? cosmetics.find(c => c.id === u.equipped_cosmetics?.nameplate)
-                                ?.nameplateStyle
-                            : null
-                        }
-                        className="staff-username"
-                      />
-                      {u.equipped_cosmetics?.tag && (
-                        <span
-                          className={`user-tag tag-colour-${cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagColour}`}
-                        >
-                          <EmojiText>
-                            {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagIcon}
-                          </EmojiText>{' '}
-                          {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagName}
-                        </span>
-                      )}
-                      {u.role !== 'user' && (
-                        <span className={`user-badge ${u.role}`}>{titleCase(u.role)}</span>
-                      )}
-                    </div>
-                    <div className="user-card-body">
-                      <div className="staff-info-list">
-                        <div className="staff-info-line">
-                          <span>UUID:</span>
-                          <span className="mono">{u.uuid}</span>
-                        </div>
-                        <div className="staff-info-line">
-                          <span>Registered:</span>
-                          <span className="mono">
-                            {new Date(u.time_created * 1000).toLocaleDateString()}
+                        {u.equipped_cosmetics?.tag && (
+                          <span
+                            className={`user-tag tag-colour-${cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagColour}`}
+                          >
+                            <EmojiText>
+                              {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagIcon}
+                            </EmojiText>{' '}
+                            {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagName}
                           </span>
-                        </div>
-                        <div className="staff-info-line">
-                          <span>Total Punishments:</span>
-                          <span className="mono">{u.punishments ? u.punishments.length : 0}</span>
-                        </div>
+                        )}
+                        {u.role !== 'user' && (
+                          <span className={`user-badge ${u.role}`}>{titleCase(u.role)}</span>
+                        )}
                       </div>
-                      <div className="user-card-buttons">
-                        <Button
-                          onClick={() => {
-                            setSelectedUser(u);
-                            setPunishModalOpen(true);
-                          }}
-                          disabled={!hasPowerOver(user?.role || 'helper', u.role)}
-                        >
-                          {hasPowerOver(user?.role || 'helper', u.role) ? 'Punish' : "Can't Punish"}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            void openPunishmentsModal(u);
-                          }}
-                          disabled={!hasPowerOver(userRole || 'helper', u.role)}
-                        >
-                          {hasPowerOver(userRole || 'helper', u.role)
-                            ? 'See Punishments'
-                            : "Can't View"}
-                        </Button>
-                        {hasRole(userRole || 'user', 'admin') && (
+                      <div className="user-card-body">
+                        <div className="staff-info-list">
+                          <div className="staff-info-line">
+                            <span>UUID:</span>
+                            <span className="mono">{u.uuid}</span>
+                          </div>
+                          <div className="staff-info-line">
+                            <span>Registered:</span>
+                            <span className="mono">
+                              {new Date(u.time_created * 1000).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="staff-info-line">
+                            <span>Total Punishments:</span>
+                            <span className="mono">{u.punishments ? u.punishments.length : 0}</span>
+                          </div>
+                        </div>
+                        <div className="user-card-buttons">
                           <Button
-                            color="purple"
                             onClick={() => {
-                              openEditUserModal(u);
+                              setSelectedUser(u);
+                              setPunishModalOpen(true);
+                            }}
+                            disabled={!hasPowerOver(user?.role || 'helper', u.role)}
+                          >
+                            {hasPowerOver(user?.role || 'helper', u.role)
+                              ? 'Punish'
+                              : "Can't Punish"}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              void openPunishmentsModal(u);
                             }}
                             disabled={!hasPowerOver(userRole || 'helper', u.role)}
                           >
                             {hasPowerOver(userRole || 'helper', u.role)
-                              ? 'Edit User'
-                              : "Can't Edit"}
+                              ? 'See Punishments'
+                              : "Can't View"}
                           </Button>
-                        )}
-                        {hasRole(userRole || 'user', 'admin') && (
-                          <Button
-                            color="blue"
-                            onClick={() => {
-                              void openIpTab(u);
-                            }}
-                          >
-                            IP Data
-                          </Button>
-                        )}
+                          {hasRole(userRole || 'user', 'admin') && (
+                            <Button
+                              color="purple"
+                              onClick={() => {
+                                openEditUserModal(u);
+                              }}
+                              disabled={!hasPowerOver(userRole || 'helper', u.role)}
+                            >
+                              {hasPowerOver(userRole || 'helper', u.role)
+                                ? 'Edit User'
+                                : "Can't Edit"}
+                            </Button>
+                          )}
+                          {hasRole(userRole || 'user', 'admin') && (
+                            <Button
+                              color="blue"
+                              onClick={() => {
+                                void openIpTab(u);
+                              }}
+                            >
+                              IP Data
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         )}

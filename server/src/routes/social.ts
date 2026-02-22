@@ -23,6 +23,7 @@ import { handleCommand } from '../helpers/commands';
 import { hasRole } from '../../common/roles';
 import { checkSocialSpam } from '../helpers/spamModeration';
 import { punishUser } from '../../common/punishx/punishx';
+import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrades';
 
 const router = Router();
 
@@ -143,6 +144,7 @@ router.post('/send', requireActive, async (req, res) => {
     sent_restricted: !!room.restrict_send_to,
     restricted_role: room.restrict_send_to,
     nameplate: user.equipped_cosmetics?.nameplate,
+    sender_magic_jellybean_active: isUpgradeActive(user.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
     user_tag: user.equipped_cosmetics?.tag,
     frame: user.equipped_cosmetics?.frame,
     time_sent: Date.now(),
@@ -332,7 +334,26 @@ router.get('/room/:room_uuid/messages', requireActive, async (req, res) => {
     return true;
   });
 
-  res.status(200).json({ messages: filteredMessages.map(m => messageToDoc(m)) });
+  const senderUpgradeCache = new Map<string, boolean>();
+  const now = Date.now();
+  const hydratedMessages = await Promise.all(
+    filteredMessages.map(async message => {
+      if (!senderUpgradeCache.has(message.sender_uuid)) {
+        const sender = await getUserByUUID(message.sender_uuid);
+        senderUpgradeCache.set(
+          message.sender_uuid,
+          isUpgradeActive(sender?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, now)
+        );
+      }
+
+      return {
+        ...message,
+        sender_magic_jellybean_active: senderUpgradeCache.get(message.sender_uuid) || false,
+      };
+    })
+  );
+
+  res.status(200).json({ messages: hydratedMessages.map(m => messageToDoc(m)) });
 });
 
 router.get('/rooms', requireActive, async (req, res) => {

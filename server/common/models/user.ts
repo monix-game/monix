@@ -49,6 +49,11 @@ export interface IUser {
     ip: string;
     timestamp: number;
   }[];
+  upgrades?: {
+    [id: string]: {
+      expires_at: number;
+    };
+  };
 }
 
 export function userToDoc(u: IUser): IUser {
@@ -74,6 +79,7 @@ export function userToDoc(u: IUser): IUser {
     fishing: u.fishing,
     punishments: u.punishments,
     ip_history: u.ip_history || [],
+    upgrades: u.upgrades || {},
   };
 }
 
@@ -105,5 +111,6 @@ export function userFromDoc(doc: any): IUser {
     },
     punishments: doc.punishments || [],
     ip_history: doc.ip_history || [],
+    upgrades: doc.upgrades || {},
   };
 }

@@ -24,27 +24,10 @@ import { DAILY_REWARDS } from '../../common/rewards/dailyRewards';
 import { applyAquariumEventModifiers, getCurrentFishingEvent } from '../../common/fishing/fishing';
 import { hasGems } from '../../common/math';
 import { getTimeZoneDayIndex, SYDNEY_TIME_ZONE } from '../../common/timezone';
-import { getRequestIp } from '../helpers/ip';
+import { rateLimitKeyGenerator } from '..';
+import { UPGRADES } from '../../common/upgrades';
 
 const router = Router();
-
-const getRateLimitKey = (req: Request): string => {
-  const ip = getRequestIp(req) ?? req.ip;
-  if (ip) {
-    return ip;
-  }
-
-  const userAgent = (req.headers['user-agent']) ?? 'unknown-ua';
-  const method = req.method ?? 'UNKNOWN_METHOD';
-  const path = (req.originalUrl ?? req.url ?? 'UNKNOWN_PATH');
-
-  // Log when we cannot determine an IP address to monitor potential abuse patterns.
-  console.warn(
-    `[authLimiter] Unable to determine IP address for request: ${method} ${path} UA=${userAgent}`,
-  );
-
-  return `noip:${method}:${path}:${userAgent}`;
-};
 
 // Stricter rate limiter for auth endpoints: 10 requests per 15 minutes per IP
 const authLimiter = (rateLimit as (options: Record<string, unknown>) => RequestHandler)({
@@ -52,7 +35,7 @@ const authLimiter = (rateLimit as (options: Record<string, unknown>) => RequestH
   limit: 10,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  keyGenerator: getRateLimitKey,
+  keyGenerator: rateLimitKeyGenerator,
   message: { error: 'Too many requests, please try again later.' },
 });
 
@@ -512,6 +495,36 @@ router.post('/cosmetics/unequip', requireAuth, async (req: Request, res: Respons
   await updateUser(user);
 
   return res.status(200).json({ message: 'Cosmetic unequipped successfully' });
+});
+
+router.post('/upgrades/buy', requireActive, async (req: Request, res: Response) => {
+  const { upgrade_id } = (req.body as { upgrade_id?: string }) || {};
+  if (!upgrade_id) return res.status(400).json({ error: 'Missing upgrade ID' });
+
+  // @ts-expect-error Because we add authUser in the middleware
+  const authUser = req.authUser as IUser;
+
+  const user = await getUserByUUID(authUser.uuid);
+
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const upgrade = UPGRADES.find(u => u.id === upgrade_id);
+  if (!upgrade) return res.status(404).json({ error: 'Upgrade not found' });
+
+  const upgradeCost = upgrade.price_per_half_hour;
+  if (user.money < upgradeCost) {
+    return res.status(400).json({ error: 'Insufficient money' });
+  }
+
+  user.money -= upgradeCost;
+  user.upgrades = user.upgrades || {};
+  user.upgrades[upgrade_id] = {
+    expires_at: Date.now() + 30 * 60 * 1000, // expires in 30 minutes
+  };
+
+  await updateUser(user);
+
+  return res.status(200).json({ message: 'Upgrade purchased successfully' });
 });
 
 export default router;

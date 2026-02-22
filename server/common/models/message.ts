@@ -14,6 +14,7 @@ export interface IMessage {
   restricted_role?: 'owner' | 'admin' | 'mod' | 'helper';
   time_sent?: number;
   nameplate?: string;
+  sender_magic_jellybean_active?: boolean;
   user_tag?: string;
   frame?: string;
   time_edited?: number;
@@ -37,6 +38,7 @@ export function messageToDoc(m: IMessage): IMessage {
     restricted_role: m.restricted_role,
     time_sent: m.time_sent,
     nameplate: m.nameplate,
+    sender_magic_jellybean_active: m.sender_magic_jellybean_active,
     user_tag: m.user_tag,
     frame: m.frame,
     time_edited: m.time_edited,
@@ -62,6 +64,7 @@ export function messageFromDoc(doc: any): IMessage {
     restricted_role: doc.restricted_role || undefined,
     time_sent: doc.time_sent || undefined,
     nameplate: doc.nameplate || undefined,
+    sender_magic_jellybean_active: doc.sender_magic_jellybean_active || false,
     user_tag: doc.user_tag || undefined,
     frame: doc.frame || undefined,
     time_edited: doc.time_edited || undefined,

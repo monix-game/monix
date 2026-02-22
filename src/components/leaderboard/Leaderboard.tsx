@@ -108,11 +108,14 @@ export const Leaderboard: React.FC = () => {
                 <span className="podium-user">
                   <Nameplate
                     text={entry.username}
-                    styleKey={
-                      entry.cosmetics.nameplate
-                        ? cosmetics.find(c => c.id === entry.cosmetics.nameplate)?.nameplateStyle
-                        : undefined
-                    }
+                    styleKey={(() => {
+                      if (entry.magic_jellybean_active) return 'rainbow';
+                      if (entry.cosmetics.nameplate) {
+                        return cosmetics.find(c => c.id === entry.cosmetics.nameplate)
+                          ?.nameplateStyle;
+                      }
+                      return undefined;
+                    })()}
                   />
                   {entry.cosmetics.user_tag && (
                     <span
@@ -146,11 +149,14 @@ export const Leaderboard: React.FC = () => {
                   </b>{' '}
                   <Nameplate
                     text={entry.username}
-                    styleKey={
-                      entry.cosmetics.nameplate
-                        ? cosmetics.find(c => c.id === entry.cosmetics.nameplate)?.nameplateStyle
-                        : undefined
-                    }
+                    styleKey={(() => {
+                      if (entry.magic_jellybean_active) return 'rainbow';
+                      if (entry.cosmetics.nameplate) {
+                        return cosmetics.find(c => c.id === entry.cosmetics.nameplate)
+                          ?.nameplateStyle;
+                      }
+                      return undefined;
+                    })()}
                   />
                   {entry.cosmetics.user_tag && (
                     <span

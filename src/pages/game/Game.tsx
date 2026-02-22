@@ -26,6 +26,7 @@ import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
 import type { IUser } from '../../../server/common/models/user';
 import {
   buyCosmetic,
+  buyUpgrade,
   completeTutorial,
   equipCosmetic,
   fetchUser,
@@ -82,6 +83,7 @@ import {
 } from '../../../server/common/models/globalSettings';
 import { getGlobalSettings } from '../../helpers/globalSettings';
 import { createPoll, fetchPolls, type PollView, voteInPoll } from '../../helpers/polls';
+import { UPGRADES } from '../../../server/common/upgrades';
 
 const toLocalInputDateTime = (timeMs: number) => {
   const offsetMs = new Date(timeMs).getTimezoneOffset() * 60000;
@@ -120,6 +122,7 @@ export default function Game() {
     | 'polls'
     | 'games'
     | 'radio'
+    | 'upgrades'
     | 'leaderboard'
     | 'gems'
     | 'store'
@@ -232,6 +235,11 @@ export default function Game() {
   const fishingDisabled = !featureFlags.fishingAquarium;
   const petsDisabled = !featureFlags.pets;
   const socialDisabled = !featureFlags.social;
+  const fishingCooldownMs =
+    user?.upgrades?.magic_jellybean?.expires_at &&
+    user.upgrades.magic_jellybean.expires_at > fishingNow
+      ? 2500
+      : 5000;
   const isTutorialStepComplete = useMemo(() => {
     if (!currentTutorialStep) return true;
 
@@ -416,7 +424,7 @@ export default function Game() {
 
   useEffect(() => {
     if (banned) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+
     void refreshPolls(true);
     const interval = setInterval(() => {
       void refreshPolls(false);
@@ -426,7 +434,7 @@ export default function Game() {
 
   useEffect(() => {
     if (tab !== 'polls') return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+
     void refreshPolls(false);
   }, [tab, refreshPolls]);
 
@@ -776,7 +784,6 @@ export default function Game() {
   }, [updateEverything, user]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void updateEverything().then(() => setGameHydrated(true));
 
     // Set radio volume based on settings
@@ -803,14 +810,12 @@ export default function Game() {
   useEffect(() => {
     if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsTutorialOpen(true);
   }, [user, isTutorialOpen, banned]);
 
   useEffect(() => {
     if (!isTutorialOpen || !currentTutorialStep?.tab) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTabTo(currentTutorialStep.tab);
   }, [currentTutorialStep, isTutorialOpen, setTabTo]);
 
@@ -818,7 +823,6 @@ export default function Game() {
     if (!isTutorialOpen) return;
 
     if (tab === 'resources' && marketModalResource) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTutorialProgress(prev => ({
         ...prev,
         openedResourceModal: true,
@@ -850,6 +854,10 @@ export default function Game() {
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
     : null;
+  const hasActiveMagicJellybean =
+    Boolean(user?.upgrades?.magic_jellybean?.expires_at) &&
+    (user?.upgrades?.magic_jellybean?.expires_at || 0) > fishingNow;
+  const effectiveNameplateStyle = hasActiveMagicJellybean ? 'rainbow' : equippedNameplateStyle;
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
@@ -1003,6 +1011,7 @@ export default function Game() {
                     { key: 'polls', label: '🗳️ Polls' },
                     { key: 'games', label: '🎮 Games' },
                     { key: 'radio', label: '📻 Radio' },
+                    { key: 'upgrades', label: '⚡ Upgrades' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'store', label: '🛒 Store' },
                     { key: 'cosmetics', label: '🎨 Cosmetics' },
@@ -1059,7 +1068,7 @@ export default function Game() {
               />
               <Nameplate
                 text={user ? user.username : 'User'}
-                styleKey={equippedNameplateStyle}
+                styleKey={effectiveNameplateStyle}
                 className={`username ${user?.role !== 'user' ? 'clickable' : ''}`.trim()}
                 role={user?.role !== 'user' ? 'button' : undefined}
                 onClick={() => {
@@ -1205,16 +1214,22 @@ export default function Game() {
                               }
                             }}
                             disabled={
-                              (user?.fishing?.last_fished_at || 0) + 5000 > fishingNow ||
+                              (user?.fishing?.last_fished_at || 0) + fishingCooldownMs >
+                                fishingNow ||
                               ((user?.fishing?.aquarium.fish.length || 0) >=
                                 (user?.fishing?.aquarium.capacity || 0) &&
                                 !autoSellEnabled)
                             }
                           >
                             {(() => {
-                              if ((user?.fishing?.last_fished_at || 0) + 5000 > fishingNow) {
+                              if (
+                                (user?.fishing?.last_fished_at || 0) + fishingCooldownMs >
+                                fishingNow
+                              ) {
                                 return `Wait ${formatRemainingMilliseconds(
-                                  (user?.fishing?.last_fished_at || 0) + 5000 - fishingNow
+                                  (user?.fishing?.last_fished_at || 0) +
+                                    fishingCooldownMs -
+                                    fishingNow
                                 )}`;
                               }
                               const isAquariumFull =
@@ -2244,6 +2259,63 @@ export default function Game() {
                     </button>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+          {tab === 'upgrades' && (
+            <div className="tab-content">
+              <h2>Upgrades</h2>
+              <div className="upgrades-grid">
+                {UPGRADES.sort((a, b) => {
+                  // Sort by if it is active, and then alphabetically by name
+                  const aActive =
+                    user?.upgrades?.[a.id]?.expires_at &&
+                    // eslint-disable-next-line react-hooks/purity
+                    user?.upgrades[a.id].expires_at > Date.now();
+                  const bActive =
+                    user?.upgrades?.[b.id]?.expires_at &&
+                    // eslint-disable-next-line react-hooks/purity
+                    user?.upgrades[b.id].expires_at > Date.now();
+                  if (aActive && !bActive) return -1;
+                  if (!aActive && bActive) return 1;
+                  return a.name.localeCompare(b.name);
+                }).map(upgrade => {
+                  const isActive =
+                    user?.upgrades?.[upgrade.id]?.expires_at &&
+                    // eslint-disable-next-line react-hooks/purity
+                    user?.upgrades[upgrade.id].expires_at > Date.now();
+                  return (
+                    <div key={upgrade.id} className={`upgrade-card ${isActive ? 'active' : ''}`}>
+                      <h3 className="upgrade-name"><EmojiText>{upgrade.icon}</EmojiText> {upgrade.name}</h3>
+                      <p className="upgrade-description">{upgrade.description}</p>
+                      <div className="spacer"></div>
+                      <Button
+                        disabled={
+                          isActive ||
+                          !user ||
+                          (user.money || 0) < (upgrade.price_per_half_hour || 0)
+                        }
+                        onClickAsync={async () => {
+                          await buyUpgrade(upgrade.id);
+                          await updateEverything();
+                        }}
+                      >
+                        {isActive
+                          ? `Active for ${
+                              formatRemainingTime(
+                                Math.max(
+                                  0,
+                                  // eslint-disable-next-line react-hooks/purity
+                                  ((user.upgrades?.[upgrade.id]?.expires_at || 0) - Date.now()) /
+                                    1000
+                                )
+                              ) || '0s'
+                            }`
+                          : `30mins for ${smartFormatNumber(upgrade.price_per_half_hour || 0)}`}
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

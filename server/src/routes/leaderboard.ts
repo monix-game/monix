@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireActive } from '../middleware';
 import { getAllUsers, getUserByUUID } from '../db';
 import { isUserBanned } from '../../common/punishx/punishx';
+import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrades';
 
 function getFishCaughtCount(fishCaught?: { [key: string]: number }) {
   if (!fishCaught) return 0;
@@ -47,6 +48,7 @@ router.get('/', requireActive, async (req, res) => {
             avatar: userData ? userData.avatar_data_uri : undefined,
             role: userData ? userData.role : 'user',
             money: user.money || 0,
+            magic_jellybean_active: isUpgradeActive(userData?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
             cosmetics: {
               nameplate: userData?.equipped_cosmetics?.nameplate,
               user_tag: userData?.equipped_cosmetics?.tag,
@@ -114,6 +116,7 @@ router.get('/fish', requireActive, async (req, res) => {
             avatar: userData ? userData.avatar_data_uri : undefined,
             role: userData ? userData.role : 'user',
             fishCaught: getFishCaughtCount(user.fishing?.fish_caught),
+            magic_jellybean_active: isUpgradeActive(userData?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
             cosmetics: {
               nameplate: userData?.equipped_cosmetics?.nameplate,
               user_tag: userData?.equipped_cosmetics?.tag,

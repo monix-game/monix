@@ -5,6 +5,7 @@ import { hasRole } from '../../common/roles';
 import { getRoomByUUID, getUserByUsername, markMessagesDeletedByRoomUUID } from '../db';
 import { v4 } from 'uuid';
 import { log } from './logging';
+import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrades';
 
 export interface CommandResult {
   message: IMessage | null;
@@ -149,6 +150,10 @@ const commands: Command[] = [
         sender_avatar_url: targetUser.avatar_data_uri,
         sender_badge: targetUser.role !== 'user' ? targetUser.role : undefined,
         nameplate: targetUser.equipped_cosmetics?.nameplate,
+        sender_magic_jellybean_active: isUpgradeActive(
+          targetUser.upgrades,
+          MAGIC_JELLYBEAN_UPGRADE_ID
+        ),
         user_tag: targetUser.equipped_cosmetics?.tag,
         frame: targetUser.equipped_cosmetics?.frame,
         room_uuid,

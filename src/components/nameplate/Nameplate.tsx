@@ -91,6 +91,26 @@ const NAMEPLATE_GRADIENTS: Record<string, { light: GradientStop[]; dark: Gradien
       { offset: '100%', color: '#d38b2f' },
     ],
   },
+  rainbow: {
+    light: [
+      { offset: '0%', color: '#ff3b30' },
+      { offset: '16%', color: '#ff9500' },
+      { offset: '33%', color: '#ffcc00' },
+      { offset: '50%', color: '#34c759' },
+      { offset: '67%', color: '#0a84ff' },
+      { offset: '84%', color: '#5856d6' },
+      { offset: '100%', color: '#ff2d55' },
+    ],
+    dark: [
+      { offset: '0%', color: '#ff6b6b' },
+      { offset: '16%', color: '#ffb347' },
+      { offset: '33%', color: '#ffe066' },
+      { offset: '50%', color: '#7dff9b' },
+      { offset: '67%', color: '#66b3ff' },
+      { offset: '84%', color: '#9b8cff' },
+      { offset: '100%', color: '#ff7ba1' },
+    ],
+  },
 };
 
 interface NameplateProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -142,6 +162,7 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
 
   const width = Math.max(textWidth, 1);
   const height = Math.max(fontSize, 1);
+  const isRainbowStyle = styleKey === 'rainbow';
 
   return (
     <span
@@ -160,6 +181,15 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
       >
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+            {isRainbowStyle && (
+              <animateTransform
+                attributeName="gradientTransform"
+                type="rotate"
+                values="0 0.5 0.5;360 0.5 0.5"
+                dur="6s"
+                repeatCount="indefinite"
+              />
+            )}
             {gradientStops.map(stop => (
               <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
             ))}

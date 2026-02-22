@@ -1,6 +1,6 @@
 import express, { Request, RequestHandler } from 'express';
 import cors from 'cors';
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { connectDB } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
@@ -57,24 +57,32 @@ if (CORS_ORIGINS.includes('*')) {
   );
 }
 
+export const rateLimitKeyGenerator = (req: Request): string => {
+  const requestIp = getRequestIp(req);
+
+  let ip = 'unknown-ip';
+  if (requestIp) {
+    ip = ipKeyGenerator(requestIp);
+  }
+
+  const userAgent = req.get('user-agent') || 'unknown-ua';
+  const acceptLanguage = req.get('accept-language') || 'unknown-lang';
+  const forwardedProto = req.get('x-forwarded-proto') || 'unknown-proto';
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const userId = (req as any).authUser?.uuid || 'anonymous';
+
+  const key = `${ip}:${userId}:${userAgent}:${acceptLanguage}:${forwardedProto}`;
+
+  return key;
+};
+
 // General rate limiter: 200 requests per 15 minutes per IP
 const generalLimiter = (rateLimit as (options: Record<string, unknown>) => RequestHandler)({
   windowMs: 15 * 60 * 1000,
   limit: 200,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  keyGenerator: (req: Request) => {
-    const ip = getRequestIp(req) ?? req.ip ?? 'unknown-ip';
-    const userAgent = req.get('user-agent') || 'unknown-ua';
-    const acceptLanguage = req.get('accept-language') || 'unknown-lang';
-    const forwardedProto = req.get('x-forwarded-proto') || 'unknown-proto';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const userId = (req as any).authUser?.uuid || 'anonymous';
-
-    const key = `${ip}:${userId}:${userAgent}:${acceptLanguage}:${forwardedProto}`;
-
-    return key;
-  },
+  keyGenerator: rateLimitKeyGenerator,
   message: { error: 'Too many requests, please try again later.' },
   skip: (req: Request) => req.path.startsWith('/api/hooks/stripe'),
 });

@@ -1480,6 +1480,46 @@ html[data-theme='dark'] .app-logo-light {
   justify-content: flex-end;
 }
 
+.upgrades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.upgrade-card {
+  background-color: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 400px;
+}
+
+.upgrade-card.active {
+  background-color: var(--bg);
+  border-color: var(--primary-3);
+}
+
+.upgrade-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.upgrade-description {
+  font-size: 1rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.upgrade-card .spacer {
+  flex-grow: 1;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-header {
