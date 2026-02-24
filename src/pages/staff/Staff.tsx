@@ -1042,7 +1042,7 @@ export default function Staff() {
                 label: '📜 Logs',
                 requiredRole: 'mod',
               },
-              { key: 'users', label: '👥 Users', requiredRole: 'admin' },
+              { key: 'users', label: '👥 Users', requiredRole: 'mod' },
               { key: 'ip', label: '🧭 IP', requiredRole: 'admin' },
               { key: 'features', label: '🧩 Features', requiredRole: 'admin' },
             ] as const;
