@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 # This script writes the commit hash and timestamp to src/version.ts
 echo "Generating version file..."
