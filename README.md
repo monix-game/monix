@@ -67,4 +67,4 @@ You can use <legal@proplayer919.dev> for legal inquires.
 
 ## Policies
 
-To view the Terms of Service, Privacy Policy, Community Guidelines, Automated Moderation Disclaimer and other policies, go to the `policies` folder of this repository or visit the website at <https://monix-policies.proplayer919.dev>
+To view the Terms of Service, Privacy Policy, Community Guidelines, Automated Moderation Disclaimer and other policies, go to <https://github.com/monix-game/policies>.
