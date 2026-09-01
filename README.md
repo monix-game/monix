@@ -34,7 +34,7 @@ Next, install the dependencies for the client and server:
 
 ```bash
 npm install
-cd server && npm install && cd ..
+cd server && bun install && cd ..
 ```
 
 You can now work on Monix and contribute your changes by opening a pull request.

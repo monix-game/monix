@@ -45,11 +45,11 @@ export const actionCards: ActionCard[] = [
       piecesToRemove.forEach(({ row, col }) => {
         const piece = board.getPieceAt({ row, col });
 
-        if (piece && piece.player === piecePlayer.type) {
+        if (piece?.player === piecePlayer.type) {
           return; // Skip removing own pieces
         }
 
-        if (defense && defense.id === 'armoured-pieces') {
+        if (defense?.id === 'armoured-pieces') {
           if (piece && piece.player !== piecePlayer.type) {
             return; // Opponent's piece is protected
           }
@@ -87,11 +87,11 @@ export const actionCards: ActionCard[] = [
 
           const piece = board.getPieceAt({ row: r, col: c });
 
-          if (piece && piece.player === piecePlayer.type) {
+          if (piece?.player === piecePlayer.type) {
             break; // Stop if own piece encountered
           }
 
-          if (defense && defense.id === 'armoured-pieces') {
+          if (defense?.id === 'armoured-pieces') {
             if (piece && piece.player !== piecePlayer.type) {
               break; // Opponent's piece is protected
             }
@@ -129,11 +129,11 @@ export const actionCards: ActionCard[] = [
 
         const piece = board.getPieceAt({ row: r, col: c });
 
-        if (piece && piece.player === piecePlayer.type) {
+        if (piece?.player === piecePlayer.type) {
           return; // Skip own pieces
         }
 
-        if (defense && defense.id === 'armoured-pieces') {
+        if (defense?.id === 'armoured-pieces') {
           if (piece && piece.player !== piecePlayer.type) {
             return; // Opponent's piece is protected
           }

@@ -2,9 +2,8 @@ import { discordClient } from '../constants';
 import { LogEntry, LogLevel } from '../../common/models/logEntry';
 import { DiscordEmbed } from './discord';
 import { createLogEntry } from '../db';
-import type { Request } from 'express';
 import { titleCase } from '../../common/math';
-import { getRequestIp } from './ip';
+import { getRequestIp, type HeaderMap } from './ip';
 
 const colorMap: Record<LogLevel, number> = {
   info: 0x3498db, // blue
@@ -18,7 +17,13 @@ type LogFieldInput = {
   inline?: boolean;
 };
 
-export function buildRequestLogData(req: Request, fields: LogFieldInput[] = []) {
+type LogRequestContext = {
+  path: string;
+  method: string;
+  headers: HeaderMap;
+};
+
+export function buildRequestLogData(req: LogRequestContext, fields: LogFieldInput[] = []) {
   const data: NonNullable<LogEntry['data']> = [];
 
   const pushField = (field: LogFieldInput) => {
@@ -36,11 +41,12 @@ export function buildRequestLogData(req: Request, fields: LogFieldInput[] = []) 
   };
 
   pushField({ key: 'method', value: req.method });
-  pushField({ key: 'path', value: req.originalUrl });
-  pushField({ key: 'ip', value: getRequestIp(req) });
+  pushField({ key: 'path', value: req.path });
+  pushField({ key: 'ip', value: getRequestIp(req.headers) });
+  const userAgent = req.headers['user-agent'];
   pushField({
     key: 'userAgent',
-    value: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined,
+    value: userAgent || undefined,
     inline: false,
   });
 

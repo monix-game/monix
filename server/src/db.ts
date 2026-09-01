@@ -19,7 +19,14 @@ let client: MongoClient | null = null;
 let db: Db | null = null;
 
 export async function connectDB(uri: string) {
-  client = new MongoClient(uri);
+  client = new MongoClient(uri, {
+    maxPoolSize: 50,
+    minPoolSize: 1,
+    serverSelectionTimeoutMS: 3000,
+    connectTimeoutMS: 15000,
+    socketTimeoutMS: 30000,
+    waitQueueTimeoutMS: 5000,
+  });
   await client.connect();
   db = client.db();
 

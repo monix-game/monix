@@ -1,5 +1,5 @@
 import './Staff.css';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, startTransition } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
 import {
@@ -209,7 +209,7 @@ export default function Staff() {
   }, []);
 
   useEffect(() => {
-    void updateEverything();
+    startTransition(() => { void updateEverything(); });
 
     const interval = setInterval(async () => {
       await updateEverything();
@@ -224,7 +224,7 @@ export default function Staff() {
     let mounted = true;
     const loadLogs = async (showLoading = false) => {
       if (showLoading) setLogsHydrated(false);
-      const entries = await (getStaffLogs as (limit?: number) => Promise<LogEntry[]>)(200);
+      const entries = await getStaffLogs(200);
       if (!mounted) return;
       setLogs(entries);
       setLogsHydrated(true);
@@ -257,7 +257,7 @@ export default function Staff() {
 
   const handleRefreshLogs = useCallback(async () => {
     setLogsHydrated(false);
-    const entries = await (getStaffLogs as (limit?: number) => Promise<LogEntry[]>)(200);
+    const entries = await getStaffLogs(200);
     setLogs(entries);
     setLogsHydrated(true);
   }, []);
@@ -690,19 +690,21 @@ export default function Staff() {
 
   useEffect(() => {
     if (!ipTabUser) {
-      setIpSelected('');
+      startTransition(() => setIpSelected(''));
       return;
     }
 
     const history = ipTabUser.ip_history || [];
     if (history.length === 0) {
-      setIpSelected('');
+      startTransition(() => setIpSelected(''));
       return;
     }
 
     const latest = history[history.length - 1].ip;
-    setIpSelected(latest);
-    setIpGeoError('');
+    startTransition(() => {
+      setIpSelected(latest);
+      setIpGeoError('');
+    });
   }, [ipTabUser]);
 
   const normalizeIp = (ip: string) => ip.replace('::ffff:', '').trim().toLowerCase();
@@ -767,7 +769,7 @@ export default function Staff() {
 
   useEffect(() => {
     if (!ipSelected) return;
-    void loadIpGeo(ipSelected);
+    startTransition(() => { void loadIpGeo(ipSelected); });
   }, [ipSelected, loadIpGeo]);
 
   const punishmentsForModal = (punishmentsModalUser?.punishments || [])

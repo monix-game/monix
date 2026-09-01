@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "nodenext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "rootDirs": ["src", "common"],
-    "outDir": "dist",
+    "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

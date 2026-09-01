@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import './ResourceGraph.css';
-import { getPriceHistory } from '../../helpers/market';
 import { Graph } from '../graph/Graph';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { EmojiText } from '../EmojiText';
 import { Spinner } from '../spinner/Spinner';
 import { Button } from '../button/Button';
 import { smartFormatNumber } from '../../../server/common/math';
+import { useSocket } from '../../providers/socket';
 
 interface ResourceGraphProps {
   resource: ResourceInfo;
@@ -29,19 +29,30 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
 }) => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
   const [data, setData] = React.useState<number[]>([]);
+  const [currentPrice, setCurrentPrice] = React.useState<number | null>(null);
+
+  const { subscribe } = useSocket();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const history = (await getPriceHistory(resource.id, 1)).slice(-10);
-      setData(history.map(h => h.price));
+    const unsubscribe = subscribe(`resources:${resource.id}`, data => {
+      const history = data as Array<{ time: number; price: number }>;
+      setData(history.slice(-10).map(h => h.price));
       setHydrated(true);
-    };
-    void fetchData();
+    });
+    return unsubscribe;
+  }, [resource.id, subscribe]);
 
-    // Update the history every 5 seconds
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [resource.id]);
+  useEffect(() => {
+    const unsubscribe = subscribe('resources:prices', data => {
+      const prices = data as { [key: string]: number };
+      const price = prices[resource.id];
+      if (typeof price === 'number') setCurrentPrice(price);
+    });
+    return unsubscribe;
+  }, [resource.id, subscribe]);
+
+  const shownPrice =
+    currentPrice !== null ? currentPrice : data.length > 0 ? data.at(-1) || 0 : null;
 
   return (
     <div className="graph-container">
@@ -65,7 +76,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
                 <span>
                   Current Price:{' '}
                   <span className="mono">
-                    {data.length > 0 ? smartFormatNumber(data.at(-1) || 0) : 'N/A'}
+                    {shownPrice !== null ? smartFormatNumber(shownPrice) : 'N/A'}
                   </span>{' '}
                   per {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                 </span>

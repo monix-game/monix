@@ -1,4 +1,3 @@
-import { NextFunction, Request, Response } from 'express';
 import {
   deleteSessionByToken,
   getGlobalSettings,
@@ -8,52 +7,43 @@ import {
 } from './db';
 import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
-import type { IFeatureFlags, IGlobalSettings } from '../common/models/globalSettings';
-import { getRequestIp } from './helpers/ip';
+import type { IFeatureFlags } from '../common/models/globalSettings';
+import type { IUser } from '../common/models/user';
+import type { ISession } from '../common/models/session';
+import { getRequestIp, type HeaderMap } from './helpers/ip';
 
-async function authenticateRequest(req: Request, res: Response) {
-  const unauthorized = () => {
-    res.status(401).json({ message: 'Unauthorized' });
-  };
+type AuthResult = {
+  user: IUser | null;
+  session: ISession | null;
+};
 
-  const authHeader = req.headers['authorization'];
-  if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-    unauthorized();
-    return null;
+async function authenticateRequest(headers: HeaderMap): Promise<AuthResult> {
+  const authHeader = headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { user: null, session: null };
   }
 
   const token = authHeader.substring(7).trim();
   const session = await getSessionByToken(token);
   if (!session) {
-    unauthorized();
-    return null;
+    return { user: null, session: null };
   }
 
   const user = await getUserByUUID(session.user_uuid);
   if (!user) {
-    unauthorized();
-    return null;
+    return { user: null, session: null };
   }
 
   const currentTime = Date.now() / 1000;
   if (session.expires_at < currentTime) {
-    unauthorized();
     await deleteSessionByToken(token);
-    return null;
+    return { user: null, session: null };
   }
 
-  // @ts-expect-error We are adding a custom property to the Request object
-  req.authUser = user;
-  // @ts-expect-error We are adding a custom property to the Request object
-  req.authSession = session;
-  // @ts-expect-error We are adding a custom property to the Request object
-  req.authUserLastSeen = user.last_seen ?? 0;
-
-  // Update last_seen timestamp
   user.last_seen = Date.now();
 
   // Add IP to user's IP history
-  const ip = getRequestIp(req);
+  const ip = getRequestIp(headers);
   if (ip) {
     user.ip_history = user.ip_history || [];
     // Only add to history if it's not the same as the last recorded IP to avoid duplicates
@@ -68,51 +58,71 @@ async function authenticateRequest(req: Request, res: Response) {
 
   await updateUser(user);
 
-  return user;
+  return { user, session };
 }
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const user = await authenticateRequest(req, res);
-  if (!user) return;
-  next();
+/**
+ * Derives `authUser` from the request headers. Apply this in each endpoint that
+ * requires an authenticated user.
+ */
+export async function deriveAuth(
+  headers: HeaderMap
+): Promise<{ authUser: IUser | undefined }> {
+  const { user } = await authenticateRequest(headers);
+  return { authUser: user ?? undefined };
 }
 
-export async function requireActive(req: Request, res: Response, next: NextFunction) {
-  const user = await authenticateRequest(req, res);
-  if (!user) return;
+type GuardContext = {
+  authUser?: IUser;
+  set: { status?: number | string };
+};
 
-  if (isUserBanned(user)) {
-    res.status(403).json({ message: 'Forbidden' });
-    return;
+function unauthorized(set: { status?: number | string }) {
+  set.status = 401;
+  return { message: 'Unauthorized' };
+}
+
+/**
+ * Guard: requires a valid authenticated session.
+ */
+export function onlyAuth({ authUser, set }: GuardContext) {
+  if (!authUser) return unauthorized(set);
+}
+
+/**
+ * Guard: requires an authenticated, non-banned user.
+ */
+export function onlyActive({ authUser, set }: GuardContext) {
+  if (!authUser) return unauthorized(set);
+  if (isUserBanned(authUser)) {
+    set.status = 403;
+    return { message: 'Forbidden' };
   }
-
-  next();
 }
 
-export function requireRole(role: 'admin' | 'mod' | 'helper') {
-  return async function (req: Request, res: Response, next: NextFunction) {
-    const user = await authenticateRequest(req, res);
-    if (!user) return;
-
-    const hasRoleResult = hasRole(user.role, role);
-
-    if (!hasRoleResult) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
+/**
+ * Returns a guard: requires an authenticated session with a specific role (or higher).
+ */
+export function onlyRole(role: 'admin' | 'mod' | 'helper') {
+  return ({ authUser, set }: GuardContext) => {
+    if (!authUser) return unauthorized(set);
+    if (!hasRole(authUser.role, role)) {
+      set.status = 401;
+      return { message: 'Unauthorized' };
     }
-
-    next();
   };
 }
 
-export function requireFeatureEnabled(feature: keyof IFeatureFlags) {
-  return async function (req: Request, res: Response, next: NextFunction) {
-    const settings = (await getGlobalSettings()) as unknown as IGlobalSettings;
+/**
+ * Returns a guard: requires an authenticated session and a feature flag to be enabled.
+ */
+export function onlyFeatureEnabled(feature: keyof IFeatureFlags) {
+  return async ({ authUser, set }: GuardContext) => {
+    if (!authUser) return unauthorized(set);
+    const settings = await getGlobalSettings();
     if (!settings.features[feature]) {
-      res.status(403).json({ error: 'Feature disabled' });
-      return;
+      set.status = 403;
+      return { error: 'Feature disabled' };
     }
-
-    next();
   };
 }

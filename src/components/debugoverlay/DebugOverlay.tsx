@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './DebugOverlay.css';
-import { api } from '../../helpers/api';
+import { useSocket } from '../../providers/socket';
 
 type DebugOverlayPosition = 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
 
@@ -15,6 +15,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ position = 'topleft'
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
   const positionClass = useMemo(() => `debug-overlay-${position}`, [position]);
+  const { ping } = useSocket();
 
   useEffect(() => {
     const updateOnline = () => setIsOnline(navigator.onLine);
@@ -32,17 +33,9 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ position = 'topleft'
     let isMounted = true;
 
     const measurePing = async () => {
-      const start = performance.now();
-      const response = await api.get('/ping', { timeout: 3000, retries: 0 });
-      const end = performance.now();
-
+      const ms = await ping();
       if (!isMounted) return;
-
-      if (response.success) {
-        setPingMs(Math.round(end - start));
-      } else {
-        setPingMs(null);
-      }
+      setPingMs(ms > 0 ? ms : null);
     };
 
     void measurePing();
@@ -54,7 +47,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ position = 'topleft'
       isMounted = false;
       globalThis.clearInterval(intervalId);
     };
-  }, []);
+  }, [ping]);
 
   useEffect(() => {
     let rafId = 0;

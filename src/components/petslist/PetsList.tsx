@@ -8,15 +8,23 @@ import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
 import { PaymentModal } from '../paymentmodal/PaymentModal';
+import { useSocket } from '../../providers/socket';
 
 interface PetsListProps {
   money: number;
   gems: number;
   petSlots?: number;
+  userUuid: string;
   refreshUser: () => Promise<void>;
 }
 
-export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refreshUser }) => {
+export const PetsList: React.FC<PetsListProps> = ({
+  money,
+  gems,
+  petSlots,
+  userUuid,
+  refreshUser,
+}) => {
   const [hydrated, setHydrated] = useState<boolean>(false);
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
@@ -29,21 +37,20 @@ export const PetsList: React.FC<PetsListProps> = ({ money, gems, petSlots, refre
   const [isBuyingSlot, setIsBuyingSlot] = useState<boolean>(false);
   const [isSlotPurchaseLoading, setIsSlotPurchaseLoading] = useState<boolean>(false);
 
+  const { subscribe } = useSocket();
+
   const fetchPets = async () => {
     const fetchedPets = await getAllPets();
     setPets(fetchedPets);
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchPets();
-    setHydrated(true);
-
-    const interval = setInterval(() => {
-      void fetchPets();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    const unsubscribe = subscribe(`pets:${userUuid}`, data => {
+      setPets(data as IPet[]);
+      setHydrated(true);
+    });
+    return unsubscribe;
+  }, [userUuid, subscribe]);
 
   return (
     <>

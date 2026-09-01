@@ -82,7 +82,7 @@ export class Board {
     }
 
     // Cheat card "Telekinesis" allows any move
-    if (move.playedCheatCard && move.playedCheatCard.id === 'telekinesis') {
+    if (move.playedCheatCard?.id === 'telekinesis') {
       return true;
     }
 

@@ -1,5 +1,5 @@
 import './Game.css';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
 import {
@@ -29,14 +29,12 @@ import {
   buyUpgrade,
   completeTutorial,
   equipCosmetic,
-  fetchUser,
   resetTutorial,
   unequipCosmetic,
 } from '../../helpers/auth';
 import { claimDailyReward, type DailyRewardClaimResult } from '../../helpers/rewards';
-import { getResourceQuantity, getTotalResourceValue } from '../../helpers/resource';
+import { getResourceQuantity } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
-import { getPrices } from '../../helpers/market';
 import {
   formatRemainingMilliseconds,
   formatRemainingTime,
@@ -45,7 +43,6 @@ import {
 } from '../../../server/common/math';
 import { createPaymentSession } from '../../helpers/payments';
 import type { IRoom } from '../../../server/common/models/room';
-import { getAllRooms } from '../../helpers/social';
 import { getCurrentPunishment, isUserBanned } from '../../../server/common/punishx/punishx';
 import { getRemainingDuration, type IPunishment } from '../../../server/common/models/punishment';
 import { getMyAppeals, submitAppeal } from '../../helpers/appeals';
@@ -81,9 +78,9 @@ import {
   DEFAULT_GLOBAL_SETTINGS,
   type IGlobalSettings,
 } from '../../../server/common/models/globalSettings';
-import { getGlobalSettings } from '../../helpers/globalSettings';
 import { createPoll, fetchPolls, type PollView, voteInPoll } from '../../helpers/polls';
 import { UPGRADES } from '../../../server/common/upgrades';
+import { useSocket } from '../../providers/socket';
 
 const toLocalInputDateTime = (timeMs: number) => {
   const offsetMs = new Date(timeMs).getTimezoneOffset() * 60000;
@@ -169,6 +166,7 @@ export default function Game() {
     visitedPets: false,
   });
   const [globalSettings, setGlobalSettings] = useState<IGlobalSettings>(DEFAULT_GLOBAL_SETTINGS);
+  const { subscribe, request } = useSocket();
   type TutorialStep = {
     title: string;
     body: string;
@@ -280,23 +278,14 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-    const fetchSettings = async () => {
-      const settings = await getGlobalSettings();
-      if (!mounted) return;
-      if (settings) {
-        setGlobalSettings(settings);
+    const unsubscribe = subscribe('settings', data => {
+      const snapshot = data as { settings: IGlobalSettings };
+      if (snapshot.settings) {
+        setGlobalSettings(snapshot.settings);
       }
-    };
-
-    void fetchSettings();
-
-    const interval = setInterval(fetchSettings, 5000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+    });
+    return unsubscribe;
+  }, [subscribe]);
 
   useEffect(() => {
     const handleSettingsChanged = (event: Event) => {
@@ -425,9 +414,9 @@ export default function Game() {
   useEffect(() => {
     if (banned) return;
 
-    void refreshPolls(true);
+    startTransition(() => { void refreshPolls(true); });
     const interval = setInterval(() => {
-      void refreshPolls(false);
+      startTransition(() => { void refreshPolls(false); });
     }, 15000);
     return () => clearInterval(interval);
   }, [banned, refreshPolls]);
@@ -435,7 +424,7 @@ export default function Game() {
   useEffect(() => {
     if (tab !== 'polls') return;
 
-    void refreshPolls(false);
+    startTransition(() => { void refreshPolls(false); });
   }, [tab, refreshPolls]);
 
   const addPollOption = useCallback(() => {
@@ -717,41 +706,94 @@ export default function Game() {
     }
   }, [tab, queue.length, currentIndex, enqueue, getRandomTrack]);
 
+  const applyUserData = useCallback(
+    (userData: IUser) => {
+      const jailTabs = ['jail', 'settings', 'appeals'];
+
+      setUser(userData);
+      setUserRole(userData ? userData.role : 'user');
+
+      if (isUserBanned(userData)) {
+        setBanned(true);
+        setCurrentPunishment(getCurrentPunishment(userData));
+        if (!jailTabs.includes(tab)) setTabTo('jail');
+        return;
+      } else if (banned) {
+        setBanned(false);
+        setTabTo('money');
+      }
+
+      const aquariumValue = (userData.fishing?.aquarium?.fish ?? []).reduce(
+        (total, fish) => total + getFishValue(fish),
+        0
+      );
+      setAquariumTotal(aquariumValue);
+      setTotalNetWorth((userData.money || 0) + resourcesTotal + aquariumValue);
+    },
+    [banned, tab, setTabTo, resourcesTotal]
+  );
+
   const updateEverything = useCallback(async () => {
-    const jailTabs = ['jail', 'settings', 'appeals'];
+    try {
+      const userResp = (await request('user:get', {}, 'user_snapshot')) as {
+        data?: { user?: IUser };
+      };
+      const userData = userResp?.data?.user;
+      if (!userData) {
+        globalThis.location.href = '/auth/login';
+        return;
+      }
+      applyUserData(userData);
 
-    const userData = await fetchUser();
-    if (!userData) globalThis.location.href = '/auth/login';
-
-    setUser(userData);
-    setUserRole(userData ? userData.role : 'user');
-
-    const myAppeals = await getMyAppeals();
-    setMyAppeals(myAppeals);
-
-    if (isUserBanned(userData!)) {
-      setBanned(true);
-      setCurrentPunishment(getCurrentPunishment(userData!));
-      if (!jailTabs.includes(tab)) setTabTo('jail');
-      return;
-    } else if (banned) {
-      setBanned(false);
-      setTabTo('money');
+      try {
+        const roomsResp = (await request('socialRooms:get', {}, 'socialRooms_snapshot')) as {
+          data?: { rooms?: unknown[] };
+        };
+        const rooms = roomsResp?.data?.rooms;
+        if (Array.isArray(rooms)) {
+          setSocialRooms(rooms as IRoom[]);
+        }
+      } catch {
+        // Rooms are optional; ignore failures.
+      }
+    } catch {
+      // Socket not available; ignore.
     }
+  }, [applyUserData, request]);
 
-    const totalResources = resourceMarketDisabled ? 0 : await getTotalResourceValue();
-    const aquariumValue = (userData?.fishing?.aquarium?.fish ?? []).reduce(
-      (total, fish) => total + getFishValue(fish),
-      0
-    );
+  // Live user + rooms via the authenticated socket (replaces 1s HTTP polling).
+  useEffect(() => {
+    const unsubUser = subscribe('user:me', data => {
+      const snapshot = data as { user?: IUser };
+      if (snapshot?.user) {
+        void applyUserData(snapshot.user);
+      }
+    });
+    const unsubRooms = subscribe('socialRooms', data => {
+      const snapshot = data as { rooms?: unknown[] };
+      if (Array.isArray(snapshot?.rooms)) {
+        setSocialRooms(snapshot.rooms as typeof socialRooms);
+      }
+    });
+    return () => {
+      unsubUser();
+      unsubRooms();
+    };
+  }, [subscribe, applyUserData, socialRooms]);
 
-    setResourcesTotal(totalResources);
-    setAquariumTotal(aquariumValue);
-    setTotalNetWorth((userData?.money || 0) + totalResources + aquariumValue);
-
-    const socialRooms = socialDisabled ? [] : await getAllRooms();
-    setSocialRooms(socialRooms);
-  }, [tab, setTabTo, banned, resourceMarketDisabled, socialDisabled]);
+  // Appeals only change rarely; refresh on mount and whenever the jail tab is opened.
+  useEffect(() => {
+    let mounted = true;
+    const loadAppeals = async () => {
+      const appeals = await getMyAppeals();
+      if (mounted) setMyAppeals(appeals);
+    };
+    void loadAppeals();
+    if (tab !== 'jail') return;
+    return () => {
+      mounted = false;
+    };
+  }, [tab]);
 
   const startTutorial = useCallback(async () => {
     setTutorialStep(0);
@@ -784,16 +826,11 @@ export default function Game() {
   }, [updateEverything, user]);
 
   useEffect(() => {
-    void updateEverything().then(() => setGameHydrated(true));
+    startTransition(() => { void updateEverything().then(() => setGameHydrated(true)); });
 
     // Set radio volume based on settings
     const settings = loadSettings();
     setVolume(settings.musicVolume / 100);
-
-    const interval = setInterval(async () => {
-      await updateEverything();
-    }, 1000);
-    return () => clearInterval(interval);
   }, [updateEverything, setVolume]);
 
   useEffect(() => {
@@ -810,45 +847,48 @@ export default function Game() {
   useEffect(() => {
     if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
 
-    setIsTutorialOpen(true);
+    startTransition(() => setIsTutorialOpen(true));
   }, [user, isTutorialOpen, banned]);
 
   useEffect(() => {
     if (!isTutorialOpen || !currentTutorialStep?.tab) return;
+    const targetTab = currentTutorialStep.tab;
 
-    setTabTo(currentTutorialStep.tab);
+    startTransition(() => setTabTo(targetTab));
   }, [currentTutorialStep, isTutorialOpen, setTabTo]);
 
   useEffect(() => {
     if (!isTutorialOpen) return;
 
-    if (tab === 'resources' && marketModalResource) {
-      setTutorialProgress(prev => ({
-        ...prev,
-        openedResourceModal: true,
-      }));
-    }
+    startTransition(() => {
+      if (tab === 'resources' && marketModalResource) {
+        setTutorialProgress(prev => ({
+          ...prev,
+          openedResourceModal: true,
+        }));
+      }
 
-    if (tab === 'market' && marketModalOpen) {
-      setTutorialProgress(prev => ({
-        ...prev,
-        openedMarketModal: true,
-      }));
-    }
+      if (tab === 'market' && marketModalOpen) {
+        setTutorialProgress(prev => ({
+          ...prev,
+          openedMarketModal: true,
+        }));
+      }
 
-    if (tab === 'aquarium') {
-      setTutorialProgress(prev => ({
-        ...prev,
-        visitedAquarium: true,
-      }));
-    }
+      if (tab === 'aquarium') {
+        setTutorialProgress(prev => ({
+          ...prev,
+          visitedAquarium: true,
+        }));
+      }
 
-    if (tab === 'pets') {
-      setTutorialProgress(prev => ({
-        ...prev,
-        visitedPets: true,
-      }));
-    }
+      if (tab === 'pets') {
+        setTutorialProgress(prev => ({
+          ...prev,
+          visitedPets: true,
+        }));
+      }
+    });
   }, [isTutorialOpen, tab, marketModalResource, marketModalOpen]);
 
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
@@ -862,10 +902,41 @@ export default function Game() {
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
 
-  useEffect(() => {
-    let mounted = true;
-    let intervalId: number | undefined;
+  const recomputeResources = useCallback(async (prices: { [key: string]: number }) => {
+    if (banned || resourceMarketDisabled) return;
+    const resourcesCopy = [...resources];
 
+    const quantitiesMap: { [key: string]: number } = {};
+    for (const resource of resourcesCopy) {
+      const qty = await getResourceQuantity(resource.id);
+      quantitiesMap[resource.id] = qty || 0;
+    }
+    setResourceQuantities(quantitiesMap);
+
+    const resourcesWithValues = resourcesCopy.map(resource => ({
+      resource,
+      value: prices[resource.id] * (quantitiesMap[resource.id] || 0),
+    }));
+
+    resourcesWithValues.sort((a, b) => b.value - a.value);
+    setSortedResources(resourcesWithValues.map(item => item.resource));
+
+    const pricesMap: { [key: string]: number } = {};
+    resourcesWithValues.forEach(item => {
+      pricesMap[item.resource.id] = prices[item.resource.id];
+    });
+    setResourcePrices(pricesMap);
+
+    const totalValue = resourcesWithValues.reduce((sum, item) => sum + item.value, 0);
+    setResourcesTotal(totalValue);
+    const aquariumValue = (user?.fishing?.aquarium?.fish ?? []).reduce(
+      (total, fish) => total + getFishValue(fish),
+      0
+    );
+    setTotalNetWorth((user?.money || 0) + totalValue + aquariumValue);
+  }, [banned, resourceMarketDisabled, user]);
+
+  useEffect(() => {
     if (resourceMarketDisabled) {
       queueMicrotask(() => {
         setResourceListHydrated(true);
@@ -873,64 +944,17 @@ export default function Game() {
         setResourcePrices({});
         setResourceQuantities({});
       });
-      return () => {
-        mounted = false;
-        if (intervalId !== undefined) clearInterval(intervalId);
-      };
+      return;
     }
 
-    const updateResource = async () => {
-      if (banned || resourceMarketDisabled) return;
+    const unsubscribe = subscribe('resources:prices', data => {
+      void recomputeResources(data as { [key: string]: number }).then(() =>
+        setResourceListHydrated(true)
+      );
+    });
 
-      const resourcesCopy = [...resources];
-
-      const fetchedPrices = await getPrices();
-
-      // Get the quantities for all resources
-      const quantitiesMap: { [key: string]: number } = {};
-      for (const resource of resourcesCopy) {
-        const qty = await getResourceQuantity(resource.id);
-        quantitiesMap[resource.id] = qty || 0;
-      }
-
-      setResourceQuantities(quantitiesMap);
-
-      // Calculate values for each resource
-      const resourcesWithValues = resourcesCopy.map(resource => ({
-        resource,
-        value: fetchedPrices[resource.id] * (quantitiesMap[resource.id] || 0),
-      }));
-
-      // Sort by value descending
-      resourcesWithValues.sort((a, b) => b.value - a.value);
-
-      // Extract sorted resources
-      setSortedResources(resourcesWithValues.map(item => item.resource));
-
-      // Update resource values state
-      const pricesMap: { [key: string]: number } = {};
-      resourcesWithValues.forEach(item => {
-        pricesMap[item.resource.id] = fetchedPrices[item.resource.id];
-      });
-      setResourcePrices(pricesMap);
-    };
-
-    const init = async () => {
-      await updateResource();
-      if (mounted) setResourceListHydrated(true);
-
-      intervalId = setInterval(async () => {
-        await updateResource();
-      }, 5000);
-    };
-
-    void init();
-
-    return () => {
-      mounted = false;
-      if (intervalId !== undefined) clearInterval(intervalId);
-    };
-  }, [banned, resourceMarketDisabled]);
+    return unsubscribe;
+  }, [resourceMarketDisabled, recomputeResources, subscribe]);
 
   useEffect(() => {
     if (!resourceMarketDisabled) return;
@@ -1853,6 +1877,7 @@ export default function Game() {
                   money={user?.money || 0}
                   gems={user?.gems ?? 0}
                   petSlots={user?.pet_slots}
+                  userUuid={user?.uuid ?? ''}
                   refreshUser={updateEverything}
                 />
               </div>

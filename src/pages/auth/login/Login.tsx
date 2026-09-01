@@ -2,7 +2,7 @@ import '../Auth.css';
 import monixLogoLight from '../../../assets/logo.svg';
 import monixLogoDark from '../../../assets/logo-dark.svg';
 import { AnimatedBackground, Button, Footer, Input } from '../../../components';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { fetchUser, isSignedIn, login, userNeeds2FA } from '../../../helpers/auth';
 import { currentTheme } from '../../../helpers/theme';
 
@@ -77,12 +77,8 @@ export default function Login() {
     }
   };
 
-  const [signedIn, setSignedIn] = useState(false);
+  const signedIn = useState(isSignedIn)[0];
   const [doingTwoFA, setDoingTwoFA] = useState(false);
-
-  useEffect(() => {
-    setSignedIn(isSignedIn());
-  }, []);
 
   return (
     <div className="auth-container">

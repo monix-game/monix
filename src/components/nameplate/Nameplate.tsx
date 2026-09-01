@@ -147,7 +147,6 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
     const computed = globalThis.getComputedStyle(wrapperRef.current);
     const nextFontSize = Number.parseFloat(computed.fontSize || '16');
     const length = textRef.current.getComputedTextLength();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFontSize(nextFontSize || 16);
     setTextWidth(Math.ceil(length) + 2);
   }, [text, className, gradientStops]);

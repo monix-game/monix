@@ -11,6 +11,7 @@ import Cancel from './pages/payment/cancel/Cancel';
 import Staff from './pages/staff/Staff';
 import { MusicProvider } from './providers/MusicProvider';
 import { AnticheatProvider } from './providers/AnticheatProvider';
+import { SocketProvider } from './providers/SocketProvider';
 
 function App() {
   initThemeListener();
@@ -25,11 +26,13 @@ function App() {
         <Route
           path="/game"
           element={
-            <MusicProvider>
-              <AnticheatProvider>
-                <Game />
-              </AnticheatProvider>
-            </MusicProvider>
+            <SocketProvider>
+              <MusicProvider>
+                <AnticheatProvider>
+                  <Game />
+                </AnticheatProvider>
+              </MusicProvider>
+            </SocketProvider>
           }
         />
         <Route path="/payment/success" element={<Success />} />

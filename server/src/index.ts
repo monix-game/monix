@@ -1,111 +1,106 @@
-import express, { Request, RequestHandler } from 'express';
-import cors from 'cors';
-import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { Elysia } from 'elysia';
+import cors from '@elysiajs/cors';
 import { connectDB } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
-import { getRequestIp } from './helpers/ip';
+import { attachSocketServer, setupSocketPublishers } from './socket';
 
-import userRouter from './routes/user';
-import marketRouter from './routes/market';
-import resourcesRouter from './routes/resources';
-import petsRouter from './routes/pets';
-import settingsRouter from './routes/settings';
-import leaderboardRouter from './routes/leaderboard';
-import hooksRouter from './routes/hooks';
-import socialRouter from './routes/social';
-import staffRouter from './routes/staff';
-import appealRouter from './routes/appeals';
-import fishingRouter from './routes/fishing';
-import pingRouter from './routes/ping';
-import pollsRouter from './routes/polls';
+import pingRoutes from './routes/ping';
+import userRoutes from './routes/user';
+import marketRoutes from './routes/market';
+import settingsRoutes from './routes/settings';
+import leaderboardRoutes from './routes/leaderboard';
+import pollsRoutes from './routes/polls';
+import resourcesRoutes from './routes/resources';
+import appealsRoutes from './routes/appeals';
+import hooksRoutes from './routes/hooks';
+import fishingRoutes from './routes/fishing';
+import petsRoutes from './routes/pets';
+import socialRoutes from './routes/social';
+import staffRoutes from './routes/staff';
 
-const app = express();
-
-// Disable headers revealing server information
-app.disable('x-powered-by');
-
-// Make this ignore raw body for the /hooks/stripe endpoint
-app.use(
-  express.json({
-    limit: '200mb',
-    verify: (req, res, buf) => {
-      const url = req.url || '';
-      if (url.startsWith('/api/hooks/stripe')) {
-        // @ts-expect-error We need to set rawBody manually
-        req.rawBody = buf.toString();
-      }
-    },
-  })
-);
-
-app.use(express.urlencoded({ extended: true, limit: '200mb' }));
-
-// Configure CORS: allow all if '*' present, otherwise only listed origins.
-if (CORS_ORIGINS.includes('*')) {
-  app.use(cors());
-} else {
-  app.use(
+const app = new Elysia()
+  .use(
     cors({
-      origin: (origin, callback) => {
-        // allow non-browser tools (curl, server-to-server) with no origin
-        if (!origin) return callback(null, true);
-        if (CORS_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(new Error('Not allowed by CORS'));
+      origin: (request) => {
+        if (CORS_ORIGINS.includes('*')) return true;
+        const origin = request.headers.get('origin');
+        if (!origin) return true;
+        return CORS_ORIGINS.includes(origin);
       },
     })
-  );
+  )
+  .onError(({ code, set, error }) => {
+    if (code === 'VALIDATION') {
+      set.status = 400;
+      return { error: error.message };
+    }
+  })
+  .group('/api/ping', app => app.use(pingRoutes))
+  .group('/api/user', app => app.use(userRoutes))
+  .group('/api/market', app => app.use(marketRoutes))
+  .group('/api/settings', app => app.use(settingsRoutes))
+  .group('/api/leaderboard', app => app.use(leaderboardRoutes))
+  .group('/api/polls', app => app.use(pollsRoutes))
+  .group('/api/resources', app => app.use(resourcesRoutes))
+  .group('/api/appeals', app => app.use(appealsRoutes))
+  .group('/api/hooks', app => app.use(hooksRoutes))
+  .group('/api/fishing', app => app.use(fishingRoutes))
+  .group('/api/pets', app => app.use(petsRoutes))
+  .group('/api/social', app => app.use(socialRoutes))
+  .group('/api/staff', app => app.use(staffRoutes))
+  .compile();
+
+function readBody(req: IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
 }
 
-export const rateLimitKeyGenerator = (req: Request): string => {
-  const requestIp = getRequestIp(req);
+async function writeResponse(res: ServerResponse, response: Response) {
+  res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+  const body = Buffer.from(await response.arrayBuffer());
+  res.end(body);
+}
 
-  let ip = 'unknown-ip';
-  if (requestIp) {
-    ip = ipKeyGenerator(requestIp);
+async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+  try {
+    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (typeof value === 'string') headers.set(key, value);
+      else if (Array.isArray(value)) headers.set(key, value.join(', '));
+    }
+    const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+    const body = hasBody ? (await readBody(req)).toString('utf8') : undefined;
+    const request = new Request(url, {
+      method: req.method,
+      headers,
+      ...(hasBody ? { body } : {}),
+    });
+    const response = await app.fetch(request);
+    await writeResponse(res, response);
+  } catch (err) {
+    console.error('Request handler error:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Internal Server Error' }));
   }
+}
 
-  const userAgent = req.get('user-agent') || 'unknown-ua';
-  const acceptLanguage = req.get('accept-language') || 'unknown-lang';
-  const forwardedProto = req.get('x-forwarded-proto') || 'unknown-proto';
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  const userId = (req as any).authUser?.uuid || 'anonymous';
-
-  const key = `${ip}:${userId}:${userAgent}:${acceptLanguage}:${forwardedProto}`;
-
-  return key;
-};
-
-// General rate limiter: 200 requests per 15 minutes per IP
-const generalLimiter = (rateLimit as (options: Record<string, unknown>) => RequestHandler)({
-  windowMs: 15 * 60 * 1000,
-  limit: 200,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: rateLimitKeyGenerator,
-  message: { error: 'Too many requests, please try again later.' },
-  skip: (req: Request) => req.path.startsWith('/api/hooks/stripe'),
+const server = createServer((req, res) => {
+  void handleRequest(req, res);
 });
-
-app.use('/api/user', userRouter);
-app.use('/api/market', marketRouter);
-app.use('/api/resources', resourcesRouter);
-app.use('/api/pets', petsRouter);
-app.use('/api/settings', settingsRouter);
-app.use('/api/leaderboard', leaderboardRouter);
-app.use('/api/hooks', hooksRouter);
-app.use('/api/social', socialRouter);
-app.use('/api/staff', staffRouter);
-app.use('/api/appeals', appealRouter);
-app.use('/api/fishing', fishingRouter);
-app.use('/api/ping', pingRouter);
-app.use('/api/polls', pollsRouter);
-
-app.use('/api/', generalLimiter);
 
 async function start() {
   await connectDB(MONGO_URI);
-  app.listen(PORT, () => {
+  attachSocketServer(server);
+  setupSocketPublishers();
+  server.listen(PORT, () => {
     console.log(`Starting server on port ${PORT}`);
   });
 }

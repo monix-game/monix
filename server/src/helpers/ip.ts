@@ -1,25 +1,22 @@
-import type { Request } from 'express';
 import { SERVER_PUBLIC_IP } from '../constants';
 
-export function getRequestIp(req: Request): string | undefined {
+export type HeaderMap = Record<string, string | undefined>;
+
+export function getRequestIp(headers: HeaderMap, remoteIp?: string): string | undefined {
   let foundIp: string | undefined;
 
-  const forwarded = req.headers['x-forwarded-for'];
-  if (Array.isArray(forwarded) && forwarded.length > 0) {
-    foundIp = forwarded[0].split(',')[0]?.trim();
-  }
-
-  if (typeof forwarded === 'string') {
+  const forwarded = headers['x-forwarded-for'];
+  if (forwarded) {
     foundIp = forwarded.split(',')[0]?.trim();
   }
 
-  const realIp = req.headers['x-real-ip'];
-  if (typeof realIp === 'string' && realIp.trim() !== '') {
+  const realIp = headers['x-real-ip'];
+  if (realIp && realIp.trim() !== '') {
     foundIp = realIp.trim();
   }
 
-  const clientIp = req.headers['client-ip'];
-  if (typeof clientIp === 'string' && clientIp.trim() !== '') {
+  const clientIp = headers['client-ip'];
+  if (clientIp && clientIp.trim() !== '') {
     foundIp = clientIp.trim();
   }
 
@@ -33,9 +30,9 @@ export function getRequestIp(req: Request): string | undefined {
     foundIp = SERVER_PUBLIC_IP || foundIp;
   }
 
-  if (!foundIp && req.ip && loopbackIps.has(req.ip)) {
-    foundIp = SERVER_PUBLIC_IP || req.ip;
+  if (!foundIp && remoteIp && loopbackIps.has(remoteIp)) {
+    foundIp = SERVER_PUBLIC_IP || remoteIp;
   }
 
-  return foundIp || req.ip || req.socket.remoteAddress || undefined;
+  return foundIp || remoteIp || undefined;
 }

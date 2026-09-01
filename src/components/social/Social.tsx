@@ -7,7 +7,6 @@ import {
   editMessage,
   getRoomMessages,
   reportMessage,
-  sendMessage,
 } from '../../helpers/social';
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
@@ -21,6 +20,7 @@ import { Message } from '../message/Message';
 import { hasRole } from '../../../server/common/roles';
 import { Spinner } from '../spinner/Spinner';
 import Filter from '../../../server/common/filter/filter';
+import { useSocket } from '../../providers/socket';
 
 interface SocialProps {
   user: IUser;
@@ -107,25 +107,34 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const fetchMessages = useCallback(
     async (roomUUID?: string) => {
       const targetRoomUuid = roomUUID || room.uuid;
-      const msgs = await getRoomMessages(targetRoomUuid);
+      const msgs = (await getRoomMessages(targetRoomUuid)).filter(
+        m => !m.ephemeral || m.ephemeral_user_uuid === user.uuid
+      );
       if (currentRoomUuidRef.current !== targetRoomUuid) return;
       setHydrated(true);
       if (!areMessagesEqual(messagesRef.current, msgs)) {
         setMessages(msgs);
       }
     },
-    [room.uuid]
+    [room.uuid, user.uuid]
   );
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchMessages();
+  const { subscribe, request } = useSocket();
 
-    const interval = setInterval(() => {
-      void fetchMessages();
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [fetchMessages, room.uuid]);
+  useEffect(() => {
+    const channel = `chat:${room.uuid}`;
+    const unsubscribe = subscribe(channel, data => {
+      if (currentRoomUuidRef.current !== room.uuid) return;
+      const msgs = (data as IMessage[]).filter(
+        m => !m.ephemeral || m.ephemeral_user_uuid === user.uuid
+      );
+      setHydrated(true);
+      if (!areMessagesEqual(messagesRef.current, msgs)) {
+        setMessages(msgs);
+      }
+    });
+    return unsubscribe;
+  }, [room.uuid, subscribe, user.uuid]);
 
   const sendMessageClick = async () => {
     if (messageInput.trim() === '') return;
@@ -141,14 +150,11 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     // Clear input
     setMessageInput('');
 
-    // Send message to server
-    await sendMessage(room.uuid, trimmedMessage);
-
     const optimisticContent = trimmedMessage.startsWith('/')
       ? 'Running command...'
       : profanityFilter.censorText(trimmedMessage);
 
-    // Optimistically add message to UI (will be replaced on next fetch)
+    // Optimistically add message to UI (will be replaced by the WS snapshot)
     setMessages(prev => [
       ...prev,
       {
@@ -165,11 +171,22 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
         time_sent: Date.now(),
         ephemeral: false,
         edited: false,
-      } as IMessage,
+      },
     ]);
 
-    // Refresh messages
-    await fetchMessages();
+    // Send over the socket; a fresh chat snapshot is pushed on success.
+    try {
+      const resp = (await request(
+        'chat:send',
+        { room_uuid: room.uuid, content: trimmedMessage },
+        'chat:send_result'
+      )) as { ok: boolean; error?: string };
+      if (!resp.ok) {
+        setMessages(prev => prev.filter(m => !(m.uuid ?? '').startsWith('temp-')));
+      }
+    } catch {
+      setMessages(prev => prev.filter(m => !(m.uuid ?? '').startsWith('temp-')));
+    }
   };
 
   const reportMessageClick = async () => {

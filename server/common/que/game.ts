@@ -206,8 +206,7 @@ export class Game {
       // Figure out if any defense card is active for the current player
       let defenseCard: DefenseCard | undefined = undefined;
       if (
-        player.activeDefenseCard &&
-        player.activeDefenseCard.defendedAgainst?.some(
+        player.activeDefenseCard?.defendedAgainst?.some(
           card => card.id === move.playedActionCard!.id
         )
       ) {

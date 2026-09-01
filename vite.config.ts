@@ -18,6 +18,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Proxy WebSocket connections to the local backend during development
+      '/ws': {
+        target: 'ws://localhost:6200',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   build: {

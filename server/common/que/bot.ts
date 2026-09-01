@@ -141,7 +141,7 @@ const findTelekinesisOpportunity = (
   player: Player,
   board: Board
 ): { pos: Position; tkScore: number; potential: number } | null => {
-  const telekinesis = player.cards.find(card => card.id === 'telekinesis');
+  const telekinesis = player.cards.some(card => card.id === 'telekinesis');
   if (!telekinesis) return null;
 
   let best: { pos: Position; tkScore: number; potential: number } | null = null;

@@ -35,9 +35,10 @@ export async function fetchAndCacheResources(): Promise<void> {
     if (resp?.success) {
       const payload = resp.data;
       if (payload?.resources) {
-        for (const resourceId of Object.keys(payload.resources)) {
-          resourceCache[resourceId] = {
-            quantity: payload.resources[resourceId],
+        // Seed every frontend resource so nothing perpetually misses the cache.
+        for (const resource of resources) {
+          resourceCache[resource.id] = {
+            quantity: payload.resources[resource.id] ?? 0,
             time,
           };
         }

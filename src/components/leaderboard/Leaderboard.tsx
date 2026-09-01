@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import './Leaderboard.css';
 import {
-  fetchFishLeaderboard,
-  fetchLeaderboard,
   type FishLeaderboardEntry,
   type LeaderboardEntry,
 } from '../../helpers/leaderboard';
@@ -13,6 +11,7 @@ import { Checkbox } from '../checkbox/Checkbox';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { EmojiText } from '../EmojiText';
 import { Nameplate } from '../nameplate/Nameplate';
+import { useSocket } from '../../providers/socket';
 
 export const Leaderboard: React.FC = () => {
   const [hydrated, setHydrated] = React.useState<boolean>(false);
@@ -27,6 +26,8 @@ export const Leaderboard: React.FC = () => {
   }>({ normal: [], noStaff: [] });
   const [hideStaff, setHideStaff] = React.useState<boolean>(false);
 
+  const { subscribe } = useSocket();
+
   const getLeaderboardData = () => {
     const isMoney = activeTab === 'money';
     if (hideStaff) {
@@ -40,25 +41,22 @@ export const Leaderboard: React.FC = () => {
   const listData = currentData.slice(3);
 
   useEffect(() => {
-    async function loadLeaderboard() {
-      const [moneyData, fishData] = await Promise.all([fetchLeaderboard(), fetchFishLeaderboard()]);
-      if (moneyData) {
-        setRawMoneyData(moneyData);
-      }
-      if (fishData) {
-        setRawFishData(fishData);
-      }
-      setHydrated(Boolean(moneyData || fishData));
-    }
+    const markHydrated = () => setHydrated(true);
 
-    void loadLeaderboard();
+    const unsubMoney = subscribe('leaderboard:money', data => {
+      setRawMoneyData(data as { normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] });
+      markHydrated();
+    });
+    const unsubFish = subscribe('leaderboard:fish', data => {
+      setRawFishData(data as { normal: FishLeaderboardEntry[]; noStaff: FishLeaderboardEntry[] });
+      markHydrated();
+    });
 
-    const interval = setInterval(() => {
-      void loadLeaderboard();
-    }, 10000); // Refresh every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [hideStaff]);
+    return () => {
+      unsubMoney();
+      unsubFish();
+    };
+  }, [subscribe]);
 
   const isMoneyTab = activeTab === 'money';
 

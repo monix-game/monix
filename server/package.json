@@ -2,30 +2,28 @@
   "name": "monix-server",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "src/index.ts",
+  "type": "module",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "test": "npm run build && rm -rf dist",
-    "start": "node dist/src/index.js"
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "axios": "^1.13.5",
-    "cors": "^2.8.6",
-    "dotenv": "^16.0.0",
-    "express": "^4.18.2",
-    "express-rate-limit": "^8.2.1",
-    "mongodb": "^5.7.0",
+    "@elysiajs/cors": "^1.4.2",
+    "@sinclair/typebox": "^0.34.52",
+    "@types/ws": "^8.5.13",
+    "axios": "^1.20.0",
+    "elysia": "^1.4.30",
+    "mongodb": "^5.9.2",
     "sharp": "^0.34.5",
-    "stripe": "^20.4.0",
-    "totp-generator-ts": "^1.0.3",
-    "uuid": "^9.0.0"
+    "stripe": "^22.6.0",
+    "tsx": "^4.19.2",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
     "@types/uuid": "^10.0.0",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.1.6"
+    "typescript": "^5.9.3"
   }
 }
