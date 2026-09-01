@@ -138,7 +138,6 @@ export default function Staff() {
   const [editCosmeticsUnlocked, setEditCosmeticsUnlocked] = useState<string[]>([]);
   const [editEquippedNameplate, setEditEquippedNameplate] = useState<string>('');
   const [editEquippedTag, setEditEquippedTag] = useState<string>('');
-  const [editEquippedFrame, setEditEquippedFrame] = useState<string>('');
   const [editUserError, setEditUserError] = useState<string>('');
   const [editUserSaving, setEditUserSaving] = useState<boolean>(false);
 
@@ -443,13 +442,9 @@ export default function Staff() {
     if (equipped.tag && !unlocked.includes(equipped.tag)) {
       unlocked.push(equipped.tag);
     }
-    if (equipped.frame && !unlocked.includes(equipped.frame)) {
-      unlocked.push(equipped.frame);
-    }
     setEditCosmeticsUnlocked(unlocked);
     setEditEquippedNameplate(equipped.nameplate || '');
     setEditEquippedTag(equipped.tag || '');
-    setEditEquippedFrame(equipped.frame || '');
     setEditUserError('');
     setEditUserModalOpen(true);
   }, []);
@@ -641,7 +636,6 @@ export default function Staff() {
         if (isUnlocked) {
           setEditEquippedNameplate(current => (current === cosmeticId ? '' : current));
           setEditEquippedTag(current => (current === cosmeticId ? '' : current));
-          setEditEquippedFrame(current => (current === cosmeticId ? '' : current));
         }
 
         return next;
@@ -659,14 +653,12 @@ export default function Staff() {
     const unlockedSet = new Set(editCosmeticsUnlocked);
     if (editEquippedNameplate) unlockedSet.add(editEquippedNameplate);
     if (editEquippedTag) unlockedSet.add(editEquippedTag);
-    if (editEquippedFrame) unlockedSet.add(editEquippedFrame);
 
     const updatedUser = await updateStaffUser(editUserTarget.uuid, {
       cosmetics_unlocked: Array.from(unlockedSet),
       equipped_cosmetics: {
         nameplate: editEquippedNameplate || undefined,
         tag: editEquippedTag || undefined,
-        frame: editEquippedFrame || undefined,
       },
     });
 
@@ -682,7 +674,6 @@ export default function Staff() {
   }, [
     applyUpdatedUser,
     editCosmeticsUnlocked,
-    editEquippedFrame,
     editEquippedNameplate,
     editEquippedTag,
     editUserTarget,
@@ -947,13 +938,11 @@ export default function Staff() {
   const cosmeticsByType = {
     nameplate: cosmetics.filter(c => c.type === 'nameplate'),
     tag: cosmetics.filter(c => c.type === 'tag'),
-    frame: cosmetics.filter(c => c.type === 'frame'),
   };
   const unlockedCosmetics = new Set(editCosmeticsUnlocked);
   const unlockedOptionsByType = {
     nameplate: cosmeticsByType.nameplate.filter(c => unlockedCosmetics.has(c.id)),
     tag: cosmeticsByType.tag.filter(c => unlockedCosmetics.has(c.id)),
-    frame: cosmeticsByType.frame.filter(c => unlockedCosmetics.has(c.id)),
   };
   const selectedIpGeo: IpGeoData | undefined = ipSelected ? ipGeoCache[ipSelected] : undefined;
 
@@ -1087,11 +1076,6 @@ export default function Staff() {
               alt="User Avatar"
               className="user-avatar"
               size={34}
-              styleKey={
-                user?.equipped_cosmetics?.frame
-                  ? cosmetics.find(c => c.id === user.equipped_cosmetics?.frame)?.frameStyle
-                  : undefined
-              }
             />
             <Nameplate
               text={user ? user.username : 'User'}
@@ -1508,12 +1492,6 @@ export default function Staff() {
                             alt="User Avatar"
                             className="user-avatar"
                             size={34}
-                            styleKey={
-                              u.equipped_cosmetics?.frame
-                                ? cosmetics.find(c => c.id === u.equipped_cosmetics?.frame)
-                                    ?.frameStyle
-                                : undefined
-                            }
                           />
                         </div>
                         <Nameplate
@@ -1921,12 +1899,6 @@ export default function Staff() {
                   alt="User Avatar"
                   className="user-avatar"
                   size={42}
-                  styleKey={
-                    editUserTarget.equipped_cosmetics?.frame
-                      ? cosmetics.find(c => c.id === editUserTarget.equipped_cosmetics?.frame)
-                          ?.frameStyle
-                      : undefined
-                  }
                 />
                 <div>
                   <h2>Edit {editUserTarget.username}</h2>
@@ -2131,19 +2103,6 @@ export default function Staff() {
                         ))}
                       </div>
                     </div>
-                    <div>
-                      <h3>Unlocked Frames</h3>
-                      <div className={`${styles['staff-edit-cosmetics-grid']}`}>
-                        {cosmeticsByType.frame.map(cosmetic => (
-                          <Checkbox
-                            key={cosmetic.id}
-                            checked={unlockedCosmetics.has(cosmetic.id)}
-                            label={cosmetic.name}
-                            onClick={() => handleToggleUnlockedCosmetic(cosmetic.id)}
-                          />
-                        ))}
-                      </div>
-                    </div>
                   </div>
                   <div className={`${styles['staff-edit-equip']}`}>
                     <div className={`${styles['staff-edit-line']}`}>
@@ -2168,20 +2127,6 @@ export default function Staff() {
                         options={[
                           { value: '', label: 'None' },
                           ...unlockedOptionsByType.tag.map(cosmetic => ({
-                            value: cosmetic.id,
-                            label: cosmetic.name,
-                          })),
-                        ]}
-                      />
-                    </div>
-                    <div className={`${styles['staff-edit-line']}`}>
-                      <span>Equipped Frame</span>
-                      <Select
-                        value={editEquippedFrame}
-                        onChange={value => setEditEquippedFrame(value)}
-                        options={[
-                          { value: '', label: 'None' },
-                          ...unlockedOptionsByType.frame.map(cosmetic => ({
                             value: cosmetic.id,
                             label: cosmetic.name,
                           })),

@@ -155,7 +155,6 @@ const commands: Command[] = [
           MAGIC_JELLYBEAN_UPGRADE_ID
         ),
         user_tag: targetUser.equipped_cosmetics?.tag,
-        frame: targetUser.equipped_cosmetics?.frame,
         room_uuid,
         content: sudoMessageContent,
         time_sent: Date.now(),

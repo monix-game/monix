@@ -166,7 +166,6 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
         sender_avatar_url: user.avatar_data_uri,
         user_tag: user.equipped_cosmetics?.tag,
         nameplate: user.equipped_cosmetics?.nameplate,
-        frame: user.equipped_cosmetics?.frame,
         content: optimisticContent,
         time_sent: Date.now(),
         ephemeral: false,
@@ -192,7 +191,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const reportMessageClick = async () => {
     if (!reportedMessage || !reportReason) return;
 
-    await reportMessage(reportedMessage.uuid, reportReason, reportDetails);
+    await reportMessage(reportedMessage.uuid, reportReason, reportDetails, request);
 
     // Close modal and clear state
     setIsReportModalOpen(false);
@@ -294,7 +293,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   const editMessageClick = async () => {
     if (!editedMessage) return;
 
-    await editMessage(editedMessage.uuid, editContent);
+    await editMessage(editedMessage.uuid, editContent, request);
 
     // Close modal and clear state
     setIsEditModalOpen(false);
@@ -477,13 +476,13 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                   <div
                     className={styles['context-menu-item']}
                     onClick={() => {
-                      void deleteMessage(contextMenu.message!.uuid);
+                      void deleteMessage(contextMenu.message!.uuid, request);
                       void fetchMessages();
                       hideContextMenu();
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
-                        void deleteMessage(contextMenu.message!.uuid);
+                        void deleteMessage(contextMenu.message!.uuid, request);
                         void fetchMessages();
                         hideContextMenu();
                       }

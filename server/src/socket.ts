@@ -1,12 +1,15 @@
 import { WebSocketServer } from 'ws';
 import type { Server } from 'node:http';
 import type { Server as HttpsServer } from 'node:https';
+import { v4 } from 'uuid';
 import {
   getSessionByToken,
   getUserByUUID,
   getRoomByUUID,
   getMessageByUUID,
   deleteMessageByUUID,
+  updateMessage,
+  createReport,
 } from './db';
 import {
   buildFishLeaderboard,
@@ -22,6 +25,11 @@ import {
 import { sendChatMessage } from './helpers/chat';
 import type { IUser } from '../common/models/user';
 import { createLogger } from './logging';
+import { profanityFilter } from './constants';
+import { hasRole } from '../common/roles';
+import { isUserBanned } from '../common/punishx/punishx';
+import { getCategoryById } from '../common/punishx/categories';
+import type { IReport } from '../common/models/report';
 
 const log = createLogger('ws');
 
@@ -354,6 +362,193 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
             const messages = await chatSnapshot(room_uuid);
             if (messages) broadcast(`chat:${room_uuid}`, messages);
           }
+          break;
+        }
+        case 'chat:delete': {
+          const body = msg as { message_uuid?: string };
+          const target = getAuthData(ws);
+          const socketUser = target.socketUser;
+          const fail = (error: string) =>
+            ws.send(JSON.stringify({ type: 'chat:delete_result', ok: false, error }));
+          if (!socketUser) {
+            fail('Not authenticated');
+            break;
+          }
+          if (isUserBanned(socketUser)) {
+            fail('Forbidden');
+            break;
+          }
+          const delete_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+          const deleteMessage = await getMessageByUUID(delete_uuid);
+          if (!deleteMessage) {
+            fail('Message not found');
+            break;
+          }
+          if (deleteMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
+            fail('You are not allowed to delete this message');
+            break;
+          }
+          const deleteRoom = await getRoomByUUID(deleteMessage.room_uuid);
+          if (!deleteRoom) {
+            fail('Room not found');
+            break;
+          }
+          if (deleteRoom.type === 'private' && !hasRole(socketUser.role, 'admin')) {
+            fail('You are not allowed to delete messages in this room');
+            break;
+          }
+          if (deleteRoom.restrict_send_to && !hasRole(socketUser.role, deleteRoom.restrict_send_to)) {
+            fail('You are not allowed to delete messages in this room');
+            break;
+          }
+          if (!deleteMessage.deleted) {
+            deleteMessage.deleted = true;
+            deleteMessage.content = '';
+            deleteMessage.edited = false;
+            deleteMessage.time_edited = Date.now();
+            await updateMessage(deleteMessage);
+          }
+          ws.send(JSON.stringify({ type: 'chat:delete_result', ok: true }));
+          if (deleteMessage.room_uuid) {
+            const messages = await chatSnapshot(deleteMessage.room_uuid);
+            if (messages) broadcast(`chat:${deleteMessage.room_uuid}`, messages);
+          }
+          break;
+        }
+        case 'chat:edit': {
+          const body = msg as { message_uuid?: string; content?: string };
+          const target = getAuthData(ws);
+          const socketUser = target.socketUser;
+          const fail = (error: string) =>
+            ws.send(JSON.stringify({ type: 'chat:edit_result', ok: false, error }));
+          if (!socketUser) {
+            fail('Not authenticated');
+            break;
+          }
+          if (isUserBanned(socketUser)) {
+            fail('Forbidden');
+            break;
+          }
+          const edit_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+          const content = typeof body.content === 'string' ? body.content : '';
+          if (!content) {
+            fail('Missing content');
+            break;
+          }
+          const editMessage = await getMessageByUUID(edit_uuid);
+          if (!editMessage) {
+            fail('Message not found');
+            break;
+          }
+          if (editMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
+            fail('You are not allowed to edit this message');
+            break;
+          }
+          const editRoom = await getRoomByUUID(editMessage.room_uuid);
+          if (!editRoom) {
+            fail('Room not found');
+            break;
+          }
+          if (editRoom.type === 'private' && !hasRole(socketUser.role, 'admin')) {
+            fail('You are not allowed to edit messages in this room');
+            break;
+          }
+          if (editRoom.restrict_send_to && !hasRole(socketUser.role, editRoom.restrict_send_to)) {
+            fail('You are not allowed to edit messages in this room');
+            break;
+          }
+          if (content.trim() === '') {
+            fail('Message content cannot be empty');
+            break;
+          }
+          if (content.length > 300) {
+            fail('Message content is too long');
+            break;
+          }
+          const censoredContent = profanityFilter.censorText(content);
+          if (
+            censoredContent.trim() === '' ||
+            censoredContent.replaceAll(/\*+/g, '').trim() === ''
+          ) {
+            fail('Message content cannot be only profanity');
+            break;
+          }
+          editMessage.content = censoredContent;
+          editMessage.edited = true;
+          editMessage.time_edited = Date.now();
+          await updateMessage(editMessage);
+          ws.send(JSON.stringify({ type: 'chat:edit_result', ok: true }));
+          if (editMessage.room_uuid) {
+            const messages = await chatSnapshot(editMessage.room_uuid);
+            if (messages) broadcast(`chat:${editMessage.room_uuid}`, messages);
+          }
+          break;
+        }
+        case 'chat:report': {
+          const body = msg as { message_uuid?: string; reason?: string; details?: string };
+          const target = getAuthData(ws);
+          const socketUser = target.socketUser;
+          const fail = (error: string) =>
+            ws.send(JSON.stringify({ type: 'chat:report_result', ok: false, error }));
+          if (!socketUser) {
+            fail('Not authenticated');
+            break;
+          }
+          if (isUserBanned(socketUser)) {
+            fail('Forbidden');
+            break;
+          }
+          const report_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+          const reason = typeof body.reason === 'string' ? body.reason : '';
+          const details = typeof body.details === 'string' ? body.details : undefined;
+          if (!report_uuid || !reason) {
+            fail('Missing message_uuid or reason');
+            break;
+          }
+          const reported = await getMessageByUUID(report_uuid);
+          if (!reported) {
+            fail('Message not found');
+            break;
+          }
+          if (reported.ephemeral || reported.sender_uuid === 'nyx') {
+            fail('You are not allowed to report this message');
+            break;
+          }
+          if (reported.sender_uuid === socketUser.uuid) {
+            fail('You cannot report your own message');
+            break;
+          }
+          const reportedUser = await getUserByUUID(reported.sender_uuid);
+          if (!reportedUser) {
+            fail('Reported user not found');
+            break;
+          }
+          const category = getCategoryById(reason);
+          if (!category) {
+            fail('Invalid report reason');
+            break;
+          }
+          if (!category.id.startsWith('social')) {
+            fail('Report reason is not valid for social reports');
+            break;
+          }
+          if (hasRole(reportedUser.role, 'admin')) {
+            fail('Cannot report this message');
+            break;
+          }
+          const report: IReport = {
+            uuid: v4(),
+            reporter_uuid: socketUser.uuid,
+            message_uuid: report_uuid,
+            message_content: reported.content,
+            reported_uuid: reportedUser.uuid,
+            reason: category.id,
+            details,
+            status: 'pending',
+            time_reported: Date.now(),
+          };
+          await createReport(report);
+          ws.send(JSON.stringify({ type: 'chat:report_result', ok: true }));
           break;
         }
         case 'ephemeral:dismiss': {

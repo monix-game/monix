@@ -16,7 +16,6 @@ export interface IMessage {
   nameplate?: string;
   sender_magic_jellybean_active?: boolean;
   user_tag?: string;
-  frame?: string;
   time_edited?: number;
   edited: boolean;
   shouted?: boolean;
@@ -40,7 +39,6 @@ export function messageToDoc(m: IMessage): IMessage {
     nameplate: m.nameplate,
     sender_magic_jellybean_active: m.sender_magic_jellybean_active,
     user_tag: m.user_tag,
-    frame: m.frame,
     time_edited: m.time_edited,
     edited: m.edited,
     shouted: m.shouted,
@@ -66,7 +64,6 @@ export function messageFromDoc(doc: any): IMessage {
     nameplate: doc.nameplate || undefined,
     sender_magic_jellybean_active: doc.sender_magic_jellybean_active || false,
     user_tag: doc.user_tag || undefined,
-    frame: doc.frame || undefined,
     time_edited: doc.time_edited || undefined,
     edited: doc.edited || false,
     shouted: doc.shouted || false,

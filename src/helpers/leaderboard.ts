@@ -10,7 +10,6 @@ export interface LeaderboardEntry {
   cosmetics: {
     nameplate?: string;
     user_tag?: string;
-    frame?: string;
   };
 }
 
@@ -24,7 +23,6 @@ export interface FishLeaderboardEntry {
   cosmetics: {
     nameplate?: string;
     user_tag?: string;
-    frame?: string;
   };
 }
 

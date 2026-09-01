@@ -51,6 +51,7 @@ import { tracks } from '../../helpers/tracks';
 import { loadSettings, type IClientSettings } from '../../helpers/settings';
 import type { IAppeal } from '../../../server/common/models/appeal';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
+import type { Cosmetic } from '../../../server/common/cosmetics/cosmetic';
 import { fishTypes } from '../../../server/common/fishing/fishTypes';
 import { fishModifiers } from '../../../server/common/fishing/fishModifiers';
 import {
@@ -95,6 +96,13 @@ const createPollDraftOption = () => ({
   label: '',
   emoji: '',
 });
+
+const getRodTierInfo = (price: number) => {
+  if (price <= 10000) return { emoji: '🟢', title: 'Starter' };
+  if (price <= 150000) return { emoji: '🔷', title: 'Skilled' };
+  if (price <= 1000000) return { emoji: '🟣', title: 'Elite' };
+  return { emoji: '🌌', title: 'Mythic' };
+};
 
 export default function Game() {
   const debugOverlayPositions = ['topleft', 'topright', 'bottomleft', 'bottomright'] as const;
@@ -1007,6 +1015,102 @@ export default function Game() {
     </div>
   );
 
+  const renderCosmeticPreview = (cosmetic: Cosmetic) => {
+    if (cosmetic.type === 'nameplate') {
+      return (
+        <Nameplate
+          text="Monix User"
+          styleKey={cosmetic.nameplateStyle}
+          className={styles['nameplate-preview']}
+        />
+      );
+    }
+    if (cosmetic.type === 'tag') {
+      return (
+        <span className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}>
+          <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const renderCosmeticShopCard = (cosmetic: Cosmetic) => {
+    const owned = user?.cosmetics_unlocked?.includes(cosmetic.id) ?? false;
+    const insufficientGems = (user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1;
+    return (
+      <div
+        key={cosmetic.id}
+        className={`${styles['cosmetic-card']} ${owned ? styles['cosmetic-owned'] : ''}`}
+      >
+        <div className={styles['cosmetic-card-top']}>
+          {owned && (
+            <span className={styles['cosmetic-owned-badge']}>
+              <EmojiText>✓</EmojiText> Owned
+            </span>
+          )}
+        </div>
+        <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
+        <span className={styles['cosmetic-rarity']}>
+          <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText> {titleCase(cosmetic.rarity)}
+        </span>
+        <div className={styles['cosmetic-preview']}>{renderCosmeticPreview(cosmetic)}</div>
+        <div className="spacer"></div>
+        <div className={styles['cosmetic-buy-row']}>
+          <span className={styles['cosmetic-price']} title={`${cosmetic.price || 0} Gems`}>
+            <EmojiText>💎</EmojiText>{' '}
+            {smartFormatNumber(cosmetic.price || 0, false, false, false)}
+          </span>
+          <Button
+            className={styles['cosmetic-action']}
+            disabled={owned || insufficientGems}
+            onClick={() => {
+              if (owned) return;
+              setPaymentModalUpgradeId(null);
+              setPaymentModalRodId(null);
+              setPaymentModalBaitId(null);
+              setPaymentModalAquarium(false);
+              setPaymentModalCosmeticId(cosmetic.id);
+              setIsPaymentModalOpen(true);
+            }}
+          >
+            {owned ? 'Purchased' : 'Buy'}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCosmeticOwnedCard = (cosmetic: Cosmetic) => {
+    const equipped = user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id;
+    return (
+      <div
+        key={cosmetic.id}
+        className={`${styles['cosmetic-card']} ${equipped ? 'equipped' : ''}`}
+      >
+        <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
+        <span className={styles['cosmetic-rarity']}>
+          <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText> {titleCase(cosmetic.rarity)}
+        </span>
+        <div className={styles['cosmetic-preview']}>{renderCosmeticPreview(cosmetic)}</div>
+        <div className="spacer"></div>
+        <Button
+          className={styles['cosmetic-action']}
+          onClickAsync={async () => {
+            if (equipped) {
+              await unequipCosmetic(cosmetic.type);
+            } else {
+              await equipCosmetic(cosmetic.id);
+            }
+            await updateEverything();
+          }}
+        >
+          {equipped ? 'Unequip' : 'Equip'}
+        </Button>
+      </div>
+    );
+  };
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isLoadingPaymentModal, setIsLoadingPaymentModal] = useState<boolean>(false);
   const [paymentModalCosmeticId, setPaymentModalCosmeticId] = useState<string | null>(null);
@@ -1093,11 +1197,6 @@ export default function Game() {
               <Avatar
                 src={user?.avatar_data_uri}
                 size={24}
-                styleKey={
-                  user?.equipped_cosmetics?.frame
-                    ? cosmetics.find(c => c.id === user.equipped_cosmetics?.frame)?.frameStyle
-                    : undefined
-                }
                 className="user-avatar"
               />
               <Nameplate
@@ -1372,32 +1471,46 @@ export default function Game() {
                               <Button onClick={() => setIsRodsModalOpen(true)}>Buy Rods</Button>
                             </div>
                             <div className={styles['fishing-grid']}>
-                              {(user?.fishing?.rods_owned || []).length === 0 && (
-                                <p>You don't own any rods yet.</p>
-                              )}
-                              {(user?.fishing?.rods_owned || [])
-                                .sort((a, b) => {
-                                  const rodA = fishingRods.find(r => r.id === a);
-                                  const rodB = fishingRods.find(r => r.id === b);
-                                  if (!rodA || !rodB) return 0;
-                                  return rodB.multiplier - rodA.multiplier;
-                                })
-                                .map(rodId => {
+                              {(() => {
+                                const ownedRods = [...(user?.fishing?.rods_owned || [])].sort(
+                                  (a, b) => {
+                                    const rodA = fishingRods.find(r => r.id === a);
+                                    const rodB = fishingRods.find(r => r.id === b);
+                                    if (!rodA || !rodB) return 0;
+                                    return rodB.multiplier - rodA.multiplier;
+                                  }
+                                );
+                                if (ownedRods.length === 0) {
+                                  return <p>You don't own any rods yet.</p>;
+                                }
+                                return ownedRods.map(rodId => {
                                   const rodInfo = fishingRods.find(r => r.id === rodId);
 
                                   if (!rodInfo) return null;
 
                                   const isEquipped = user?.fishing?.equipped_rod === rodId;
+                                  const tier = getRodTierInfo(rodInfo.price);
 
                                   return (
                                     <div
                                       key={rodId}
                                       className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
                                     >
+                                      <div className={styles['fishing-item-top']}>
+                                        <span className={styles['fishing-item-type-badge']}>
+                                          <EmojiText>{tier.emoji}</EmojiText> {tier.title}
+                                        </span>
+                                        {isEquipped && (
+                                          <span className={styles['fishing-item-equipped-badge']}>
+                                            <EmojiText>✓</EmojiText> Equipped
+                                          </span>
+                                        )}
+                                      </div>
                                       <h3>{rodInfo.name}</h3>
                                       <span className={styles['rod-multiplier']}>
-                                        {rodInfo.multiplier}x Multiplier
+                                        x{rodInfo.multiplier} Multiplier
                                       </span>
+                                      <div className="spacer"></div>
                                       {!isEquipped && (
                                         <Button
                                           onClickAsync={async () => {
@@ -1411,7 +1524,8 @@ export default function Game() {
                                       {isEquipped && <Button disabled>Equipped</Button>}
                                     </div>
                                   );
-                                })}
+                                });
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -1438,20 +1552,18 @@ export default function Game() {
                             </span>
 
                             <div className={styles['fishing-grid']}>
-                              {(user?.fishing?.bait_owned || []).length === 0 && (
-                                <p>You don't own any bait yet.</p>
-                              )}
-                              {fishingBaits
-                                .filter(b => {
-                                  const quantity = user?.fishing?.bait_owned?.[b.id] || 0;
-                                  return quantity > 0;
-                                })
-                                .sort((a, b) => {
-                                  const quantityA = user?.fishing?.bait_owned?.[a.id] || 0;
-                                  const quantityB = user?.fishing?.bait_owned?.[b.id] || 0;
-                                  return quantityB - quantityA;
-                                })
-                                .map(bait => {
+                              {(() => {
+                                const ownedBaits = fishingBaits
+                                  .filter(b => (user?.fishing?.bait_owned?.[b.id] || 0) > 0)
+                                  .sort(
+                                    (a, b) =>
+                                      (user?.fishing?.bait_owned?.[b.id] || 0) -
+                                      (user?.fishing?.bait_owned?.[a.id] || 0)
+                                  );
+                                if (ownedBaits.length === 0) {
+                                  return <p>You don't own any bait yet.</p>;
+                                }
+                                return ownedBaits.map(bait => {
                                   const quantity = user?.fishing?.bait_owned?.[bait.id] || 0;
                                   const isEquipped = user?.fishing?.equipped_bait === bait.id;
                                   return (
@@ -1472,7 +1584,10 @@ export default function Game() {
                                           );
                                         })}
                                       </div>
-                                      <span className="bait-quantity">x{quantity}</span>
+                                      <span className={styles['bait-price']}>
+                                        <EmojiText>💎</EmojiText> x{quantity}
+                                      </span>
+                                      <div className="spacer"></div>
                                       {!isEquipped && (
                                         <Button
                                           onClickAsync={async () => {
@@ -1486,7 +1601,8 @@ export default function Game() {
                                       {isEquipped && <Button disabled>Equipped</Button>}
                                     </div>
                                   );
-                                })}
+                                });
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -2474,83 +2590,54 @@ export default function Game() {
 
               {storeView === 'cosmetics' && (
                 <>
-                  <Checkbox
-                    label="Hide already bought cosmetics"
-                    checked={hideBoughtCosmetics}
-                    onClick={setHideBoughtCosmetics}
-                  />
-                  <div className={styles['cosmetics-grid']}>
-                    {cosmetics.filter(
+                  <div className={styles['cosmetics-store-controls']}>
+                    <Checkbox
+                      label="Hide already bought cosmetics"
+                      checked={hideBoughtCosmetics}
+                      onClick={setHideBoughtCosmetics}
+                    />
+                  </div>
+                  {(() => {
+                    const buyable = cosmetics.filter(
                       c =>
                         c.buyable &&
                         (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
-                    ).length === 0 && (
-                      <p className={styles['no-cosmetics-message']}>
-                        No cosmetics are available for purchase at this time. Please check back
-                        later or remove filters.
-                      </p>
-                    )}
-                    {cosmetics
-                      .filter(
-                        c =>
-                          c.buyable &&
-                          (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
-                      )
-                      .map(cosmetic => (
-                        <div key={cosmetic.id} className={styles['cosmetic-card']}>
-                          <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
-                          <span className={styles['cosmetic-rarity']}>
-                            <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
-                            {titleCase(cosmetic.rarity)}
-                          </span>
-                          <div className={styles['cosmetic-preview']}>
-                            {cosmetic.type === 'nameplate' && (
-                              <Nameplate
-                                text="Monix User"
-                                styleKey={cosmetic.nameplateStyle}
-                                className={styles['nameplate-preview']}
-                              />
-                            )}
-                            {cosmetic.type === 'tag' && (
-                              <span
-                                className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
-                              >
-                                <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
-                              </span>
-                            )}
-                            {cosmetic.type === 'frame' && (
-                              <Avatar
-                                src={user?.avatar_data_uri}
-                                size={24}
-                                styleKey={cosmetic.frameStyle}
-                                className={styles['avatar-preview']}
-                              />
-                            )}
+                    );
+                    if (buyable.length === 0) {
+                      return (
+                        <p className={styles['no-cosmetics-message']}>
+                          No cosmetics are available for purchase at this time. Please check back
+                          later or remove filters.
+                        </p>
+                      );
+                    }
+                    const nameplates = buyable.filter(c => c.type === 'nameplate');
+                    const tags = buyable.filter(c => c.type === 'tag');
+                    return (
+                      <>
+                        {nameplates.length > 0 && (
+                          <div className={styles['cosmetics-section']}>
+                            <h3 className={styles['cosmetics-section-title']}>
+                              <EmojiText>🪪</EmojiText> Nameplates
+                            </h3>
+                            <div className={styles['cosmetics-grid']}>
+                              {nameplates.map(renderCosmeticShopCard)}
+                            </div>
                           </div>
-                          <div className="spacer"></div>
-                          <Button
-                            className={styles['cosmetic-action']}
-                            disabled={
-                              user?.cosmetics_unlocked?.includes(cosmetic.id) ||
-                              ((user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1)
-                            }
-                            onClick={() => {
-                              if (user?.cosmetics_unlocked?.includes(cosmetic.id)) return;
-                              setPaymentModalUpgradeId(null);
-                              setPaymentModalRodId(null);
-                              setPaymentModalBaitId(null);
-                              setPaymentModalAquarium(false);
-                              setPaymentModalCosmeticId(cosmetic.id);
-                              setIsPaymentModalOpen(true);
-                            }}
-                          >
-                            {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
-                            {!user?.cosmetics_unlocked?.includes(cosmetic.id) &&
-                              `Buy for ${smartFormatNumber(cosmetic.price || 0, false, false, false)} Gems`}
-                          </Button>
-                        </div>
-                      ))}
-                  </div>
+                        )}
+                        {tags.length > 0 && (
+                          <div className={styles['cosmetics-section']}>
+                            <h3 className={styles['cosmetics-section-title']}>
+                              <EmojiText>🏷️</EmojiText> Tags
+                            </h3>
+                            <div className={styles['cosmetics-grid']}>
+                              {tags.map(renderCosmeticShopCard)}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -2558,16 +2645,10 @@ export default function Game() {
           {tab === 'cosmetics' && (
             <div className="tab-content">
               <h2>Cosmetics</h2>
-              <div className={styles['cosmetics-grid']}>
-                {(!user?.cosmetics_unlocked || user?.cosmetics_unlocked.length === 0) && (
-                  <p>
-                    You have not unlocked any cosmetics yet. Try earning some gems to unlock
-                    cosmetics!
-                  </p>
-                )}
-                {(user?.cosmetics_unlocked ?? [])
+              {(() => {
+                const ownedCosmetics = (user?.cosmetics_unlocked ?? [])
                   .map(cosmeticId => cosmetics.find(c => c.id === cosmeticId))
-                  .filter((cosmetic): cosmetic is NonNullable<typeof cosmetic> => Boolean(cosmetic))
+                  .filter((cosmetic): cosmetic is Cosmetic => Boolean(cosmetic))
                   .sort((a, b) => {
                     const equippedA = user?.equipped_cosmetics?.[a.type] === a.id;
                     const equippedB = user?.equipped_cosmetics?.[b.type] === b.id;
@@ -2576,62 +2657,42 @@ export default function Game() {
                     if (!equippedA && equippedB) return 1;
 
                     return 0;
-                  })
-                  .map(cosmetic => (
-                    <div
-                      key={cosmetic.id}
-                      className={`${styles['cosmetic-card']} ${
-                        user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id ? 'equipped' : ''
-                      }`}
-                    >
-                      <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
-                      <span className={styles['cosmetic-rarity']}>
-                        <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
-                        {titleCase(cosmetic.rarity)}
-                      </span>
-                      <div className={styles['cosmetic-preview']}>
-                        {cosmetic.type === 'nameplate' && (
-                          <Nameplate
-                            text="Monix User"
-                            styleKey={cosmetic.nameplateStyle}
-                            className={styles['nameplate-preview']}
-                          />
-                        )}
-                        {cosmetic.type === 'tag' && (
-                          <span
-                            className={`user-tag user-tag-large tag-colour-${cosmetic.tagColour}`}
-                          >
-                            <EmojiText>{cosmetic.tagIcon}</EmojiText> {cosmetic.tagName}
-                          </span>
-                        )}
-                        {cosmetic.type === 'frame' && (
-                          <Avatar
-                            src={user?.avatar_data_uri}
-                            size={24}
-                            styleKey={cosmetic.frameStyle}
-                            className={styles['avatar-preview']}
-                          />
-                        )}
+                  });
+                if (ownedCosmetics.length === 0) {
+                  return (
+                    <p>
+                      You have not unlocked any cosmetics yet. Try earning some gems to unlock
+                      cosmetics!
+                    </p>
+                  );
+                }
+                const nameplates = ownedCosmetics.filter(c => c.type === 'nameplate');
+                const tags = ownedCosmetics.filter(c => c.type === 'tag');
+                return (
+                  <>
+                    {nameplates.length > 0 && (
+                      <div className={styles['cosmetics-section']}>
+                        <h3 className={styles['cosmetics-section-title']}>
+                          <EmojiText>🪪</EmojiText> Nameplates
+                        </h3>
+                        <div className={styles['cosmetics-grid']}>
+                          {nameplates.map(renderCosmeticOwnedCard)}
+                        </div>
                       </div>
-                      <div className="spacer"></div>
-                      <Button
-                        className={styles['cosmetic-action']}
-                        onClickAsync={async () => {
-                          if (user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id) {
-                            await unequipCosmetic(cosmetic.type);
-                          } else {
-                            await equipCosmetic(cosmetic.id);
-                          }
-                          await updateEverything();
-                        }}
-                      >
-                        {user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id
-                          ? 'Unequip'
-                          : 'Equip'}
-                      </Button>
-                    </div>
-                  ))}
-              </div>
+                    )}
+                    {tags.length > 0 && (
+                      <div className={styles['cosmetics-section']}>
+                        <h3 className={styles['cosmetics-section-title']}>
+                          <EmojiText>🏷️</EmojiText> Tags
+                        </h3>
+                        <div className={styles['cosmetics-grid']}>
+                          {tags.map(renderCosmeticOwnedCard)}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
           {tab === 'settings' && (

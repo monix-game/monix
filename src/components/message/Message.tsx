@@ -233,9 +233,6 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
             alt=""
             className="message-avatar"
             size={30}
-            styleKey={
-              message.frame ? cosmetics.find(c => c.id === message.frame)?.frameStyle : undefined
-            }
           />
           <span className="message-username">
             <Nameplate

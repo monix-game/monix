@@ -141,7 +141,6 @@ export async function sendChatMessage(
     nameplate: fetchedUser.equipped_cosmetics?.nameplate,
     sender_magic_jellybean_active: isUpgradeActive(fetchedUser.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
     user_tag: fetchedUser.equipped_cosmetics?.tag,
-    frame: fetchedUser.equipped_cosmetics?.frame,
     time_sent: Date.now(),
     edited: false,
     shouted: false,

@@ -33,7 +33,6 @@ export type LeaderboardEntry = {
   cosmetics: {
     nameplate: string | undefined;
     user_tag: string | undefined;
-    frame: string | undefined;
   };
 };
 
@@ -80,7 +79,6 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
       cosmetics: {
         nameplate: userData?.equipped_cosmetics?.nameplate,
         user_tag: userData?.equipped_cosmetics?.tag,
-        frame: userData?.equipped_cosmetics?.frame,
       },
     };
   }
@@ -119,7 +117,6 @@ export async function buildFishLeaderboard(): Promise<LeaderboardSet> {
       cosmetics: {
         nameplate: userData?.equipped_cosmetics?.nameplate,
         user_tag: userData?.equipped_cosmetics?.tag,
-        frame: userData?.equipped_cosmetics?.frame,
       },
     };
   }
@@ -168,6 +165,7 @@ export async function buildRoomMessages(
   });
 
   const senderUpgradeCache = new Map<string, boolean>();
+  const senderCosmeticCache = new Map<string, { nameplate?: string; user_tag?: string }>();
   const now = Date.now();
   const hydratedMessages = await Promise.all(
     filteredMessages.map(async message => {
@@ -177,10 +175,17 @@ export async function buildRoomMessages(
           message.sender_uuid,
           isUpgradeActive(sender?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, now)
         );
+        senderCosmeticCache.set(message.sender_uuid, {
+          nameplate: sender?.equipped_cosmetics?.nameplate,
+          user_tag: sender?.equipped_cosmetics?.tag,
+        });
       }
+      const cosmetics = senderCosmeticCache.get(message.sender_uuid) || {};
       return {
         ...message,
         sender_magic_jellybean_active: senderUpgradeCache.get(message.sender_uuid) || false,
+        nameplate: message.nameplate ?? cosmetics.nameplate,
+        user_tag: message.user_tag ?? cosmetics.user_tag,
       };
     })
   );

@@ -97,11 +97,6 @@ export const Leaderboard: React.FC = () => {
                   alt="User Avatar"
                   className="podium-avatar"
                   size={50}
-                  styleKey={
-                    entry.cosmetics.frame
-                      ? cosmetics.find(c => c.id === entry.cosmetics.frame)?.frameStyle
-                      : undefined
-                  }
                 />
                 <span className={styles['podium-user']}>
                   <Nameplate

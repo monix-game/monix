@@ -1,7 +1,6 @@
 import React, { useLayoutEffect, useMemo, useRef, useState, useId } from 'react';
 import styles from './Avatar.module.css';
 import { IconUser } from '@tabler/icons-react';
-import { darkFrame } from '../../assets/cosmetics';
 
 interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   src?: string;
@@ -9,10 +8,6 @@ interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   alt?: string;
   styleKey?: string | null;
 }
-
-const frameAssets: { [key: string]: string } = {
-  dark: darkFrame,
-};
 
 export const Avatar: React.FC<AvatarProps> = ({
   src,
@@ -45,7 +40,6 @@ export const Avatar: React.FC<AvatarProps> = ({
     return baseClass;
   }, [styleKey, className]);
 
-  const frameSrc = styleKey ? frameAssets[styleKey] : undefined;
   const mergedStyle = {
     ...rest.style,
     '--avatar-size': `${size}px`,
@@ -61,13 +55,6 @@ export const Avatar: React.FC<AvatarProps> = ({
           <IconUser className={styles['avatar-placeholder']} size={size} />
         )}
       </span>
-      {frameSrc ? (
-        <span
-          className={styles['avatar__frame']}
-          style={{ backgroundImage: `url(${frameSrc})` }}
-          aria-hidden
-        />
-      ) : null}
     </span>
   );
 };

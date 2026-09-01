@@ -32,8 +32,6 @@ export const unequipCosmetic = new Elysia()
         user.equipped_cosmetics.nameplate = undefined;
       } else if (cosmetic_type === 'tag') {
         user.equipped_cosmetics.tag = undefined;
-      } else if (cosmetic_type === 'frame') {
-        user.equipped_cosmetics.frame = undefined;
       } else {
         set.status = 400;
         return { error: 'Invalid cosmetic type' };

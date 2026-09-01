@@ -170,7 +170,6 @@ export async function updateStaffUser(
     equipped_cosmetics?: {
       nameplate?: string;
       tag?: string;
-      frame?: string;
     };
   }
 ): Promise<IUser | null> {

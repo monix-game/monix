@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 import { SESSION_EXPIRES_IN, CORS_ORIGINS } from '../../constants';
 import { rateLimit, buildRateLimitKey } from '../../helpers/rateLimit';
 import { getTwoFactorState, verifySecondFactor } from '../../helpers/2fa';
+import { cosmetics } from '../../../common/cosmetics/cosmetics';
+import type { IUser } from '../../../common/models/user';
 import type { AuthenticationCredentialDTO } from '../../helpers/webauthn';
 
 const authLimiter = rateLimit({
@@ -63,6 +65,31 @@ export const login = new Elysia()
         if (result.changed) {
           await updateUser(result.user);
         }
+      }
+
+      // Clean up stale cosmetics: drop any owned/equipped cosmetics that no
+      // longer exist in the catalog (e.g. removed items like frame cosmetics).
+      const validCosmeticIds = new Set(cosmetics.map(c => c.id));
+      const cleanupNeeded =
+        (user.cosmetics_unlocked || []).some(id => !validCosmeticIds.has(id)) ||
+        (user.equipped_cosmetics &&
+          Object.values(user.equipped_cosmetics).some(id => id && !validCosmeticIds.has(id)));
+
+      if (cleanupNeeded) {
+        user.cosmetics_unlocked = (user.cosmetics_unlocked || []).filter(id =>
+          validCosmeticIds.has(id)
+        );
+        if (user.equipped_cosmetics) {
+          const nextEquipped: NonNullable<IUser['equipped_cosmetics']> = {};
+          for (const [key, id] of Object.entries(user.equipped_cosmetics) as [
+            keyof NonNullable<IUser['equipped_cosmetics']>,
+            string | undefined,
+          ][]) {
+            if (id && validCosmeticIds.has(id)) nextEquipped[key] = id;
+          }
+          user.equipped_cosmetics = nextEquipped;
+        }
+        await updateUser(user);
       }
 
       const session_token = v4();

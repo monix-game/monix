@@ -7,7 +7,7 @@ import { processAvatar } from '../../helpers/avatar';
 import { hasPowerOver, hasRole } from '../../../common/roles';
 import { cosmetics } from '../../../common/cosmetics/cosmetics';
 
-type Equipped = { nameplate?: string; tag?: string; frame?: string };
+type Equipped = { nameplate?: string; tag?: string };
 
 export const editUser = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -124,7 +124,7 @@ export const editUser = new Elysia()
         const validCosmetics = new Map(cosmetics.map(c => [c.id, c]));
         const nextEquipped: Equipped = targetUser.equipped_cosmetics || {};
 
-        const updateEquipped = (key: 'nameplate' | 'tag' | 'frame', cosmeticId?: string): boolean => {
+        const updateEquipped = (key: 'nameplate' | 'tag', cosmeticId?: string): boolean => {
           if (!cosmeticId) {
             nextEquipped[key] = undefined;
             return true;
@@ -145,17 +145,12 @@ export const editUser = new Elysia()
           set.status = 400;
           return { error: 'Invalid tag cosmetic' };
         }
-        if (!updateEquipped('frame', equipped_cosmetics.frame)) {
-          set.status = 400;
-          return { error: 'Invalid frame cosmetic' };
-        }
 
         targetUser.equipped_cosmetics = nextEquipped;
         targetUser.cosmetics_unlocked ??= [];
         const unlockedSet = new Set(targetUser.cosmetics_unlocked);
         if (nextEquipped.nameplate) unlockedSet.add(nextEquipped.nameplate);
         if (nextEquipped.tag) unlockedSet.add(nextEquipped.tag);
-        if (nextEquipped.frame) unlockedSet.add(nextEquipped.frame);
         targetUser.cosmetics_unlocked = Array.from(unlockedSet);
       }
 
@@ -231,7 +226,7 @@ export const editUser = new Elysia()
       if (equipped_cosmetics !== undefined) {
         const prevEq = originalUser.equipped_cosmetics;
         const nextEq = (targetUser.equipped_cosmetics as Equipped) || {};
-        const keys: Array<keyof Equipped> = ['nameplate', 'tag', 'frame'];
+        const keys: Array<keyof Equipped> = ['nameplate', 'tag'];
         keys.forEach(k => {
           const prevVal = prevEq[k] ?? 'none';
           const nextVal = nextEq[k] ?? 'none';

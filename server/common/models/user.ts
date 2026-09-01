@@ -45,7 +45,6 @@ export interface IUser {
   equipped_cosmetics?: {
     nameplate?: string;
     tag?: string;
-    frame?: string;
   };
   fishing?: {
     equipped_rod?: string;
