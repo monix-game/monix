@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { updateUser } from '../../db';
-import { deriveAuth, onlyAuth } from '../../middleware';
-import { verifyTOTPToken } from '../../helpers/totp';
+import { updateUser } from '../../../db';
+import { deriveAuth, onlyAuth } from '../../../middleware';
+import { verifyTOTPToken } from '../../../helpers/totp';
 
 export const remove2fa = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -33,6 +33,14 @@ export const remove2fa = new Elysia()
 
       user.totp_secret = undefined;
       user.setup_totp = false;
+
+      // If the user has no passkeys left, 2FA is fully disabled - clear the
+      // passkeys and invalidate any remaining recovery codes.
+      if (!user.passkeys || user.passkeys.length === 0) {
+        user.passkeys = [];
+        user.recovery_codes = [];
+      }
+
       await updateUser(user);
 
       return { message: '2FA removed successfully' };

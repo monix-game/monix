@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
-import { updateUser } from '../../db';
-import { deriveAuth, onlyAuth } from '../../middleware';
-import { createSecret, getTOTPURI } from '../../helpers/totp';
+import { updateUser } from '../../../db';
+import { deriveAuth, onlyAuth } from '../../../middleware';
+import { createSecret, getTOTPURI } from '../../../helpers/totp';
 
 export const setup2fa = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))

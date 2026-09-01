@@ -8,6 +8,7 @@ import buyRod from './buy-rod';
 import equipRod from './equip-rod';
 import buyBait from './buy-bait';
 import equipBait from './equip-bait';
+import unequipBait from './unequip-bait';
 import fish from './fish';
 
 export const fishingRoutes = new Elysia()
@@ -21,6 +22,7 @@ export const fishingRoutes = new Elysia()
   .use(equipRod)
   .use(buyBait)
   .use(equipBait)
+  .use(unequipBait)
   .use(fish);
 
 export default fishingRoutes;

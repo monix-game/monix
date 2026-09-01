@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { getUserByUUID, updateUser } from '../../db';
-import { deriveAuth, onlyActive } from '../../middleware';
-import { UPGRADES } from '../../../common/upgrades';
+import { getUserByUUID, updateUser } from '../../../db';
+import { deriveAuth, onlyActive } from '../../../middleware';
+import { UPGRADES } from '../../../../common/upgrades';
 
 export const buyUpgrade = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))

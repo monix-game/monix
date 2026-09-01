@@ -1,11 +1,12 @@
 import { Elysia, t } from 'elysia';
-import { getUserByUsername, createSession } from '../../db';
+import { getUserByUsername, createSession, updateUser } from '../../db';
 import { sessionToDoc } from '../../../common/models/session';
-import crypto from 'node:crypto';
 import { v4 } from 'uuid';
-import { SESSION_EXPIRES_IN } from '../../constants';
-import { verifyTOTPToken } from '../../helpers/totp';
+import crypto from 'node:crypto';
+import { SESSION_EXPIRES_IN, CORS_ORIGINS } from '../../constants';
 import { rateLimit, buildRateLimitKey } from '../../helpers/rateLimit';
+import { getTwoFactorState, verifySecondFactor } from '../../helpers/2fa';
+import type { AuthenticationCredentialDTO } from '../../helpers/webauthn';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -19,7 +20,9 @@ export const login = new Elysia()
   .post(
     '/login',
     async ({ body, set }) => {
-      const { username, password, token } = body;
+      const { username, password, token, recoveryCode, tempToken } = body;
+      const passkeyCred =
+        (body.passkeyCredential as AuthenticationCredentialDTO | undefined) ?? undefined;
 
       if (!username || !password) {
         set.status = 400;
@@ -38,16 +41,27 @@ export const login = new Elysia()
         return { error: 'Invalid username or password' };
       }
 
-      if (user.setup_totp) {
-        if (!token) {
-          set.status = 400;
-          return { error: '2FA token required' };
+      if (getTwoFactorState(user).needs_2fa) {
+        const origins = CORS_ORIGINS.includes('*')
+          ? ['http://localhost:5173', 'http://localhost:6200', 'https://monix.proplayer919.dev']
+          : CORS_ORIGINS;
+
+        const result = verifySecondFactor(user, {
+          token,
+          recoveryCode,
+          tempToken,
+          passkeyCredential: passkeyCred,
+          origins,
+        });
+
+        if (!result.verified) {
+          set.status = 401;
+          return { error: result.reason };
         }
 
-        const isTokenValid = verifyTOTPToken(user.totp_secret!, token);
-        if (!isTokenValid) {
-          set.status = 401;
-          return { error: 'Invalid 2FA token' };
+        // Persist any state changes (e.g. a consumed recovery code or passkey counter).
+        if (result.changed) {
+          await updateUser(result.user);
         }
       }
 
@@ -69,6 +83,9 @@ export const login = new Elysia()
         username: t.Optional(t.String()),
         password: t.Optional(t.String()),
         token: t.Optional(t.String()),
+        recoveryCode: t.Optional(t.String()),
+        tempToken: t.Optional(t.String()),
+        passkeyCredential: t.Optional(t.Any()),
       }),
     }
   );

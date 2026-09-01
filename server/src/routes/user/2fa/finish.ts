@@ -1,7 +1,8 @@
 import { Elysia, t } from 'elysia';
-import { updateUser } from '../../db';
-import { deriveAuth, onlyAuth } from '../../middleware';
-import { verifyTOTPToken } from '../../helpers/totp';
+import { updateUser } from '../../../db';
+import { deriveAuth, onlyAuth } from '../../../middleware';
+import { verifyTOTPToken } from '../../../helpers/totp';
+import { ensureRecoveryCodes } from '../../../helpers/2fa';
 
 export const finish2fa = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -36,7 +37,18 @@ export const finish2fa = new Elysia()
       }
 
       user.setup_totp = true;
+
+      // First time enabling any 2FA: seed recovery codes.
+      const recovery = ensureRecoveryCodes(user);
+
       await updateUser(user);
+
+      if (recovery.created) {
+        return {
+          message: '2FA setup completed successfully',
+          recoveryCodes: recovery.plain,
+        };
+      }
 
       return { message: '2FA setup completed successfully' };
     },

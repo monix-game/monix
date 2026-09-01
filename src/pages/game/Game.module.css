@@ -139,6 +139,13 @@
   gap: 15px;
 }
 
+.fishing-card-actions-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+
 .fishing-tab {
   display: flex;
   flex-direction: column;

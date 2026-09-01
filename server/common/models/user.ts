@@ -5,6 +5,20 @@ import type { IFish } from './fish';
 import type { IPunishment } from './punishment';
 import { DEFAULT_SETTINGS, type ISettings } from './settings';
 
+export interface IPasskey {
+  id: string;
+  publicKey: Uint8Array;
+  counter: number;
+  name: string;
+  created_at: number;
+  transports?: string[];
+}
+
+export interface IRecoveryCode {
+  code_hash: string;
+  used: boolean;
+}
+
 export interface IUser {
   uuid: string;
   username: string;
@@ -23,6 +37,8 @@ export interface IUser {
   completed_tutorial: boolean;
   totp_secret?: string;
   setup_totp?: boolean;
+  passkeys?: IPasskey[];
+  recovery_codes?: IRecoveryCode[];
   avatar_data_uri?: string;
   resources: { [key: string]: number };
   cosmetics_unlocked?: string[];
@@ -72,6 +88,8 @@ export function userToDoc(u: IUser): IUser {
     completed_tutorial: u.completed_tutorial ?? false,
     totp_secret: u.totp_secret,
     setup_totp: u.setup_totp,
+    passkeys: u.passkeys || [],
+    recovery_codes: u.recovery_codes || [],
     avatar_data_uri: u.avatar_data_uri,
     resources: u.resources || {},
     cosmetics_unlocked: u.cosmetics_unlocked || [],
@@ -81,6 +99,35 @@ export function userToDoc(u: IUser): IUser {
     ip_history: u.ip_history || [],
     upgrades: u.upgrades || {},
   };
+}
+
+type DocPasskeyPublicKey = Uint8Array | { data?: number[]; buffer?: Uint8Array };
+
+function toPasskeyPublicKey(raw: DocPasskeyPublicKey | undefined | null): Uint8Array {
+  if (!raw) return new Uint8Array();
+  if (raw instanceof Uint8Array) return raw;
+  if (Array.isArray((raw as { data?: unknown }).data)) {
+    return Uint8Array.from((raw as { data: number[] }).data);
+  }
+  const buffer = (raw as { buffer?: unknown }).buffer;
+  if (buffer instanceof Uint8Array) {
+    return Uint8Array.from(buffer);
+  }
+  return new Uint8Array();
+}
+
+interface RawPasskey {
+  id?: string;
+  publicKey?: DocPasskeyPublicKey;
+  counter?: number;
+  name?: string;
+  created_at?: number;
+  transports?: string[];
+}
+
+interface RawRecoveryCode {
+  code_hash?: string;
+  used?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,6 +147,18 @@ export function userFromDoc(doc: any): IUser {
     completed_tutorial: doc.completed_tutorial || false,
     totp_secret: doc.totp_secret || undefined,
     setup_totp: doc.setup_totp || false,
+    passkeys: ((doc.passkeys as RawPasskey[] | undefined) || []).map(pk => ({
+      id: pk.id || '',
+      publicKey: toPasskeyPublicKey(pk.publicKey),
+      counter: pk.counter || 0,
+      name: pk.name || 'Passkey',
+      created_at: pk.created_at || 0,
+      transports: pk.transports || [],
+    })),
+    recovery_codes: ((doc.recovery_codes as RawRecoveryCode[] | undefined) || []).map(rc => ({
+      code_hash: rc.code_hash || '',
+      used: rc.used || false,
+    })),
     avatar_data_uri: doc.avatar_data_uri || undefined,
     resources: doc.resources || {},
     cosmetics_unlocked: doc.cosmetics_unlocked || [],
@@ -112,5 +171,35 @@ export function userFromDoc(doc: any): IUser {
     punishments: doc.punishments || [],
     ip_history: doc.ip_history || [],
     upgrades: doc.upgrades || {},
+  };
+}
+
+export interface ClientPasskey {
+  id: string;
+  name: string;
+  created_at: number;
+  counter: number;
+}
+
+export interface ClientUser extends Omit<ReturnType<typeof userToDoc>, 'passkeys' | 'recovery_codes'> {
+  passkeys: ClientPasskey[];
+  recovery_codes: undefined;
+}
+
+/**
+ * Produce a client-safe representation of a user. Passkey public key material
+ * (used only for signature verification) and recovery-code hashes are stripped
+ * so they are never exposed to the browser.
+ */
+export function userToClient(u: IUser): ClientUser {
+  return {
+    ...userToDoc(u),
+    passkeys: (u.passkeys || []).map(pk => ({
+      id: pk.id,
+      name: pk.name,
+      created_at: pk.created_at,
+      counter: pk.counter,
+    })),
+    recovery_codes: undefined,
   };
 }

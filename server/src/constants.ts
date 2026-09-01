@@ -25,4 +25,7 @@ export const discordClient = new DiscordClient(DISCORD_WEBHOOK_URL);
 
 export const SERVER_PUBLIC_IP = process.env.SERVER_PUBLIC_IP || '';
 
+export const WEBAUTHN_RP_ID = process.env.WEBAUTHN_RP_ID || 'localhost';
+export const WEBAUTHN_RP_NAME = process.env.WEBAUTHN_RP_NAME || 'Monix';
+
 export const profanityFilter = new Filter();

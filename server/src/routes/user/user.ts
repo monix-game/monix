@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { updateUser } from '../../db';
-import { userToDoc } from '../../../common/models/user';
+import { userToClient } from '../../../common/models/user';
 import { deriveAuth, onlyAuth } from '../../middleware';
 import { getCurrentFishingEvent, applyAquariumEventModifiers } from '../../../common/fishing/fishing';
 
@@ -21,7 +21,7 @@ export const getUser = new Elysia()
       void updateUser(user);
     }
 
-    return { user: userToDoc(user) };
+    return { user: userToClient(user) };
   });
 
 export default getUser;

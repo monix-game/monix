@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { updateUser } from '../../db';
-import { deriveAuth, onlyActive } from '../../middleware';
-import { processAvatar } from '../../helpers/avatar';
+import { updateUser } from '../../../db';
+import { deriveAuth, onlyActive } from '../../../middleware';
+import { processAvatar } from '../../../helpers/avatar';
 
 export const uploadAvatar = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))

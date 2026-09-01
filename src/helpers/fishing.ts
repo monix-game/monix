@@ -119,6 +119,20 @@ export async function equipBait(baitId: string): Promise<boolean> {
   return false;
 }
 
+export async function unequipBait(): Promise<boolean> {
+  try {
+    const resp = await api.post('/fishing/unequip/bait', {});
+    if (resp?.success) {
+      return true;
+    }
+  } catch (error) {
+    console.error('Error unequipping bait:', error);
+    throw error;
+  }
+
+  return false;
+}
+
 export async function goFishing(autoSell: boolean = false): Promise<{
   fishingResult: FishingResult;
   fishCaught: IFish;

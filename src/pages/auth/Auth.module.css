@@ -109,3 +109,38 @@
   font-size: 14px;
   text-align: center;
 }
+
+.twofa-method-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.twofa-method-tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background-color: transparent;
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.twofa-method-tab:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.twofa-method-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.twofa-method-tab-active {
+  color: var(--text);
+  background-color: var(--primary-2);
+}

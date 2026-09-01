@@ -67,6 +67,7 @@ import {
   goFishing,
   sellAllFish,
   sellFish,
+  unequipBait,
   upgradeAquarium,
 } from '../../helpers/fishing';
 import { fishingBaits } from '../../../server/common/fishing/fishingBait';
@@ -1420,7 +1421,20 @@ export default function Game() {
                               <h2>
                                 <EmojiText>🪱</EmojiText> Bait
                               </h2>
-                              <Button onClick={() => setIsBaitModalOpen(true)}>Buy Bait</Button>
+                              <span className={styles['fishing-card-actions-row']}>
+                                <Button
+                                  disabled={!user?.fishing?.equipped_bait}
+                                  onClickAsync={async () => {
+                                    await unequipBait();
+                                    await updateEverything();
+                                  }}
+                                >
+                                  {user?.fishing?.equipped_bait
+                                    ? 'De-equip bait'
+                                    : 'No bait equipped'}
+                                </Button>
+                                <Button onClick={() => setIsBaitModalOpen(true)}>Buy Bait</Button>
+                              </span>
                             </span>
 
                             <div className={styles['fishing-grid']}>

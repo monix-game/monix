@@ -145,10 +145,10 @@ export const Graph: React.FC<GraphProps> = ({
       {/* markers */}
       {points.map((p, i) => {
         if (i === 0 || i === points.length - 1) return null;
-        // eslint-disable-next-line react-x/no-array-index-key
+         
         return (
           <circle
-            key={`pt-${i}`}
+            key={`pt-${p[0]}-${p[1]}`}
             cx={p[0]}
             cy={p[1]}
             r={3.25}

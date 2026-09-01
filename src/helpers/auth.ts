@@ -2,36 +2,188 @@ import { localStorageKey } from './constants';
 import type { IUser } from '../../server/common/models/user';
 import type { ISession } from '../../server/common/models/session';
 import { api } from './api';
+import type {
+  RequestOptionsDTO,
+  CreationOptionsDTO,
+  RegistrationCredentialDTO,
+  AuthenticationCredentialDTO,
+} from './webauthn';
 
-export async function userNeeds2FA(username: string, password: string): Promise<boolean> {
+export interface TwoFactorStatus {
+  needs_2fa: boolean;
+  has_totp: boolean;
+  has_passkeys: boolean;
+  has_recovery_codes: boolean;
+}
+
+export interface PasskeySummary {
+  id: string;
+  name: string;
+  created_at: number;
+}
+
+export async function userNeeds2FA(username: string, password: string): Promise<TwoFactorStatus | null> {
   try {
-    const resp = await api.post<{ needs_2fa: boolean }>('/user/needs-2fa', {
+    const resp = await api.post<TwoFactorStatus>('/user/needs-2fa', {
       username,
       password,
     });
-    if (resp?.success) {
-      const payload = resp.data;
-      if (payload && typeof payload.needs_2fa === 'boolean') {
-        return payload.needs_2fa;
-      }
+    if (resp?.success && resp.data) {
+      return {
+        needs_2fa: !!resp.data.needs_2fa,
+        has_totp: !!resp.data.has_totp,
+        has_passkeys: !!resp.data.has_passkeys,
+        has_recovery_codes: !!resp.data.has_recovery_codes,
+      };
     }
-    return false;
+    return null;
   } catch (err) {
     console.error('Error checking if user needs 2FA', err);
+    return null;
+  }
+}
+
+export interface LoginSecondFactor {
+  twoFACode?: string; // TOTP
+  recoveryCode?: string;
+  tempToken?: string; // passkey (from passkeyAuthOptions)
+  passkeyCredential?: AuthenticationCredentialDTO;
+}
+
+export async function loginWithRecoveryCode(
+  username: string,
+  password: string,
+  recoveryCode: string
+): Promise<boolean> {
+  return login(username, password, { recoveryCode });
+}
+
+export async function passkeyAuthOptions(
+  username: string,
+  password: string
+): Promise<{ options: RequestOptionsDTO; tempToken: string } | null> {
+  try {
+    const resp = await api.post<{ options: RequestOptionsDTO; tempToken: string }>(
+      '/user/passkey/options/auth',
+      { username, password }
+    );
+    if (resp?.success && resp.data) {
+      return resp.data;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error getting passkey auth options', err);
+    return null;
+  }
+}
+
+export async function passkeyVerifyAuth(
+  username: string,
+  password: string,
+  tempToken: string,
+  credential: AuthenticationCredentialDTO
+): Promise<boolean> {
+  return login(username, password, { tempToken, passkeyCredential: credential });
+}
+
+export async function passkeyRegisterOptions(): Promise<CreationOptionsDTO | null> {
+  try {
+    const resp = await api.post<{ options: CreationOptionsDTO }>('/user/passkey/options/register');
+    if (resp?.success && resp.data?.options) {
+      return resp.data.options;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error getting passkey register options', err);
+    return null;
+  }
+}
+
+export async function passkeyVerifyRegister(
+  credential: RegistrationCredentialDTO,
+  name: string
+): Promise<{ success: boolean; recoveryCodes?: string[] }> {
+  try {
+    const resp = await api.post<{ message: string; recoveryCodes?: string[] }>(
+      '/user/passkey/verify/register',
+      { credential, name }
+    );
+    return { success: resp.success, recoveryCodes: resp.data?.recoveryCodes };
+  } catch (err) {
+    console.error('Error verifying passkey register', err);
+    return { success: false };
+  }
+}
+
+export async function listPasskeys(): Promise<PasskeySummary[]> {
+  try {
+    const resp = await api.get<{ passkeys: PasskeySummary[] }>('/user/passkey/list');
+    if (resp?.success && resp.data?.passkeys) {
+      return resp.data.passkeys;
+    }
+    return [];
+  } catch (err) {
+    console.error('Error listing passkeys', err);
+    return [];
+  }
+}
+
+export async function renamePasskey(id: string, name: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/passkey/rename', { id, name });
+    return resp.success;
+  } catch (err) {
+    console.error('Error renaming passkey', err);
     return false;
+  }
+}
+
+export async function deletePasskey(id: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/user/passkey/delete', { id });
+    return resp.success;
+  } catch (err) {
+    console.error('Error deleting passkey', err);
+    return false;
+  }
+}
+
+export async function generateRecoveryCodes(): Promise<{ success: boolean; codes?: string[] }> {
+  try {
+    const resp = await api.post<{ codes: string[] }>('/user/recovery/generate');
+    return { success: resp.success, codes: resp.data?.codes };
+  } catch (err) {
+    console.error('Error generating recovery codes', err);
+    return { success: false };
+  }
+}
+
+export async function recoveryCodeCount(): Promise<{ total: number; unused: number } | null> {
+  try {
+    const resp = await api.get<{ total: number; unused: number }>('/user/recovery/count');
+    if (resp?.success && resp.data) {
+      return resp.data;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error getting recovery code count', err);
+    return null;
   }
 }
 
 export async function login(
   username: string,
   password: string,
-  twoFACode?: string
+  secondFactor?: LoginSecondFactor
 ): Promise<boolean> {
   try {
     const resp = await api.post<{ session: ISession }>('/user/login', {
       username,
       password,
-      token: twoFACode,
+      token: secondFactor?.twoFACode,
+      recoveryCode: secondFactor?.recoveryCode,
+      tempToken: secondFactor?.tempToken,
+      passkeyCredential: secondFactor?.passkeyCredential,
     });
     if (resp?.success) {
       const payload = resp.data;
@@ -86,13 +238,18 @@ export async function setup2FA(): Promise<string | null> {
   }
 }
 
-export async function finish2FA(token: string): Promise<boolean> {
+export async function finish2FA(
+  token: string
+): Promise<{ success: boolean; recoveryCodes?: string[] }> {
   try {
-    const resp = await api.post('/user/finish-2fa', { token });
-    return resp.success;
+    const resp = await api.post<{ message: string; recoveryCodes?: string[] }>(
+      '/user/finish-2fa',
+      { token }
+    );
+    return { success: resp.success, recoveryCodes: resp.data?.recoveryCodes };
   } catch (err) {
     console.error('Error finishing 2FA setup', err);
-    return false;
+    return { success: false };
   }
 }
 

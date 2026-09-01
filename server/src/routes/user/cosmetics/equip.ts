@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { getUserByUUID, updateUser } from '../../db';
-import { deriveAuth, onlyAuth } from '../../middleware';
-import { cosmetics } from '../../../common/cosmetics/cosmetics';
+import { getUserByUUID, updateUser } from '../../../db';
+import { deriveAuth, onlyAuth } from '../../../middleware';
+import { cosmetics } from '../../../../common/cosmetics/cosmetics';
 
 export const equipCosmetic = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))

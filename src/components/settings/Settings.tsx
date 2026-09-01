@@ -7,8 +7,10 @@ import {
   IconBug,
   IconEyeClosed,
   IconFaceMask,
+  IconFingerprint,
   IconGitCommit,
   IconInfoCircle,
+  IconKey,
   IconLock,
   IconLockOpen,
   IconLogout,
@@ -22,14 +24,27 @@ import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/
 import {
   changePassword,
   deleteAccount,
+  deletePasskey,
   finish2FA,
+  generateRecoveryCodes,
+  listPasskeys,
   logOut,
   logoutEverywhere,
+  passkeyRegisterOptions,
+  passkeyVerifyRegister,
+  recoveryCodeCount,
   remove2FA,
   removeAvatar,
+  renamePasskey,
   setup2FA,
   uploadAvatar,
+  type PasskeySummary,
 } from '../../helpers/auth';
+import {
+  decodeCreationOptions,
+  serializeRegistrationCredential,
+  isWebAuthnSupported,
+} from '../../helpers/webauthn';
 import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
 import { QRCodeSVG } from 'qrcode.react';
@@ -56,6 +71,27 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = React.useState<boolean>(false);
   const [isCreditsModalOpen, setIsCreditsModalOpen] = React.useState<boolean>(false);
 
+  // Passkey state
+  const [passkeys, setPasskeys] = React.useState<PasskeySummary[]>([]);
+  const [isPasskeyAddModalOpen, setIsPasskeyAddModalOpen] = React.useState<boolean>(false);
+  const [passkeyName, setPasskeyName] = React.useState<string>('');
+  const [isPasskeyRenameModalOpen, setIsPasskeyRenameModalOpen] = React.useState<boolean>(false);
+  const [renameTarget, setRenameTarget] = React.useState<PasskeySummary | null>(null);
+  const [renameName, setRenameName] = React.useState<string>('');
+  const [isPasskeyDeleteModalOpen, setIsPasskeyDeleteModalOpen] = React.useState<boolean>(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<PasskeySummary | null>(null);
+
+  // Recovery code state
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = React.useState<boolean>(false);
+  const [recoveryCodes, setRecoveryCodes] = React.useState<string[]>([]);
+  const [recoveryCount, setRecoveryCount] = React.useState<{ total: number; unused: number }>({
+    total: 0,
+    unused: 0,
+  });
+
+  const [error, setError] = React.useState<string>('');
+  const [loading, setLoading] = React.useState<boolean>(false);
+
   const [oldPassword, setOldPassword] = React.useState<string>('');
   const [password, setPassword] = React.useState<string>('');
 
@@ -73,6 +109,15 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
 
   const { setVolume } = useMusic();
 
+  const refresh2FA = async () => {
+    const pk = await listPasskeys();
+    setPasskeys(pk);
+    const count = await recoveryCodeCount();
+    if (count) {
+      setRecoveryCount(count);
+    }
+  };
+
   useEffect(() => {
     const loadStates = () => {
       const settings = loadSettings();
@@ -88,6 +133,106 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
 
     loadStates();
   }, [user]);
+
+  // Load passkeys and recovery-code status once on mount. Do NOT depend on
+  // `user` here: the game pushes frequent `user:me` snapshots with a fresh
+  // object reference, which would otherwise re-fire these network calls
+  // repeatedly. Refreshing after mutations is handled by the explicit
+  // refresh2FA() calls in the passkey/recovery handlers below.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh2FA();
+  }, []);
+
+  const handleAddPasskey = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      if (!isWebAuthnSupported()) {
+        setError('Passkeys are not supported in this browser');
+        setLoading(false);
+        return;
+      }
+
+      const options = await passkeyRegisterOptions();
+      if (!options) {
+        setError('Failed to start passkey registration');
+        setLoading(false);
+        return;
+      }
+
+      let credential: PublicKeyCredential;
+      try {
+        credential = (await navigator.credentials.create({
+          publicKey: decodeCreationOptions(options),
+        })) as PublicKeyCredential;
+      } catch (err) {
+        setError(`Passkey creation cancelled: ${(err as Error).message}`);
+        setLoading(false);
+        return;
+      }
+
+      const name = passkeyName.trim() || 'Passkey';
+      const result = await passkeyVerifyRegister(
+        serializeRegistrationCredential(credential),
+        name
+      );
+
+      if (result.success) {
+        setIsPasskeyAddModalOpen(false);
+        setPasskeyName('');
+        await refresh2FA();
+
+        // First 2FA method -> recovery codes are generated and shown once.
+        if (result.recoveryCodes && result.recoveryCodes.length > 0) {
+          setRecoveryCodes(result.recoveryCodes);
+          setIsRecoveryModalOpen(true);
+        }
+      } else {
+        setError('Passkey registration failed');
+      }
+    } catch (err) {
+      setError(`Passkey error: ${(err as Error).message}`);
+    }
+    setLoading(false);
+  };
+
+  const handleRenamePasskey = async () => {
+    if (!renameTarget || !renameName.trim()) return;
+    const ok = await renamePasskey(renameTarget.id, renameName.trim());
+    if (ok) {
+      setIsPasskeyRenameModalOpen(false);
+      setRenameTarget(null);
+      setRenameName('');
+      await refresh2FA();
+    }
+  };
+
+  const handleDeletePasskey = async () => {
+    if (!deleteTarget) return;
+    const ok = await deletePasskey(deleteTarget.id);
+    if (ok) {
+      setIsPasskeyDeleteModalOpen(false);
+      setDeleteTarget(null);
+      await refresh2FA();
+    }
+  };
+
+  const handleGenerateRecovery = async () => {
+    setLoading(true);
+    setError('');
+    const result = await generateRecoveryCodes();
+    if (result.success && result.codes) {
+      setRecoveryCodes(result.codes);
+      setIsRecoveryModalOpen(true);
+      await refresh2FA();
+    } else {
+      setError('Make sure 2FA is enabled before generating recovery codes');
+    }
+    setLoading(false);
+  };
+
+  const has2FA = !!user.setup_totp || passkeys.length > 0;
 
   return (
     <>
@@ -248,14 +393,15 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           buttonLabel="Change Password"
           buttonAction={() => setIsChangePasswordModalOpen(true)}
         />
+
+        <h2 className={styles['settings-header']}>Two-Factor Authentication</h2>
         {!user.setup_totp && (
           <SettingsOption
             type="button"
             icon={<IconLock />}
-            label="Setup 2FA"
-            description="Set up two-factor authentication for your account"
-            buttonLabel="Setup 2FA"
-            disabled={user.setup_totp}
+            label="Authenticator App"
+            description="Set up a TOTP authenticator app for 2FA"
+            buttonLabel="Setup"
             buttonAction={async () => {
               const uri = await setup2FA();
               if (uri) {
@@ -265,19 +411,92 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             }}
           />
         )}
+        {user.setup_totp && (
+          <SettingsOption
+            type="button"
+            icon={<IconLockOpen />}
+            label="Authenticator App"
+            description="Remove your TOTP authenticator app"
+            danger
+            buttonLabel="Remove"
+            buttonAction={() => setIs2FARemoveModalOpen(true)}
+          />
+        )}
+
+        <SettingsOption
+          type="button"
+          icon={<IconFingerprint />}
+          label="Add Passkey"
+          description="Register a passkey (Face ID, fingerprint, security key)"
+          buttonLabel="Add Passkey"
+          disabled={!isWebAuthnSupported()}
+          buttonAction={() => setIsPasskeyAddModalOpen(true)}
+        />
+        {passkeys.map(pk => (
+          <div key={pk.id} className={styles['settings-passkey-row']}>
+            <div className={styles['settings-passkey-info']}>
+              <IconFingerprint className={styles['settings-passkey-icon']} />
+              <div>
+                <div className={styles['settings-passkey-name']}>{pk.name}</div>
+                <div className={styles['settings-passkey-date']}>
+                  Added{' '}
+                  {new Date(pk.created_at).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className={styles['settings-passkey-actions']}>
+              <Button
+                color="primary"
+                onClick={() => {
+                  setRenameTarget(pk);
+                  setRenameName(pk.name);
+                  setIsPasskeyRenameModalOpen(true);
+                }}
+              >
+                Rename
+              </Button>
+              <Button
+                color="red"
+                onClick={() => {
+                  setDeleteTarget(pk);
+                  setIsPasskeyDeleteModalOpen(true);
+                }}
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        <SettingsOption
+          type="button"
+          icon={has2FA ? <IconKey /> : <IconLock />}
+          label="Recovery Codes"
+          description={
+            recoveryCount.unused > 0
+              ? `${recoveryCount.unused} of ${recoveryCount.total} recovery codes remaining`
+              : has2FA
+                ? 'Generate new recovery codes'
+                : 'Enable 2FA to generate recovery codes'
+          }
+          buttonLabel={has2FA ? 'View / Regenerate' : 'Generate'}
+          disabled={!has2FA}
+          buttonAction={() => {
+            if (recoveryCount.unused > 0 && recoveryCodes.length === 0) {
+              // Open a read-only view of the count if codes aren't currently shown.
+              setIsRecoveryModalOpen(true);
+            } else {
+              setRecoveryCodes([]);
+              setIsRecoveryModalOpen(true);
+            }
+          }}
+        />
+
         <div className={styles['settings-danger-section']}>
-          {user.setup_totp && (
-            <SettingsOption
-              type="button"
-              icon={<IconLockOpen />}
-              label="Remove 2FA"
-              description="Remove two-factor authentication for your account"
-              buttonLabel="Remove 2FA"
-              disabled={!user.setup_totp}
-              danger
-              buttonAction={() => setIs2FARemoveModalOpen(true)}
-            />
-          )}
           <SettingsOption
             type="button"
             icon={<IconTrash />}
@@ -332,6 +551,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           )}
         </p>
       </div>
+
       <Modal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)}>
         <div className={styles['settings-confirm-modal']}>
           <h2>Confirm Delete Account</h2>
@@ -351,18 +571,25 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           </Button>
         </div>
       </Modal>
+
       <Modal isOpen={is2FAModalOpen} onClose={() => setIs2FAModalOpen(false)}>
         <div className={styles['settings-confirm-modal']}>
-          <h2>Setup 2FA</h2>
+          <h2>Setup Authenticator</h2>
           <p>Scan the QR code below with your authenticator app.</p>
           <QRCodeSVG value={twoFASetupURI} className={styles['settings-qr-code']} />
           <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
           <Button
             onClickAsync={async () => {
-              const success = await finish2FA(twoFACode);
-              if (success) {
+              const result = await finish2FA(twoFACode);
+              if (result.success) {
                 setIs2FAModalOpen(false);
-                globalThis.location.reload();
+                setTwoFACode('');
+                if (result.recoveryCodes && result.recoveryCodes.length > 0) {
+                  setRecoveryCodes(result.recoveryCodes);
+                  setIsRecoveryModalOpen(true);
+                } else {
+                  globalThis.location.reload();
+                }
               }
             }}
             secondary
@@ -371,9 +598,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           </Button>
         </div>
       </Modal>
+
       <Modal isOpen={is2FARemoveModalOpen} onClose={() => setIs2FARemoveModalOpen(false)}>
         <div className={styles['settings-confirm-modal']}>
-          <h2>Remove 2FA</h2>
+          <h2>Remove Authenticator</h2>
           <p>Enter the code from your authenticator app to remove 2FA.</p>
           <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
           <Button
@@ -381,6 +609,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
               const success = await remove2FA(twoFACode);
               if (success) {
                 setIs2FARemoveModalOpen(false);
+                setTwoFACode('');
+                await refresh2FA();
                 globalThis.location.reload();
               }
             }}
@@ -390,6 +620,128 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           </Button>
         </div>
       </Modal>
+
+      <Modal isOpen={isPasskeyAddModalOpen} onClose={() => setIsPasskeyAddModalOpen(false)}>
+        <div className={styles['settings-confirm-modal']}>
+          <h2>Add a Passkey</h2>
+          <p>Give your passkey a name so you can recognize it later.</p>
+          <Input
+            label="Passkey Name"
+            placeholder="My MacBook, iPhone, YubiKey..."
+            value={passkeyName}
+            onValueChange={setPasskeyName}
+            disabled={loading}
+          />
+          {error && <p className={styles['settings-modal-error']}>{error}</p>}
+          <Button
+            onClickAsync={async () => {
+              await handleAddPasskey();
+            }}
+            isLoading={loading}
+            secondary
+          >
+            Continue
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={isPasskeyRenameModalOpen} onClose={() => setIsPasskeyRenameModalOpen(false)}>
+        <div className={styles['settings-confirm-modal']}>
+          <h2>Rename Passkey</h2>
+          <Input
+            label="Passkey Name"
+            value={renameName}
+            onValueChange={setRenameName}
+          />
+          <Button
+            onClickAsync={async () => {
+              await handleRenamePasskey();
+            }}
+            secondary
+          >
+            Save
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={isPasskeyDeleteModalOpen} onClose={() => setIsPasskeyDeleteModalOpen(false)}>
+        <div className={styles['settings-confirm-modal']}>
+          <h2>Remove Passkey</h2>
+          <p>
+            Are you sure you want to remove "{deleteTarget?.name}"? This cannot be undone.
+          </p>
+          <Button onClick={() => setIsPasskeyDeleteModalOpen(false)}>Cancel</Button>
+          <Button
+            onClickAsync={async () => {
+              await handleDeletePasskey();
+            }}
+            secondary
+          >
+            Confirm
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={isRecoveryModalOpen} onClose={() => setIsRecoveryModalOpen(false)}>
+        <div className={styles['settings-confirm-modal']}>
+          <h2>Recovery Codes</h2>
+
+          {recoveryCodes.length > 0 ? (
+            <>
+              <p>
+                Store these recovery codes somewhere safe. Each one can be used once to
+                bypass two-factor authentication. They will not be shown again.
+              </p>
+              <div className={styles['settings-recovery-codes']}>
+                {recoveryCodes.map((code, i) => (
+                  <div key={code} className={styles['settings-recovery-code']}>
+                    <span className={styles['settings-recovery-code-index']}>{i + 1}</span>
+                    <code>{code}</code>
+                  </div>
+                ))}
+              </div>
+              {recoveryCount.unused > 0 && (
+                <p>You have {recoveryCount.unused} unused recovery codes remaining.</p>
+              )}
+              <Button
+                onClickAsync={async () => {
+                  await handleGenerateRecovery();
+                }}
+                color="red"
+                isLoading={loading}
+              >
+                Regenerate Codes
+              </Button>
+              <Button onClick={() => setIsRecoveryModalOpen(false)} secondary>
+                Done
+              </Button>
+            </>
+          ) : (
+            <>
+              <p>
+                {recoveryCount.unused > 0
+                  ? `You currently have ${recoveryCount.unused} unused recovery codes.`
+                  : 'Generate a fresh set of recovery codes.'}
+              </p>
+              <p>
+                Recovery codes let you sign in without your authenticator or passkey. Each code
+                can only be used once.
+              </p>
+              <Button
+                onClickAsync={async () => {
+                  await handleGenerateRecovery();
+                }}
+                secondary
+                isLoading={loading}
+              >
+                Generate Recovery Codes
+              </Button>
+            </>
+          )}
+          {error && <p className={styles['settings-modal-error']}>{error}</p>}
+        </div>
+      </Modal>
+
       <Modal isOpen={isAvatarModalOpen} onClose={() => setIsAvatarModalOpen(false)}>
         <div className={styles['settings-confirm-modal']}>
           <h2>Upload Avatar</h2>

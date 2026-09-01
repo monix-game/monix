@@ -1,7 +1,8 @@
 import { Elysia, t } from 'elysia';
-import { getUserByUsername } from '../../db';
+import { getUserByUsername } from '../../../db';
 import crypto from 'node:crypto';
-import { rateLimit, buildRateLimitKey } from '../../helpers/rateLimit';
+import { rateLimit, buildRateLimitKey } from '../../../helpers/rateLimit';
+import { getTwoFactorState } from '../../../helpers/2fa';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -35,7 +36,7 @@ export const needs2fa = new Elysia()
       }
 
       set.status = 200;
-      return { needs_2fa: user.setup_totp };
+      return { ...getTwoFactorState(user), needs_2fa: getTwoFactorState(user).needs_2fa };
     },
     {
       body: t.Object({
