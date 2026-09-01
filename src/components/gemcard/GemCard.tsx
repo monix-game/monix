@@ -1,5 +1,5 @@
 import React from 'react';
-import './GemCard.css';
+import styles from './GemCard.module.css';
 import gemBanner from '../../assets/gem-banner.svg';
 import { Button } from '../button/Button';
 
@@ -11,16 +11,16 @@ interface GemCardProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const GemCard: React.FC<GemCardProps> = ({ amount, price, onClickAsync }) => {
   return (
-    <div className="gem-card">
-      <div className="gem-card-header">
+    <div className={styles['gem-card']}>
+      <div className={styles['gem-card-header']}>
         <img src={gemBanner} alt="Gem Banner" />
       </div>
-      <div className="gem-card-body">
-        <h2 className="gem-amount">{amount} Gems</h2>
-        <Button className="gem-card-button" onClickAsync={onClickAsync}>
+      <div className={styles['gem-card-body']}>
+        <h2 className={styles['gem-amount']}>{amount} Gems</h2>
+        <Button className={styles['gem-card-button']} onClickAsync={onClickAsync}>
           Buy Now
         </Button>
-        <span className="gem-price">{price}</span>
+        <span className={styles['gem-price']}>{price}</span>
       </div>
     </div>
   );

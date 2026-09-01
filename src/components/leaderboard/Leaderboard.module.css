@@ -94,8 +94,8 @@
   align-items: center;
 }
 
-.podium-user .user-badge,
-.user-tag {
+.podium-user :global(.user-badge),
+:global(.user-tag) {
   margin-left: 8px;
 }
 

@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState, useId } from 'react';
-import './Nameplate.css';
+import styles from './Nameplate.module.css';
 
 type GradientStop = {
   offset: string;
@@ -166,12 +166,12 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
   return (
     <span
       ref={wrapperRef}
-      className={`nameplate-svg ${className || ''}`}
+      className={`${styles['nameplate-svg']} ${className || ''}`}
       aria-label={text}
       {...rest}
     >
       <svg
-        className="nameplate-svg__svg nameplate-svg__svg--shiny"
+        className={`${styles['nameplate-svg__svg']} nameplate-svg__svg--shiny`}
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
@@ -208,7 +208,7 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
           ref={textRef}
           x={1}
           y={height * 0.8}
-          className="nameplate-svg__text"
+          className={styles['nameplate-svg__text']}
           fill={`url(#${gradientId})`}
         >
           {text}
@@ -217,7 +217,7 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
           <text
             x={1}
             y={height * 0.8}
-            className="nameplate-svg__text nameplate-svg__text--shine"
+            className={`${styles['nameplate-svg__text']} ${styles['nameplate-svg__text--shine']}`}
             fill="white"
             mask={`url(#${maskId})`}
           >

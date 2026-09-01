@@ -1,6 +1,7 @@
 import type { IRoom } from '../../server/common/models/room';
 import type { IMessage } from '../../server/common/models/message';
 import { api } from './api';
+import type { SocketContextValue } from '../providers/socket';
 
 export async function getAllRooms(): Promise<IRoom[]> {
   try {
@@ -81,10 +82,17 @@ export async function deleteMessage(message_uuid: string): Promise<boolean> {
   }
 }
 
-export async function dismissEphemeralMessage(message_uuid: string): Promise<boolean> {
+export async function dismissEphemeralMessage(
+  message_uuid: string,
+  request: SocketContextValue['request']
+): Promise<boolean> {
   try {
-    const resp = await api.post('/social/ephemeral/dismiss/' + message_uuid, {});
-    return resp?.success;
+    const resp = (await request(
+      'ephemeral:dismiss',
+      { message_uuid },
+      'ephemeral:dismiss_result'
+    )) as { ok: boolean };
+    return resp?.ok === true;
   } catch (err) {
     console.error('Error dismissing ephemeral message', err);
     return false;

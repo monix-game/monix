@@ -1,4 +1,4 @@
-import './Game.css';
+import styles from './Game.module.css';
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
@@ -166,7 +166,7 @@ export default function Game() {
     visitedPets: false,
   });
   const [globalSettings, setGlobalSettings] = useState<IGlobalSettings>(DEFAULT_GLOBAL_SETTINGS);
-  const { subscribe, request } = useSocket();
+  const { connected, subscribe, request } = useSocket();
   type TutorialStep = {
     title: string;
     body: string;
@@ -744,6 +744,9 @@ export default function Game() {
         return;
       }
       applyUserData(userData);
+      // Enable the tabs as soon as the user snapshot is applied, without
+      // waiting for the slower, optional secondary fetches below.
+      setGameHydrated(true);
 
       try {
         const roomsResp = (await request('socialRooms:get', {}, 'socialRooms_snapshot')) as {
@@ -826,12 +829,13 @@ export default function Game() {
   }, [updateEverything, user]);
 
   useEffect(() => {
+    if (!connected) return;
     startTransition(() => { void updateEverything().then(() => setGameHydrated(true)); });
 
     // Set radio volume based on settings
     const settings = loadSettings();
     setVolume(settings.musicVolume / 100);
-  }, [updateEverything, setVolume]);
+  }, [updateEverything, setVolume, connected]);
 
   useEffect(() => {
     if (!gameHydrated || !user || dailyRewardClaimedRef.current) return;
@@ -996,7 +1000,7 @@ export default function Game() {
   };
 
   const renderFeatureDisabled = (title: string) => (
-    <div className="tab-content feature-disabled">
+    <div className={`tab-content ${styles['feature-disabled']}`}>
       <h2>{title}</h2>
       <p>This feature has been disabled by staff.</p>
     </div>
@@ -1005,6 +1009,11 @@ export default function Game() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isLoadingPaymentModal, setIsLoadingPaymentModal] = useState<boolean>(false);
   const [paymentModalCosmeticId, setPaymentModalCosmeticId] = useState<string | null>(null);
+  const [paymentModalUpgradeId, setPaymentModalUpgradeId] = useState<string | null>(null);
+  const [paymentModalRodId, setPaymentModalRodId] = useState<string | null>(null);
+  const [paymentModalBaitId, setPaymentModalBaitId] = useState<string | null>(null);
+  const [paymentModalBaitQty, setPaymentModalBaitQty] = useState<number>(1);
+  const [paymentModalAquarium, setPaymentModalAquarium] = useState<boolean>(false);
 
   return (
     <>
@@ -1134,24 +1143,24 @@ export default function Game() {
           {tab === 'money' && (
             <div>
               <AnimatedBackground />
-              <div className="money-tab-content">
+              <div className={styles['money-tab-content']}>
                 <h1 className="mono">
                   <span>{smartFormatNumber(totalNetWorth)}</span>
                 </h1>
-                <div className="money-info">
-                  <span className="money-info-line">
+                <div className={styles['money-info']}>
+                  <span className={styles['money-info-line']}>
                     <EmojiText>💰 Money: </EmojiText>
                     <span className="mono">{smartFormatNumber(user?.money || 0)}</span>
                   </span>
-                  <span className="money-info-line">
+                  <span className={styles['money-info-line']}>
                     <EmojiText>💎 Gems: </EmojiText>
                     <span className="mono">{smartFormatNumber(user?.gems || 0, false, true)}</span>
                   </span>
-                  <span className="money-info-line">
+                  <span className={styles['money-info-line']}>
                     <EmojiText>📈 Resources: </EmojiText>
                     <span className="mono">{smartFormatNumber(resourcesTotal)}</span>
                   </span>
-                  <span className="money-info-line">
+                  <span className={styles['money-info-line']}>
                     <EmojiText>🎣 Aquarium: </EmojiText>
                     <span className="mono">{smartFormatNumber(aquariumTotal)}</span>
                   </span>
@@ -1164,7 +1173,7 @@ export default function Game() {
               renderFeatureDisabled('Resources')
             ) : (
               <div className="tab-content">
-                <div className="resource-list-header">
+                <div className={styles['resource-list-header']}>
                   <h2>Resources</h2>
                   <span>
                     <b>Total Value:</b> {smartFormatNumber(resourcesTotal)}
@@ -1199,16 +1208,16 @@ export default function Game() {
             (fishingDisabled ? (
               renderFeatureDisabled('Fishing')
             ) : (
-              <div className="tab-content fishing-tab">
+              <div className={`tab-content ${styles['fishing-tab']}`}>
                 <h2>Fishing</h2>
-                <div className="fishing-container">
-                  <div className="fishing-hgrid">
-                    <div className="fishing-left">
-                      <div className="fishing-card">
+                <div className={styles['fishing-container']}>
+                  <div className={styles['fishing-hgrid']}>
+                    <div className={styles['fishing-left']}>
+                      <div className={styles['fishing-card']}>
                         <h2>
                           <EmojiText>🐟</EmojiText> Go Fishing!
                         </h2>
-                        <div className="fishing-card-actions">
+                        <div className={styles['fishing-card-actions']}>
                           <Checkbox
                             label="Auto-sell fish"
                             checked={autoSellEnabled}
@@ -1264,7 +1273,7 @@ export default function Game() {
                           </Button>
                         </div>
                         {isShowingFishingResults && lastCatch && (
-                          <div className="fishing-results">
+                          <div className={styles['fishing-results']}>
                             <h3>
                               You Caught{' '}
                               {['a', 'e', 'i', 'o', 'u'].includes(
@@ -1279,7 +1288,7 @@ export default function Game() {
                               </EmojiText>{' '}
                               {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.name}
                             </h3>
-                            <p className="fishing-result-weight">
+                            <p className={styles['fishing-result-weight']}>
                               Weight:{' '}
                               {lastCatch.fishCaught.weight >= 1000 ? (
                                 <span className="mono">
@@ -1292,32 +1301,37 @@ export default function Game() {
                                 </span>
                               )}
                             </p>
-                            <p className="fishing-result-value">
+                            <p className={styles['fishing-result-value']}>
                               Value:{' '}
                               <span className="mono">
                                 {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
                               </span>
                             </p>
-                            <div className="fishing-result-modifiers">
-                              <span className="fishing-result-modifiers-label">Modifiers:</span>
+                            <div className={styles['fishing-result-modifiers']}>
+                              <span className={styles['fishing-result-modifiers-label']}>
+                                Modifiers:
+                              </span>
                               {lastCatch.fishCaught.modifiers?.length ? (
-                                <div className="fishing-result-modifier-list">
+                                <div className={styles['fishing-result-modifier-list']}>
                                   {lastCatch.fishCaught.modifiers.map(mod => {
                                     const modifier = fishModifiers.find(fm => fm.id === mod);
                                     if (!modifier) return null;
                                     return (
-                                      <span key={modifier.id} className="fishing-result-modifier">
+                                      <span
+                                        key={modifier.id}
+                                        className={styles['fishing-result-modifier']}
+                                      >
                                         <EmojiText>{modifier.icon}</EmojiText> {modifier.name}
                                       </span>
                                     );
                                   })}
                                 </div>
                               ) : (
-                                <span className="fishing-result-none">None</span>
+                                <span className={styles['fishing-result-none']}>None</span>
                               )}
                             </div>
 
-                            <div className="fishing-result-buttons">
+                            <div className={styles['fishing-result-buttons']}>
                               <Button
                                 secondary
                                 onClick={() => {
@@ -1339,7 +1353,7 @@ export default function Game() {
                                   Sell
                                 </Button>
                               ) : (
-                                <span className="auto-sold">Auto-sold</span>
+                                <span className={styles['auto-sold']}>Auto-sold</span>
                               )}
                             </div>
                           </div>
@@ -1347,16 +1361,16 @@ export default function Game() {
                       </div>
                     </div>
                     <div className="fishing-right">
-                      <div className="fishing-vgrid">
+                      <div className={styles['fishing-vgrid']}>
                         <div className="fishing-top">
-                          <div className="fishing-card">
-                            <div className="fishing-card-header">
+                          <div className={styles['fishing-card']}>
+                            <div className={styles['fishing-card-header']}>
                               <h2>
                                 <EmojiText>🎣</EmojiText> Rods
                               </h2>
                               <Button onClick={() => setIsRodsModalOpen(true)}>Buy Rods</Button>
                             </div>
-                            <div className="fishing-grid">
+                            <div className={styles['fishing-grid']}>
                               {(user?.fishing?.rods_owned || []).length === 0 && (
                                 <p>You don't own any rods yet.</p>
                               )}
@@ -1377,10 +1391,10 @@ export default function Game() {
                                   return (
                                     <div
                                       key={rodId}
-                                      className={`fishing-grid-item ${isEquipped ? 'equipped' : ''}`}
+                                      className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
                                     >
                                       <h3>{rodInfo.name}</h3>
-                                      <span className="rod-multiplier">
+                                      <span className={styles['rod-multiplier']}>
                                         {rodInfo.multiplier}x Multiplier
                                       </span>
                                       {!isEquipped && (
@@ -1400,16 +1414,16 @@ export default function Game() {
                             </div>
                           </div>
                         </div>
-                        <div className="fishing-bottom">
-                          <div className="fishing-card">
-                            <span className="fishing-card-header">
+                        <div className={styles['fishing-bottom']}>
+                          <div className={styles['fishing-card']}>
+                            <span className={styles['fishing-card-header']}>
                               <h2>
                                 <EmojiText>🪱</EmojiText> Bait
                               </h2>
                               <Button onClick={() => setIsBaitModalOpen(true)}>Buy Bait</Button>
                             </span>
 
-                            <div className="fishing-grid">
+                            <div className={styles['fishing-grid']}>
                               {(user?.fishing?.bait_owned || []).length === 0 && (
                                 <p>You don't own any bait yet.</p>
                               )}
@@ -1429,16 +1443,17 @@ export default function Game() {
                                   return (
                                     <div
                                       key={bait.id}
-                                      className={`fishing-grid-item ${isEquipped ? 'equipped' : ''}`}
+                                      className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
                                     >
                                       <h3>{bait.name}</h3>
-                                      <div className="bait-pills">
+                                      <div className={styles['bait-pills']}>
                                         {bait.fish_types_boosted.map(typeId => {
                                           const typeInfo = fishTypes.find(t => t.id === typeId);
                                           if (!typeInfo) return null;
                                           return (
-                                            <span key={typeId} className="bait-pill">
-                                              <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
+                                            <span key={typeId} className={styles['bait-pill']}>
+                                              <EmojiText>{typeInfo.icon}</EmojiText>{' '}
+                                              {typeInfo.name}
                                             </span>
                                           );
                                         })}
@@ -1471,20 +1486,20 @@ export default function Game() {
                   onClose={() => setIsRodsModalOpen(false)}
                   width={700}
                 >
-                  <div className="fishing-modal">
+                  <div className={styles['fishing-modal']}>
                     <h2>
                       <EmojiText>🎣</EmojiText> Rods Shop
                     </h2>
                     {rodSections.map(section => (
-                      <div key={section.id} className="fishing-modal-section">
-                        <div className="fishing-modal-section-header">
+                      <div key={section.id} className={styles['fishing-modal-section']}>
+                        <div className={styles['fishing-modal-section-header']}>
                           <h3>{section.title}</h3>
-                          <div className="fishing-modal-section-meta">
-                            <span className="fishing-modal-section-subtitle">
+                          <div className={styles['fishing-modal-section-meta']}>
+                            <span className={styles['fishing-modal-section-subtitle']}>
                               {section.subtitle}
                             </span>
                             <button
-                              className="fishing-modal-section-toggle"
+                              className={styles['fishing-modal-section-toggle']}
                               type="button"
                               aria-expanded={!!openRodSections[section.id]}
                               onClick={() => toggleRodSection(section.id)}
@@ -1494,9 +1509,9 @@ export default function Game() {
                           </div>
                         </div>
                         {openRodSections[section.id] && (
-                          <div className="fishing-modal-grid">
+                          <div className={styles['fishing-modal-grid']}>
                             {section.rods.map(rod => (
-                              <div key={rod.id} className="fishing-modal-card">
+                              <div key={rod.id} className={styles['fishing-modal-card']}>
                                 <h3>{rod.name}</h3>
                                 <p>
                                   Price:{' '}
@@ -1510,9 +1525,14 @@ export default function Game() {
                                     (user.money || 0) < rod.price ||
                                     (user.fishing?.rods_owned || []).includes(rod.id)
                                   }
-                                  onClickAsync={async () => {
-                                    await buyRod(rod.id);
-                                    await updateEverything();
+                                  onClick={() => {
+                                    if ((user?.fishing?.rods_owned || []).includes(rod.id)) return;
+                                    setPaymentModalCosmeticId(null);
+                                    setPaymentModalUpgradeId(null);
+                                    setPaymentModalBaitId(null);
+                                    setPaymentModalAquarium(false);
+                                    setPaymentModalRodId(rod.id);
+                                    setIsPaymentModalOpen(true);
                                   }}
                                 >
                                   {(user?.fishing?.rods_owned || []).includes(rod.id)
@@ -1533,20 +1553,20 @@ export default function Game() {
                   onClose={() => setIsBaitModalOpen(false)}
                   width={700}
                 >
-                  <div className="fishing-modal">
+                  <div className={styles['fishing-modal']}>
                     <h2>
                       <EmojiText>🪱</EmojiText> Bait Shop
                     </h2>
                     {baitSections.map(section => (
-                      <div key={section.id} className="fishing-modal-section">
-                        <div className="fishing-modal-section-header">
+                      <div key={section.id} className={styles['fishing-modal-section']}>
+                        <div className={styles['fishing-modal-section-header']}>
                           <h3>{section.title}</h3>
-                          <div className="fishing-modal-section-meta">
-                            <span className="fishing-modal-section-subtitle">
+                          <div className={styles['fishing-modal-section-meta']}>
+                            <span className={styles['fishing-modal-section-subtitle']}>
                               {section.subtitle}
                             </span>
                             <button
-                              className="fishing-modal-section-toggle"
+                              className={styles['fishing-modal-section-toggle']}
                               type="button"
                               aria-expanded={!!openBaitSections[section.id]}
                               onClick={() => toggleBaitSection(section.id)}
@@ -1556,16 +1576,16 @@ export default function Game() {
                           </div>
                         </div>
                         {openBaitSections[section.id] && (
-                          <div className="fishing-modal-grid">
+                          <div className={styles['fishing-modal-grid']}>
                             {section.baits.map(bait => (
-                              <div key={bait.id} className="fishing-modal-card">
+                              <div key={bait.id} className={styles['fishing-modal-card']}>
                                 <h3>{bait.name}</h3>
-                                <div className="bait-pills">
+                                <div className={styles['bait-pills']}>
                                   {bait.fish_types_boosted.map(typeId => {
                                     const typeInfo = fishTypes.find(t => t.id === typeId);
                                     if (!typeInfo) return null;
                                     return (
-                                      <span key={typeId} className="bait-pill">
+                                      <span key={typeId} className={styles['bait-pill']}>
                                         <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
                                       </span>
                                     );
@@ -1577,10 +1597,10 @@ export default function Game() {
                                     {smartFormatNumber(bait.price * (baitQuantities[bait.id] || 1))}
                                   </span>
                                 </p>
-                                <div className="bait-quantity-control">
+                                <div className={styles['bait-quantity-control']}>
                                   <button
                                     type="button"
-                                    className="bait-quantity-button"
+                                    className={styles['bait-quantity-button']}
                                     onClick={() =>
                                       setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) - 1)
                                     }
@@ -1588,7 +1608,7 @@ export default function Game() {
                                     -
                                   </button>
                                   <input
-                                    className="bait-quantity-input"
+                                    className={styles['bait-quantity-input']}
                                     type="number"
                                     min={1}
                                     value={baitQuantities[bait.id] || 1}
@@ -1598,7 +1618,7 @@ export default function Game() {
                                   />
                                   <button
                                     type="button"
-                                    className="bait-quantity-button"
+                                    className={styles['bait-quantity-button']}
                                     onClick={() =>
                                       setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) + 1)
                                     }
@@ -1611,9 +1631,14 @@ export default function Game() {
                                     !user ||
                                     (user.money || 0) < bait.price * (baitQuantities[bait.id] || 1)
                                   }
-                                  onClickAsync={async () => {
-                                    await buyBait(bait.id, baitQuantities[bait.id] || 1);
-                                    await updateEverything();
+                                  onClick={() => {
+                                    setPaymentModalCosmeticId(null);
+                                    setPaymentModalUpgradeId(null);
+                                    setPaymentModalRodId(null);
+                                    setPaymentModalAquarium(false);
+                                    setPaymentModalBaitId(bait.id);
+                                    setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
+                                    setIsPaymentModalOpen(true);
                                   }}
                                 >
                                   Buy
@@ -1634,9 +1659,11 @@ export default function Game() {
             ) : (
               <div className="tab-content">
                 <h2>Aquarium</h2>
-                <div className="aquarium-banner">
-                  <span className="aquarium-banner-subtitle">CURRENT FISHING EVENT</span>
-                  <h3 className="aquarium-banner-title">
+                <div className={styles['aquarium-banner']}>
+                  <span className={styles['aquarium-banner-subtitle']}>
+                    CURRENT FISHING EVENT
+                  </span>
+                  <h3 className={styles['aquarium-banner-title']}>
                     {currentFishingEvent.event ? (
                       <>
                         <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
@@ -1646,14 +1673,14 @@ export default function Game() {
                       'No active event'
                     )}
                   </h3>
-                  <span className="aquarium-banner-remaining">
+                  <span className={styles['aquarium-banner-remaining']}>
                     {formatRemainingTime(
                       Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
                     )}{' '}
                     {currentFishingEvent.event ? 'remaining' : 'until next event'}
                   </span>
                 </div>
-                <div className="aquarium-info">
+                <div className={styles['aquarium-info']}>
                   {(() => {
                     const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
                     const capacity = user?.fishing?.aquarium.capacity ?? 0;
@@ -1662,7 +1689,7 @@ export default function Game() {
                       return (
                         <>
                           Your aquarium is empty. Catch some fish to display them here!{' '}
-                          <span className="aquarium-data">
+                          <span className={styles['aquarium-data']}>
                             {fishLength}/{capacity}
                           </span>{' '}
                           fish in aquarium.
@@ -1673,9 +1700,9 @@ export default function Game() {
                     if (fishLength !== capacity) {
                       return (
                         <>
-                          You are using <span className="aquarium-data">{fishLength}</span> out of{' '}
-                          <span className="aquarium-data">{capacity}</span> capacity in your
-                          aquarium.
+                          You are using <span className={styles['aquarium-data']}>{fishLength}</span>{' '}
+                          out of <span className={styles['aquarium-data']}>{capacity}</span>{' '}
+                          capacity in your aquarium.
                         </>
                       );
                     }
@@ -1684,7 +1711,7 @@ export default function Game() {
                       <>
                         Your aquarium is at full capacity! Try upgrading your aquarium to fit more
                         fish.{' '}
-                        <span className="aquarium-data">
+                        <span className={styles['aquarium-data']}>
                           {fishLength}/{capacity}
                         </span>{' '}
                         fish in aquarium.
@@ -1692,12 +1719,16 @@ export default function Game() {
                     );
                   })()}
                 </div>
-                <div className="aquarium-action-row">
-                  <div className="aquarium-buttons">
+                <div className={styles['aquarium-action-row']}>
+                  <div className={styles['aquarium-buttons']}>
                     <Button
-                      onClickAsync={async () => {
-                        await upgradeAquarium();
-                        await updateEverything();
+                      onClick={() => {
+                        setPaymentModalCosmeticId(null);
+                        setPaymentModalUpgradeId(null);
+                        setPaymentModalRodId(null);
+                        setPaymentModalBaitId(null);
+                        setPaymentModalAquarium(true);
+                        setIsPaymentModalOpen(true);
                       }}
                       disabled={
                         !user ||
@@ -1717,9 +1748,9 @@ export default function Game() {
                       Sell All
                     </Button>
                   </div>
-                  <div className="aquarium-controls">
-                    <div className="aquarium-control-group">
-                      <span className="aquarium-control-label">Sort</span>
+                  <div className={styles['aquarium-controls']}>
+                    <div className={styles['aquarium-control-group']}>
+                      <span className={styles['aquarium-control-label']}>Sort</span>
                       <Select
                         value={aquariumSort}
                         onChange={value => setAquariumSort(value as 'value-desc' | 'value-asc')}
@@ -1730,8 +1761,8 @@ export default function Game() {
                         disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
                       />
                     </div>
-                    <div className="aquarium-control-group">
-                      <span className="aquarium-control-label">Filter</span>
+                    <div className={styles['aquarium-control-group']}>
+                      <span className={styles['aquarium-control-label']}>Filter</span>
                       <Select
                         value={aquariumModifierFilter}
                         onChange={value =>
@@ -1749,16 +1780,16 @@ export default function Game() {
                 </div>
                 {aquariumFishView.length === 0 &&
                   (user?.fishing?.aquarium.fish.length || 0) > 0 && (
-                    <div className="aquarium-empty">No fish match those filters.</div>
+                    <div className={styles['aquarium-empty']}>No fish match those filters.</div>
                   )}
-                <div className="aquarium-grid">
+                <div className={styles['aquarium-grid']}>
                   {aquariumFishView.map(fish => (
-                    <div key={fish.uuid} className="aquarium-fish-card">
+                    <div key={fish.uuid} className={styles['aquarium-fish-card']}>
                       <h3>
                         <EmojiText>{fishTypes.find(ft => ft.id === fish.type)?.icon}</EmojiText>{' '}
                         {fishTypes.find(ft => ft.id === fish.type)?.name}
                       </h3>
-                      <span className="aquarium-fish-weight">
+                      <span className={styles['aquarium-fish-weight']}>
                         {fish.weight >= 1000 ? (
                           <span className="mono">
                             {smartFormatNumber(fish.weight / 1000, false)} tonnes
@@ -1767,11 +1798,11 @@ export default function Game() {
                           <span className="mono">{smartFormatNumber(fish.weight, false)} kg</span>
                         )}
                       </span>
-                      <div className="aquarium-fish-modifiers">
+                      <div className={styles['aquarium-fish-modifiers']}>
                         {fish.modifiers?.map(mod => (
                           <span
                             key={fishModifiers.find(fm => fm.id === mod)?.id}
-                            className="aquarium-fish-modifier"
+                            className={styles['aquarium-fish-modifier']}
                           >
                             <EmojiText>{fishModifiers.find(fm => fm.id === mod)?.icon}</EmojiText>{' '}
                             {fishModifiers.find(fm => fm.id === mod)?.name}
@@ -1780,12 +1811,12 @@ export default function Game() {
                       </div>
                       <span>
                         VALUE:{' '}
-                        <span className="aquarium-fish-value mono">
+                        <span className={`${styles['aquarium-fish-value']} mono`}>
                           {smartFormatNumber(getFishValue(fish))}
                         </span>
                       </span>
                       <Button
-                        className="aquarium-fish-sell-button"
+                        className={styles['aquarium-fish-sell-button']}
                         onClick={() => {
                           setAquariumFishToSell(fish.uuid);
                           setIsFishSellModalOpen(true);
@@ -1801,7 +1832,7 @@ export default function Game() {
                   isOpen={isFishSellAllModalOpen}
                   onClose={() => setIsFishSellAllModalOpen(false)}
                 >
-                  <div className="fish-sell-modal">
+                  <div className={styles['fish-sell-modal']}>
                     <h2>Sell All Fish</h2>
                     <p>
                       Are you sure you want to sell all your fish for{' '}
@@ -1815,7 +1846,7 @@ export default function Game() {
                       </span>
                       ?
                     </p>
-                    <div className="fish-sell-modal-buttons">
+                    <div className={styles['fish-sell-modal-buttons']}>
                       <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
                         Cancel
                       </Button>
@@ -1833,7 +1864,7 @@ export default function Game() {
                 </Modal>
 
                 <Modal isOpen={isFishSellModalOpen} onClose={() => setIsFishSellModalOpen(false)}>
-                  <div className="fish-sell-modal">
+                  <div className={styles['fish-sell-modal']}>
                     <h2>Sell Fish</h2>
                     <p>
                       Are you sure you want to sell this fish for{' '}
@@ -1848,7 +1879,7 @@ export default function Game() {
                       </span>
                       ?
                     </p>
-                    <div className="fish-sell-modal-buttons">
+                    <div className={styles['fish-sell-modal-buttons']}>
                       <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
                         Cancel
                       </Button>
@@ -1908,10 +1939,10 @@ export default function Game() {
               </div>
             ))}
           {tab === 'polls' && (
-            <div className="tab-content polls-tab">
-              <div className="polls-header">
+            <div className={`tab-content ${styles['polls-tab']}`}>
+              <div className={styles['polls-header']}>
                 <h2>Polls</h2>
-                <div className="polls-header-actions">
+                <div className={styles['polls-header-actions']}>
                   {canCreatePoll && (
                     <Button onClick={() => setIsPollCreateOpen(true)}>Create Poll</Button>
                   )}
@@ -1926,16 +1957,16 @@ export default function Game() {
                 </div>
               </div>
 
-              {pollsError && <div className="polls-error">{pollsError}</div>}
+              {pollsError && <div className={styles['polls-error']}>{pollsError}</div>}
 
               {pollsLoading && polls.length === 0 ? (
                 <p>Loading polls...</p>
               ) : (
-                <div className="polls-sections">
-                  <div className="polls-section">
+                <div className={styles['polls-sections']}>
+                  <div className={styles['polls-section']}>
                     <h3>Active Polls</h3>
                     {activePolls.length === 0 && (
-                      <p className="polls-empty">No active polls right now.</p>
+                      <p className={styles['polls-empty']}>No active polls right now.</p>
                     )}
                     {activePolls.map(poll => {
                       const totalVotes =
@@ -1960,79 +1991,87 @@ export default function Game() {
                           : `Ends in ${formatRemainingTime(remainingEnd) || '0s'}`;
 
                       return (
-                        <div key={poll.uuid} className="poll-card">
-                          <div className="poll-card-header">
-                            <span className="poll-question">{poll.question}</span>
-                            <span className="poll-status">{timeLabel}</span>
+                        <div key={poll.uuid} className={styles['poll-card']}>
+                          <div className={styles['poll-card-header']}>
+                            <span className={styles['poll-question']}>{poll.question}</span>
+                            <span className={styles['poll-status']}>{timeLabel}</span>
                           </div>
-                          <div className="poll-meta">
+                          <div className={styles['poll-meta']}>
                             <span>Asked by {poll.created_by_username}</span>
                             {poll.has_voted && myVoteLabel && (
-                              <span className="poll-voted">You voted for {myVoteLabel}</span>
+                              <span className={styles['poll-voted']}>
+                                You voted for {myVoteLabel}
+                              </span>
                             )}
                           </div>
 
                           {poll.status === 'upcoming' && (
-                            <p className="polls-empty">Voting opens when the poll starts.</p>
+                            <p className={styles['polls-empty']}>
+                              Voting opens when the poll starts.
+                            </p>
                           )}
 
                           {poll.status === 'active' && !poll.has_voted && (
-                            <div className="poll-options">
+                            <div className={styles['poll-options']}>
                               {poll.options.map(option => (
                                 <button
                                   key={option.id}
                                   type="button"
-                                  className="poll-option-button"
+                                  className={styles['poll-option-button']}
                                   onClick={() => void handleVote(poll.uuid, option.id)}
                                   disabled={pollVotePending === poll.uuid}
                                 >
-                                  <span className="poll-option-label">
+                                  <span className={styles['poll-option-label']}>
                                     {option.emoji && (
-                                      <span className="poll-option-emoji">
+                                      <span className={styles['poll-option-emoji']}>
                                         <EmojiText>{option.emoji}</EmojiText>
                                       </span>
                                     )}
                                     {option.label}
                                   </span>
-                                  <span className="poll-option-action">Vote</span>
+                                  <span className={styles['poll-option-action']}>Vote</span>
                                 </button>
                               ))}
                             </div>
                           )}
 
                           {showResults ? (
-                            <div className="poll-results">
+                            <div className={styles['poll-results']}>
                               {poll.options.map(option => {
                                 const count =
                                   poll.results?.find(result => result.option_id === option.id)
                                     ?.count || 0;
                                 const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
                                 return (
-                                  <div key={option.id} className="poll-result-row">
-                                    <div className="poll-result-meta">
-                                      <span className="poll-result-label">
+                                  <div key={option.id} className={styles['poll-result-row']}>
+                                    <div className={styles['poll-result-meta']}>
+                                      <span className={styles['poll-result-label']}>
                                         {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
                                         {option.label}
                                       </span>
-                                      <span className="poll-result-count">
+                                      <span className={styles['poll-result-count']}>
                                         {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}
                                         %)
                                       </span>
                                     </div>
-                                    <div className="poll-result-track">
+                                    <div className={styles['poll-result-track']}>
                                       <div
-                                        className="poll-result-bar"
+                                        className={styles['poll-result-bar']}
                                         style={{ width: `${percent}%` }}
                                       />
                                     </div>
                                   </div>
                                 );
                               })}
-                              <div className="poll-result-total">Total votes: {totalVotes}</div>
+                              <div className={styles['poll-result-total']}>
+                                Total votes: {totalVotes}
+                              </div>
                             </div>
                           ) : (
                             poll.status === 'active' && (
-                              <div className="poll-results-hidden">Vote to reveal the results.</div>
+                              <div className={styles['poll-results-hidden']}>
+                                Vote to reveal the results.
+                              </div>
                             )
                           )}
                         </div>
@@ -2040,10 +2079,10 @@ export default function Game() {
                     })}
                   </div>
 
-                  <div className="polls-section">
+                  <div className={styles['polls-section']}>
                     <h3>Completed Polls</h3>
                     {completedPolls.length === 0 && (
-                      <p className="polls-empty">No completed polls yet.</p>
+                      <p className={styles['polls-empty']}>No completed polls yet.</p>
                     )}
                     {completedPolls.map(poll => {
                       const totalVotes =
@@ -2052,41 +2091,43 @@ export default function Game() {
                         0;
                       const endedLabel = new Date(poll.ends_at).toLocaleString();
                       return (
-                        <div key={poll.uuid} className="poll-card">
-                          <div className="poll-card-header">
-                            <span className="poll-question">{poll.question}</span>
-                            <span className="poll-status">Ended {endedLabel}</span>
+                        <div key={poll.uuid} className={styles['poll-card']}>
+                          <div className={styles['poll-card-header']}>
+                            <span className={styles['poll-question']}>{poll.question}</span>
+                            <span className={styles['poll-status']}>Ended {endedLabel}</span>
                           </div>
-                          <div className="poll-meta">
+                          <div className={styles['poll-meta']}>
                             <span>Asked by {poll.created_by_username}</span>
                           </div>
-                          <div className="poll-results">
+                          <div className={styles['poll-results']}>
                             {poll.options.map(option => {
                               const count =
                                 poll.results?.find(result => result.option_id === option.id)
                                   ?.count || 0;
                               const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
                               return (
-                                <div key={option.id} className="poll-result-row">
-                                  <div className="poll-result-meta">
-                                    <span className="poll-result-label">
+                                <div key={option.id} className={styles['poll-result-row']}>
+                                  <div className={styles['poll-result-meta']}>
+                                    <span className={styles['poll-result-label']}>
                                       {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
                                       {option.label}
                                     </span>
-                                    <span className="poll-result-count">
+                                    <span className={styles['poll-result-count']}>
                                       {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}%)
                                     </span>
                                   </div>
-                                  <div className="poll-result-track">
+                                  <div className={styles['poll-result-track']}>
                                     <div
-                                      className="poll-result-bar"
+                                      className={styles['poll-result-bar']}
                                       style={{ width: `${percent}%` }}
                                     />
                                   </div>
                                 </div>
                               );
                             })}
-                            <div className="poll-result-total">Total votes: {totalVotes}</div>
+                            <div className={styles['poll-result-total']}>
+                              Total votes: {totalVotes}
+                            </div>
                           </div>
                         </div>
                       );
@@ -2101,17 +2142,17 @@ export default function Game() {
                   onClose={() => setIsPollCreateOpen(false)}
                   width={700}
                 >
-                  <div className="poll-create">
-                    <div className="poll-create-header">
+                  <div className={styles['poll-create']}>
+                    <div className={styles['poll-create-header']}>
                       <h3>Create Poll</h3>
                       <Button secondary onClick={resetPollForm} disabled={pollCreateSubmitting}>
                         Reset
                       </Button>
                     </div>
-                    <label className="poll-form-field">
+                    <label className={styles['poll-form-field']}>
                       <span>Question</span>
                       <input
-                        className="poll-input"
+                        className={styles['poll-input']}
                         type="text"
                         value={pollQuestion}
                         onChange={event => setPollQuestion(event.target.value)}
@@ -2119,28 +2160,28 @@ export default function Game() {
                         maxLength={140}
                       />
                     </label>
-                    <div className="poll-form-grid">
-                      <label className="poll-form-field">
+                    <div className={styles['poll-form-grid']}>
+                      <label className={styles['poll-form-field']}>
                         <span>Starts At</span>
                         <input
-                          className="poll-input"
+                          className={styles['poll-input']}
                           type="datetime-local"
                           value={pollStartsAt}
                           onChange={event => setPollStartsAt(event.target.value)}
                         />
                       </label>
-                      <label className="poll-form-field">
+                      <label className={styles['poll-form-field']}>
                         <span>Ends At</span>
                         <input
-                          className="poll-input"
+                          className={styles['poll-input']}
                           type="datetime-local"
                           value={pollEndsAt}
                           onChange={event => setPollEndsAt(event.target.value)}
                         />
                       </label>
                     </div>
-                    <div className="poll-options-editor">
-                      <div className="poll-options-header">
+                    <div className={styles['poll-options-editor']}>
+                      <div className={styles['poll-options-header']}>
                         <span>Options</span>
                         <Button
                           secondary
@@ -2151,9 +2192,9 @@ export default function Game() {
                         </Button>
                       </div>
                       {pollOptionsDraft.map(option => (
-                        <div key={option.id} className="poll-option-row">
+                        <div key={option.id} className={styles['poll-option-row']}>
                           <input
-                            className="poll-input poll-emoji-input"
+                            className={`${styles['poll-input']} ${styles['poll-emoji-input']}`}
                             type="text"
                             value={option.emoji}
                             onChange={event =>
@@ -2163,7 +2204,7 @@ export default function Game() {
                             maxLength={8}
                           />
                           <input
-                            className="poll-input"
+                            className={styles['poll-input']}
                             type="text"
                             value={option.label}
                             onChange={event =>
@@ -2182,8 +2223,10 @@ export default function Game() {
                         </div>
                       ))}
                     </div>
-                    {pollCreateError && <div className="polls-error">{pollCreateError}</div>}
-                    <div className="poll-create-actions">
+                    {pollCreateError && (
+                      <div className={styles['polls-error']}>{pollCreateError}</div>
+                    )}
+                    <div className={styles['poll-create-actions']}>
                       <Button
                         secondary
                         onClick={() => setIsPollCreateOpen(false)}
@@ -2209,21 +2252,21 @@ export default function Game() {
                 <EmojiText>🎮 Game Hub</EmojiText>
               </h2>
               <p>Play an assortment of fun, original games here on Monix.</p>
-              <div className="games-container">
-                <div className="game-card">
+              <div className={styles['games-container']}>
+                <div className={styles['game-card']}>
                   <h3>
                     <EmojiText>🔴 Que</EmojiText>
                   </h3>
                   <p>Play a game of Que, the fast-paced strategy board game.</p>
-                  <Button className="game-button">Play Que</Button>
+                  <Button className={styles['game-button']}>Play Que</Button>
                 </div>
-                <div className="game-card">
+                <div className={styles['game-card']}>
                   <h3>
                     <EmojiText>🔠 WordGrid</EmojiText>
                   </h3>
                   <p>Beat the daily puzzle in this exciting game of vocabulary and word skills.</p>
                   <Button
-                    className="game-button"
+                    className={styles['game-button']}
                     onClick={() => {
                       globalThis.open('https://wordgrid.proplayer919.dev', '_blank');
                     }}
@@ -2237,36 +2280,38 @@ export default function Game() {
           {tab === 'radio' && (
             <div className="tab-content">
               <h2>Monix Radio</h2>
-              <div className="now-playing-card">
+              <div className={styles['now-playing-card']}>
                 {currentTrack && (
                   <img
                     src={currentTrack?.coverSrc || undefined}
                     alt="Current Track Artwork"
-                    className="song-cover"
+                    className={styles['song-cover']}
                   />
                 )}
                 {!currentTrack && (
-                  <div className="song-cover placeholder-cover">
+                  <div className={`${styles['song-cover']} placeholder-cover`}>
                     <IconMusic size={64} />
                   </div>
                 )}
-                <div className="song-info">
+                <div className={styles['song-info']}>
                   {currentTrack && (
                     <>
-                      <span className="song-subtitle">Now Playing</span>
-                      <span className="song-name">{currentTrack?.title || 'Nothing'}</span>
-                      <span className="song-artist">
+                      <span className={styles['song-subtitle']}>Now Playing</span>
+                      <span className={styles['song-name']}>{currentTrack?.title || 'Nothing'}</span>
+                      <span className={styles['song-artist']}>
                         by <span>{currentTrack?.artist || 'Nobody'}</span>
                       </span>
                     </>
                   )}
-                  {!currentTrack && <span className="song-subtitle">Nothing is playing</span>}
+                  {!currentTrack && (
+                    <span className={styles['song-subtitle']}>Nothing is playing</span>
+                  )}
                 </div>
                 <div className="spacer"></div>
-                <div className="song-controls">
+                <div className={styles['song-controls']}>
                   {!isPlaying ? (
                     <button
-                      className="song-control"
+                      className={styles['song-control']}
                       aria-label="Play"
                       onClick={handlePlay}
                       disabled={isPlaying}
@@ -2275,7 +2320,7 @@ export default function Game() {
                     </button>
                   ) : (
                     <button
-                      className="song-control"
+                      className={styles['song-control']}
                       aria-label="Pause"
                       onClick={handlePause}
                       disabled={!isPlaying}
@@ -2290,7 +2335,7 @@ export default function Game() {
           {tab === 'upgrades' && (
             <div className="tab-content">
               <h2>Upgrades</h2>
-              <div className="upgrades-grid">
+              <div className={styles['upgrades-grid']}>
                 {UPGRADES.sort((a, b) => {
                   // Sort by if it is active, and then alphabetically by name
                   const aActive =
@@ -2310,9 +2355,14 @@ export default function Game() {
                     // eslint-disable-next-line react-hooks/purity
                     user?.upgrades[upgrade.id].expires_at > Date.now();
                   return (
-                    <div key={upgrade.id} className={`upgrade-card ${isActive ? 'active' : ''}`}>
-                      <h3 className="upgrade-name"><EmojiText>{upgrade.icon}</EmojiText> {upgrade.name}</h3>
-                      <p className="upgrade-description">{upgrade.description}</p>
+                    <div
+                      key={upgrade.id}
+                      className={`${styles['upgrade-card']} ${isActive ? 'active' : ''}`}
+                    >
+                      <h3 className={styles['upgrade-name']}>
+                        <EmojiText>{upgrade.icon}</EmojiText> {upgrade.name}
+                      </h3>
+                      <p className={styles['upgrade-description']}>{upgrade.description}</p>
                       <div className="spacer"></div>
                       <Button
                         disabled={
@@ -2320,9 +2370,13 @@ export default function Game() {
                           !user ||
                           (user.money || 0) < (upgrade.price_per_half_hour || 0)
                         }
-                        onClickAsync={async () => {
-                          await buyUpgrade(upgrade.id);
-                          await updateEverything();
+                        onClick={() => {
+                          setPaymentModalCosmeticId(null);
+                          setPaymentModalRodId(null);
+                          setPaymentModalBaitId(null);
+                          setPaymentModalAquarium(false);
+                          setPaymentModalUpgradeId(upgrade.id);
+                          setIsPaymentModalOpen(true);
                         }}
                       >
                         {isActive
@@ -2352,19 +2406,19 @@ export default function Game() {
           {/* Gems moved into the Store tab as a subview */}
           {tab === 'store' && (
             <div className="tab-content">
-              <div className="store-header">
+              <div className={styles['store-header']}>
                 <h2>Store</h2>
-                <div className="store-subtabs">
+                <div className={styles['store-subtabs']}>
                   <button
                     type="button"
-                    className={`store-subtab ${storeView === 'cosmetics' ? 'active' : ''}`}
+                    className={`${styles['store-subtab']} ${storeView === 'cosmetics' ? 'active' : ''}`}
                     onClick={() => setStoreView('cosmetics')}
                   >
                     🎨 Cosmetics
                   </button>
                   <button
                     type="button"
-                    className={`store-subtab ${storeView === 'gems' ? 'active' : ''}`}
+                    className={`${styles['store-subtab']} ${storeView === 'gems' ? 'active' : ''}`}
                     onClick={() => setStoreView('gems')}
                   >
                     💎 Gems
@@ -2373,9 +2427,9 @@ export default function Game() {
               </div>
 
               {storeView === 'gems' && (
-                <div className="gems-section">
+                <div className={styles['gems-section']}>
                   <h3>Gems Store</h3>
-                  <div className="gem-card-list">
+                  <div className={styles['gem-card-list']}>
                     <GemCard
                       amount={100}
                       price="A$1.00"
@@ -2411,13 +2465,13 @@ export default function Game() {
                     checked={hideBoughtCosmetics}
                     onClick={setHideBoughtCosmetics}
                   />
-                  <div className="cosmetics-grid">
+                  <div className={styles['cosmetics-grid']}>
                     {cosmetics.filter(
                       c =>
                         c.buyable &&
                         (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
                     ).length === 0 && (
-                      <p className="no-cosmetics-message">
+                      <p className={styles['no-cosmetics-message']}>
                         No cosmetics are available for purchase at this time. Please check back
                         later or remove filters.
                       </p>
@@ -2429,18 +2483,18 @@ export default function Game() {
                           (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
                       )
                       .map(cosmetic => (
-                        <div key={cosmetic.id} className="cosmetic-card">
-                          <h2 className="cosmetic-name">{cosmetic.name}</h2>
-                          <span className="cosmetic-rarity">
+                        <div key={cosmetic.id} className={styles['cosmetic-card']}>
+                          <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
+                          <span className={styles['cosmetic-rarity']}>
                             <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
                             {titleCase(cosmetic.rarity)}
                           </span>
-                          <div className="cosmetic-preview">
+                          <div className={styles['cosmetic-preview']}>
                             {cosmetic.type === 'nameplate' && (
                               <Nameplate
                                 text="Monix User"
                                 styleKey={cosmetic.nameplateStyle}
-                                className="nameplate-preview"
+                                className={styles['nameplate-preview']}
                               />
                             )}
                             {cosmetic.type === 'tag' && (
@@ -2455,21 +2509,25 @@ export default function Game() {
                                 src={user?.avatar_data_uri}
                                 size={24}
                                 styleKey={cosmetic.frameStyle}
-                                className="avatar-preview"
+                                className={styles['avatar-preview']}
                               />
                             )}
                           </div>
                           <div className="spacer"></div>
                           <Button
-                            className="cosmetic-action"
+                            className={styles['cosmetic-action']}
                             disabled={
                               user?.cosmetics_unlocked?.includes(cosmetic.id) ||
                               ((user?.gems || 0) < (cosmetic.price || 0) && user?.gems !== -1)
                             }
                             onClick={() => {
                               if (user?.cosmetics_unlocked?.includes(cosmetic.id)) return;
-                              setIsPaymentModalOpen(true);
+                              setPaymentModalUpgradeId(null);
+                              setPaymentModalRodId(null);
+                              setPaymentModalBaitId(null);
+                              setPaymentModalAquarium(false);
                               setPaymentModalCosmeticId(cosmetic.id);
+                              setIsPaymentModalOpen(true);
                             }}
                           >
                             {user?.cosmetics_unlocked?.includes(cosmetic.id) && 'Purchased'}
@@ -2486,7 +2544,7 @@ export default function Game() {
           {tab === 'cosmetics' && (
             <div className="tab-content">
               <h2>Cosmetics</h2>
-              <div className="cosmetics-grid">
+              <div className={styles['cosmetics-grid']}>
                 {(!user?.cosmetics_unlocked || user?.cosmetics_unlocked.length === 0) && (
                   <p>
                     You have not unlocked any cosmetics yet. Try earning some gems to unlock
@@ -2508,19 +2566,21 @@ export default function Game() {
                   .map(cosmetic => (
                     <div
                       key={cosmetic.id}
-                      className={`cosmetic-card ${user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id ? 'equipped' : ''}`}
+                      className={`${styles['cosmetic-card']} ${
+                        user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id ? 'equipped' : ''
+                      }`}
                     >
-                      <h2 className="cosmetic-name">{cosmetic.name}</h2>
-                      <span className="cosmetic-rarity">
+                      <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
+                      <span className={styles['cosmetic-rarity']}>
                         <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText>{' '}
                         {titleCase(cosmetic.rarity)}
                       </span>
-                      <div className="cosmetic-preview">
+                      <div className={styles['cosmetic-preview']}>
                         {cosmetic.type === 'nameplate' && (
                           <Nameplate
                             text="Monix User"
                             styleKey={cosmetic.nameplateStyle}
-                            className="nameplate-preview"
+                            className={styles['nameplate-preview']}
                           />
                         )}
                         {cosmetic.type === 'tag' && (
@@ -2535,13 +2595,13 @@ export default function Game() {
                             src={user?.avatar_data_uri}
                             size={24}
                             styleKey={cosmetic.frameStyle}
-                            className="avatar-preview"
+                            className={styles['avatar-preview']}
                           />
                         )}
                       </div>
                       <div className="spacer"></div>
                       <Button
-                        className="cosmetic-action"
+                        className={styles['cosmetic-action']}
                         onClickAsync={async () => {
                           if (user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id) {
                             await unequipCosmetic(cosmetic.type);
@@ -2566,32 +2626,34 @@ export default function Game() {
             </div>
           )}
           {tab === 'jail' && (
-            <div className="jail-tab">
-              <div className="jail-card">
+            <div className={styles['jail-tab']}>
+              <div className={styles['jail-card']}>
                 <h2>
                   <EmojiText>🚓 You are in Jail 🚓</EmojiText>
                 </h2>
                 {currentPunishment ? (
                   <>
-                    <span className="jail-subtitle">You have been banned from playing Monix.</span>
+                    <span className={styles['jail-subtitle']}>
+                      You have been banned from playing Monix.
+                    </span>
                     {currentPunishment?.duration !== -1 ? (
-                      <div className="jail-duration">
+                      <div className={styles['jail-duration']}>
                         <span>Remaining duration:</span>
-                        <span className="jail-time mono">
+                        <span className={`${styles['jail-time']} mono`}>
                           {formatRemainingTime(getRemainingDuration(currentPunishment) / 1000)}
                         </span>
                       </div>
                     ) : (
-                      <div className="jail-duration">
+                      <div className={styles['jail-duration']}>
                         <span>This is a permanent ban.</span>
                       </div>
                     )}
-                    <div className="jail-info">
-                      <div className="jail-reason">
+                    <div className={styles['jail-info']}>
+                      <div className={styles['jail-reason']}>
                         <h3>Reason:</h3>
                         <p>{currentPunishment.category.name}</p>
                       </div>
-                      <div className="jail-comment">
+                      <div className={styles['jail-comment']}>
                         <h3>Comment:</h3>
                         <p>{currentPunishment.reason}</p>
                       </div>
@@ -2604,8 +2666,8 @@ export default function Game() {
             </div>
           )}
           {tab === 'appeals' && (
-            <div className="appeal-tab">
-              <div className="appeal-card">
+            <div className={styles['appeal-tab']}>
+              <div className={styles['appeal-card']}>
                 <h2>
                   <EmojiText>📋 Appeals</EmojiText>
                 </h2>
@@ -2661,36 +2723,38 @@ export default function Game() {
         )}
       </div>
       {isTutorialOpen && (
-        <div className="tutorial-dock" role="status" aria-live="polite">
-          <div className="tutorial-card">
-            <div className="tutorial-npc">
-              <span className="tutorial-npc-avatar">
+        <div className={styles['tutorial-dock']} role="status" aria-live="polite">
+          <div className={styles['tutorial-card']}>
+            <div className={styles['tutorial-npc']}>
+              <span className={styles['tutorial-npc-avatar']}>
                 <EmojiText>🐠</EmojiText>
               </span>
-              <span className="tutorial-npc-name">Reef Guide</span>
+              <span className={styles['tutorial-npc-name']}>Reef Guide</span>
             </div>
-            <div className="tutorial-body">
-              <span className="tutorial-step-count">
+            <div className={styles['tutorial-body']}>
+              <span className={styles['tutorial-step-count']}>
                 Step {tutorialStep + 1} of {tutorialSteps.length}
               </span>
               <h3>{currentTutorialStep?.title}</h3>
               <p>{currentTutorialStep?.body}</p>
               {currentTutorialStep?.task && (
-                <div className="tutorial-task">
-                  <span className="tutorial-task-label">Task</span>
+                <div className={styles['tutorial-task']}>
+                  <span className={styles['tutorial-task-label']}>Task</span>
                   <span
-                    className={`tutorial-task-value ${isTutorialStepComplete ? 'done' : 'todo'}`}
+                    className={`${styles['tutorial-task-value']} ${
+                      isTutorialStepComplete ? 'done' : 'todo'
+                    }`}
                   >
                     {currentTutorialStep.task}
                   </span>
                 </div>
               )}
             </div>
-            <div className="tutorial-actions">
+            <div className={styles['tutorial-actions']}>
               <Button secondary onClick={() => void handleTutorialComplete()}>
                 Skip
               </Button>
-              <div className="tutorial-nav">
+              <div className={styles['tutorial-nav']}>
                 <Button
                   secondary
                   disabled={tutorialStep === 0}
@@ -2716,7 +2780,7 @@ export default function Game() {
         </div>
       )}
       <Modal isOpen={appealModalOpen} onClose={() => setAppealModalOpen(false)}>
-        <div className="appeal-modal">
+        <div className={styles['appeal-modal']}>
           <h2>Submit an Appeal</h2>
           <textarea
             value={appealModalContent}
@@ -2724,7 +2788,7 @@ export default function Game() {
             placeholder="Enter your appeal details here..."
             rows={6}
           />
-          <div className="appeal-modal-actions">
+          <div className={styles['appeal-modal-actions']}>
             <Button secondary onClick={() => setAppealModalOpen(false)}>
               Cancel
             </Button>
@@ -2733,14 +2797,16 @@ export default function Game() {
         </div>
       </Modal>
       <Modal isOpen={isDailyRewardModalOpen} onClose={() => setIsDailyRewardModalOpen(false)}>
-        <div className="daily-reward-modal">
-          <div className="daily-reward-header">
+        <div className={styles['daily-reward-modal']}>
+          <div className={styles['daily-reward-header']}>
             <div>
               <h2>Daily Login Rewards</h2>
-              <p className="daily-reward-subtitle">Come back each day to build your streak.</p>
+              <p className={styles['daily-reward-subtitle']}>
+                Come back each day to build your streak.
+              </p>
             </div>
           </div>
-          <div className="daily-reward-grid">
+          <div className={styles['daily-reward-grid']}>
             {DAILY_REWARDS.map(reward => {
               const streak = dailyRewardResult?.streak || 0;
               const isClaimed = reward.day <= streak;
@@ -2752,27 +2818,27 @@ export default function Game() {
               return (
                 <div
                   key={reward.day}
-                  className={`daily-reward-card${isClaimed ? ' claimed' : ''}${
+                  className={`${styles['daily-reward-card']}${isClaimed ? ' claimed' : ''}${
                     isToday ? ' today' : ''
                   }`}
                 >
-                  <div className="daily-reward-day">Day {reward.day}</div>
-                  <div className="daily-reward-amount">{rewardLabel}</div>
+                  <div className={styles['daily-reward-day']}>Day {reward.day}</div>
+                  <div className={styles['daily-reward-amount']}>{rewardLabel}</div>
                 </div>
               );
             })}
           </div>
           {dailyRewardResult?.reward && (
-            <div className="daily-reward-today">
-              <span className="daily-reward-today-label">Today&apos;s reward</span>
-              <strong className="daily-reward-today-amount">
+            <div className={styles['daily-reward-today']}>
+              <span className={styles['daily-reward-today-label']}>Today&apos;s reward</span>
+              <strong className={styles['daily-reward-today-amount']}>
                 {dailyRewardResult.reward.type === 'money'
                   ? `+${smartFormatNumber(dailyRewardResult.reward.amount)}`
                   : `+${dailyRewardResult.reward.amount} Gems`}
               </strong>
             </div>
           )}
-          <div className="daily-reward-actions">
+          <div className={styles['daily-reward-actions']}>
             <Button onClick={() => setIsDailyRewardModalOpen(false)} secondary>
               Close
             </Button>
@@ -2783,11 +2849,38 @@ export default function Game() {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         isLoading={isLoadingPaymentModal}
-        type="gems"
-        amount={cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0}
-        balance={user?.gems ?? 0}
+        type={
+          paymentModalUpgradeId || paymentModalRodId || paymentModalBaitId || paymentModalAquarium
+            ? 'money'
+            : 'gems'
+        }
+        amount={
+          paymentModalUpgradeId
+            ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.price_per_half_hour || 0
+            : paymentModalRodId
+              ? fishingRods.find(r => r.id === paymentModalRodId)?.price || 0
+              : paymentModalBaitId
+                ? (fishingBaits.find(b => b.id === paymentModalBaitId)?.price || 0) *
+                  paymentModalBaitQty
+                : paymentModalAquarium
+                  ? getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                  : cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0
+        }
+        balance={
+          paymentModalUpgradeId || paymentModalRodId || paymentModalBaitId || paymentModalAquarium
+            ? user?.money ?? 0
+            : user?.gems ?? 0
+        }
         productName={
-          cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic'
+          paymentModalUpgradeId
+            ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.name || 'Unknown Upgrade'
+            : paymentModalRodId
+              ? fishingRods.find(r => r.id === paymentModalRodId)?.name || 'Unknown Rod'
+              : paymentModalBaitId
+                ? fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait'
+                : paymentModalAquarium
+                  ? 'Aquarium Upgrade'
+                  : cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic'
         }
         onClose={() => setIsPaymentModalOpen(false)}
         onPurchase={async () => {
@@ -2796,8 +2889,17 @@ export default function Game() {
           // Artificial delay, since the purchase is usually instant
           await new Promise(resolve => setTimeout(resolve, 750));
 
-          // Purchase the cosmetic
-          await buyCosmetic(paymentModalCosmeticId!);
+          if (paymentModalUpgradeId) {
+            await buyUpgrade(paymentModalUpgradeId);
+          } else if (paymentModalRodId) {
+            await buyRod(paymentModalRodId);
+          } else if (paymentModalBaitId) {
+            await buyBait(paymentModalBaitId, paymentModalBaitQty);
+          } else if (paymentModalAquarium) {
+            await upgradeAquarium();
+          } else {
+            await buyCosmetic(paymentModalCosmeticId!);
+          }
           await updateEverything();
 
           setIsLoadingPaymentModal(false);

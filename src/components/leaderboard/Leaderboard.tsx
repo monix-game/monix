@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './Leaderboard.css';
+import styles from './Leaderboard.module.css';
 import {
   type FishLeaderboardEntry,
   type LeaderboardEntry,
@@ -61,34 +61,34 @@ export const Leaderboard: React.FC = () => {
   const isMoneyTab = activeTab === 'money';
 
   return (
-    <div className="leaderboard-container">
-      <div className="leaderboard-filters">
-        <div className="leaderboard-tabs">
+    <div className={styles['leaderboard-container']}>
+      <div className={styles['leaderboard-filters']}>
+        <div className={styles['leaderboard-tabs']}>
           <button
             type="button"
-            className={`leaderboard-tab ${isMoneyTab ? 'active' : ''}`}
+            className={`${styles['leaderboard-tab']} ${isMoneyTab ? styles.active : ''}`}
             onClick={() => setActiveTab('money')}
           >
             Most Money
           </button>
           <button
             type="button"
-            className={`leaderboard-tab ${!isMoneyTab ? 'active' : ''}`}
+            className={`${styles['leaderboard-tab']} ${!isMoneyTab ? styles.active : ''}`}
             onClick={() => setActiveTab('fish')}
           >
             Fish Caught
           </button>
         </div>
-        <span className="leaderboard-filters-label">Filters:</span>
+        <span className={styles['leaderboard-filters-label']}>Filters:</span>
         <Checkbox label="Hide Staff" checked={hideStaff} onClick={value => setHideStaff(value)} />
       </div>
-      {!hydrated && <Spinner className="leaderboard-spinner" size={48} />}
+      {!hydrated && <Spinner className={styles['leaderboard-spinner']} size={48} />}
       {hydrated && podiumData.length > 0 && (
         <>
-          <div className="podium">
+          <div className={styles.podium}>
             {podiumData.map(entry => (
-              <div key={entry.rank} className={`podium-position ${getPodiumLevel(entry.rank)}`}>
-                <span className="podium-rank">
+              <div key={entry.rank} className={`${styles['podium-position']} ${styles[getPodiumLevel(entry.rank)]}`}>
+                <span className={styles['podium-rank']}>
                   {entry.rank}
                   {getOrdinalSuffix(entry.rank)}
                 </span>
@@ -103,7 +103,7 @@ export const Leaderboard: React.FC = () => {
                       : undefined
                   }
                 />
-                <span className="podium-user">
+                <span className={styles['podium-user']}>
                   <Nameplate
                     text={entry.username}
                     styleKey={(() => {
@@ -129,7 +129,7 @@ export const Leaderboard: React.FC = () => {
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}
                 </span>
-                <span className="podium-money">
+                <span className={styles['podium-money']}>
                   {isMoneyTab
                     ? `$${(entry as LeaderboardEntry).money.toLocaleString()}`
                     : `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`}
@@ -137,10 +137,10 @@ export const Leaderboard: React.FC = () => {
               </div>
             ))}
           </div>
-          <div className="leaderboard-list">
+          <div className={styles['leaderboard-list']}>
             {listData.map(entry => (
-              <div key={entry.rank} className="leaderboard-entry">
-                <span className="leaderboard-user-info">
+              <div key={entry.rank} className={styles['leaderboard-entry']}>
+                <span className={styles['leaderboard-user-info']}>
                   <b>
                     {entry.rank}
                     {getOrdinalSuffix(entry.rank)}:
@@ -170,7 +170,7 @@ export const Leaderboard: React.FC = () => {
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}
                 </span>
-                <span className="leaderboard-money">
+                <span className={styles['leaderboard-money']}>
                   {isMoneyTab
                     ? `$${(entry as LeaderboardEntry).money.toLocaleString()}`
                     : `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`}
@@ -181,7 +181,7 @@ export const Leaderboard: React.FC = () => {
         </>
       )}
       {hydrated && podiumData.length === 0 && (
-        <div className="leaderboard-no-data">
+        <div className={styles['leaderboard-no-data']}>
           No leaderboard data available. Try removing filters or refreshing the page.
         </div>
       )}

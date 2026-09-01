@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import './PetsList.css';
+import styles from './PetsList.module.css';
 import { Pet } from './pet/Pet';
 import type { IPet } from '../../../server/common/models/pet';
 import { PetModal } from './petmodal/PetModal';
@@ -54,7 +54,7 @@ export const PetsList: React.FC<PetsListProps> = ({
 
   return (
     <>
-      <div className="pets-list-buttons">
+      <div className={styles['pets-list-buttons']}>
         <Button
           onClick={() => setIsBuyingPet(true)}
           disabled={!hydrated || pets.length >= maxSlots}
@@ -71,13 +71,13 @@ export const PetsList: React.FC<PetsListProps> = ({
           Buy Pet Slot
         </Button>
       </div>
-      <div className="info-text">
+      <div className={styles['info-text']}>
         Pet slots: {pets.length} / {maxSlots}
       </div>
       {pets.length >= maxSlots && (
-        <div className="info-text">You have reached the maximum number of pets ({maxSlots}).</div>
+        <div className={styles['info-text']}>You have reached the maximum number of pets ({maxSlots}).</div>
       )}
-      <div className={`pets-list ${pets.length === 0 ? 'no-pets' : ''}`}>
+      <div className={`${styles['pets-list']} ${pets.length === 0 ? styles['no-pets'] : ''}`}>
         {pets.map(pet => (
           <Pet
             key={pet.uuid}
@@ -88,10 +88,10 @@ export const PetsList: React.FC<PetsListProps> = ({
           />
         ))}
         {pets.length === 0 && hydrated && (
-          <div className="no-pets">No pets available. Try adopting one!</div>
+          <div className={styles['no-pets']}>No pets available. Try adopting one!</div>
         )}
         {!hydrated && (
-          <div className="no-pets">
+          <div className={styles['no-pets']}>
             <Spinner size={30} />
           </div>
         )}

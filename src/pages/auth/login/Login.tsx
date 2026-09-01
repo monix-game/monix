@@ -1,4 +1,4 @@
-import '../Auth.css';
+import styles from '../Auth.module.css';
 import monixLogoLight from '../../../assets/logo.svg';
 import monixLogoDark from '../../../assets/logo-dark.svg';
 import { AnimatedBackground, Button, Footer, Input } from '../../../components';
@@ -81,30 +81,30 @@ export default function Login() {
   const [doingTwoFA, setDoingTwoFA] = useState(false);
 
   return (
-    <div className="auth-container">
+    <div className={styles['auth-container']}>
       <AnimatedBackground />
-      <div className="auth-island">
-        <div className="island-header">
-          <div className="logo-container">
+      <div className={styles['auth-island']}>
+        <div className={styles['island-header']}>
+          <div className={styles['logo-container']}>
             <img
-              className="auth-logo"
+              className={styles['auth-logo']}
               alt="Monix Logo"
               src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
             />
           </div>
-          <h1 className="auth-title">Login to Monix</h1>
+          <h1 className={styles['auth-title']}>Login to Monix</h1>
         </div>
 
         {signedIn && (
-          <div className="island-main signed-in">
-            <h2 className="auth-subtitle">You are already signed in!</h2>
+          <div className={`${styles['island-main']} ${styles['signed-in']}`}>
+            <h2 className={styles['auth-subtitle']}>You are already signed in!</h2>
             <Button onClick={() => (globalThis.location.href = '/game')}>Go to Game</Button>
           </div>
         )}
 
         {doingTwoFA && (
-          <div className="island-main">
-            <div className="island-form">
+          <div className={styles['island-main']}>
+            <div className={styles['island-form']}>
               <Input
                 label="2FA Code"
                 placeholder="Enter your 2FA code"
@@ -117,15 +117,15 @@ export default function Login() {
               </Button>
             </div>
 
-            <span className="auth-note">
+            <span className={styles['auth-note']}>
               Already have an account? <a href="/auth/login">Login here</a>
             </span>
           </div>
         )}
 
         {!signedIn && !doingTwoFA && (
-          <div className="island-main">
-            <div className="island-form">
+          <div className={styles['island-main']}>
+            <div className={styles['island-form']}>
               <Input
                 label="Username"
                 placeholder="U$3RN4M3"
@@ -146,7 +146,7 @@ export default function Login() {
               </Button>
             </div>
 
-            <span className="auth-note">
+            <span className={styles['auth-note']}>
               Don't have an account? <a href="/auth/register">Register here</a>
             </span>
           </div>

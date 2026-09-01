@@ -1,5 +1,5 @@
 import React from 'react';
-import './SettingsOption.css';
+import styles from './SettingsOption.module.css';
 import { Button } from '../../button/Button';
 import { Select } from '../../select/Select';
 import { Checkbox } from '../../checkbox/Checkbox';
@@ -43,15 +43,15 @@ export const SettingsOption: React.FC<SettingsOptionProps> = ({
   };
 
   return (
-    <div className="settings-option">
-      <div className="settings-option-left">
-        <div className="settings-icon-container">{icon}</div>
-        <div className="settings-info-container">
-          <div className="settings-label">{label}</div>
-          {description && <div className="settings-description">{description}</div>}
+    <div className={styles['settings-option']}>
+      <div className={styles['settings-option-left']}>
+        <div className={styles['settings-icon-container']}>{icon}</div>
+        <div className={styles['settings-info-container']}>
+          <div className={styles['settings-label']}>{label}</div>
+          {description && <div className={styles['settings-description']}>{description}</div>}
         </div>
       </div>
-      <div className="settings-control-container">
+      <div className={styles['settings-control-container']}>
         {type === 'button' && (
           <Button
             color={danger ? 'red' : 'primary'}

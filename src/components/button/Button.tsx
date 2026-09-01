@@ -1,5 +1,5 @@
 import React from 'react';
-import './Button.css';
+import styles from './Button.module.css';
 import { Spinner } from '../spinner/Spinner';
 import { smartFormatNumber } from '../../../server/common/math';
 
@@ -25,9 +25,17 @@ export const Button: React.FC<ButtonProps> = ({
   costType = 'money',
   ...props
 }) => {
+  const colorStyles = {
+    primary: styles.primary,
+    blue: styles.blue,
+    red: styles.red,
+    purple: styles.purple,
+  } as const;
+  const colorClass = colorStyles[color];
+
   return (
     <button
-      className={`btn ${secondary ? 'btn-secondary' : ''} ${color} ${isLoading ? 'loading' : ''} ${className || ''}`}
+      className={`${styles.btn} ${secondary ? styles['btn-secondary'] : ''} ${colorClass} ${isLoading ? styles.loading : ''} ${className || ''}`}
       disabled={disabled || isLoading}
       onClick={() => {
         if (onClickAsync) {
@@ -36,10 +44,10 @@ export const Button: React.FC<ButtonProps> = ({
       }}
       {...props}
     >
-      <span className="btn-content">
+      <span className={styles['btn-content']}>
         {children}
         {cost !== null && (
-          <span className="btn-cost">
+          <span className={styles['btn-cost']}>
             (
             {costType === 'money' ? (
               <>Cost: {smartFormatNumber(cost)}</>
@@ -52,7 +60,7 @@ export const Button: React.FC<ButtonProps> = ({
       </span>
 
       {isLoading && (
-        <span className="btn-loading-spinner">
+        <span className={styles['btn-loading-spinner']}>
           <Spinner size={16} />
         </span>
       )}

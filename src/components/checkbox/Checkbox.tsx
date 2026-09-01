@@ -1,5 +1,5 @@
 import React from 'react';
-import './Checkbox.css';
+import styles from './Checkbox.module.css';
 
 interface CheckboxProps {
   checked?: boolean;
@@ -20,15 +20,15 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   ...props
 }) => {
   return (
-    <div className={`checkbox ${className || ''}`} {...props}>
+    <div className={`${styles.checkbox} ${className || ''}`} {...props}>
       <div
-        className={`checkbox-inner ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} ${color}`}
+        className={`${styles['checkbox-inner']} ${checked ? styles.checked : ''} ${disabled ? styles.disabled : ''} ${styles[color]}`}
         onClick={() => {
           if (disabled) return;
           if (onClick) onClick(!checked);
         }}
       />
-      {label && <span className="checkbox-label">{label}</span>}
+      {label && <span className={styles['checkbox-label']}>{label}</span>}
     </div>
   );
 };

@@ -1,87 +1,3 @@
-.app-header {
-  padding: 20px;
-  display: flex;
-  flex-direction: row;
-  gap: 5px;
-  align-items: center;
-  border-bottom: 2px dashed var(--primary-3);
-  position: relative;
-  z-index: 1;
-  background-color: var(--bg);
-  height: auto;
-  min-height: 100px;
-  flex-wrap: nowrap;
-}
-
-.app-header .spacer {
-  flex-grow: 1;
-}
-
-.app-logo {
-  height: 65px;
-  margin-right: -15px;
-  user-select: none;
-}
-
-html[data-theme='light'] .app-logo-dark {
-  display: none;
-}
-
-html[data-theme='dark'] .app-logo-light {
-  display: none;
-}
-
-.app-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-right: 10px;
-  user-select: none;
-}
-
-.nav-tabs {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.nav-row {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.nav-tabs .tab {
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 10px 10px 0 0;
-  border-top: 2px solid var(--primary-2);
-  border-left: 2px solid var(--primary-2);
-  border-right: 2px solid var(--primary-2);
-  border-bottom: 0px dotted var(--primary-2);
-  text-decoration: none;
-  transition: all 0.3s ease;
-  font-size: 0.95rem;
-  user-select: none;
-}
-
-.nav-tabs .tab.active {
-  background-color: var(--dark-bg);
-  font-weight: 600;
-  border-bottom: 2px dotted var(--primary-2);
-}
-
-.nav-tabs .tab.disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.nav-tabs .tab:hover {
-  background-color: var(--dark-bg);
-}
-
 .feature-disabled {
   display: flex;
   flex-direction: column;
@@ -92,68 +8,6 @@ html[data-theme='dark'] .app-logo-light {
   color: var(--text-muted);
 }
 
-.user-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  min-width: 0;
-}
-
-.username-info {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.username-info svg {
-  vertical-align: middle;
-}
-
-.user-avatar {
-  width: 34px;
-  height: 34px;
-  vertical-align: middle;
-}
-
-.username-info .username {
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.username-info .username.clickable {
-  cursor: pointer;
-}
-
-.username-info .username.clickable:hover {
-  text-decoration: underline;
-}
-
-.user-money {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-}
-
-.user-money div {
-  font-size: 1rem;
-  font-weight: 500;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  user-select: none;
-  gap: 5px;
-}
-
-.app-main {
-  padding: 20px;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
 .money-tab-content {
   position: relative;
   z-index: 1;
@@ -161,7 +15,7 @@ html[data-theme='dark'] .app-logo-light {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 140px);
+  min-height: calc(100vh - 180px);
 }
 
 .money-tab-content h1 {
@@ -199,12 +53,6 @@ html[data-theme='dark'] .app-logo-light {
   flex-wrap: wrap;
   gap: 20px;
   margin-top: 20px;
-}
-
-.tab-content h2 {
-  font-size: 1.5rem;
-  margin-bottom: 15px;
-  user-select: none;
 }
 
 .resource-list-header {
@@ -608,11 +456,11 @@ html[data-theme='dark'] .app-logo-light {
   color: var(--text);
 }
 
-.tutorial-task-value.todo {
+.tutorial-task-value:global(.todo) {
   border-style: dashed;
 }
 
-.tutorial-task-value.done {
+.tutorial-task-value:global(.done) {
   border-color: var(--primary-3);
 }
 
@@ -822,7 +670,7 @@ html[data-theme='dark'] .app-logo-light {
   background-color: var(--dark-bg);
 }
 
-.store-subtab.active {
+.store-subtab:global(.active) {
   background-color: var(--dark-bg);
   border-color: var(--primary-3);
 }
@@ -835,7 +683,7 @@ html[data-theme='dark'] .app-logo-light {
   gap: 14px;
 }
 
-.fishing-grid-item.equipped {
+.fishing-grid-item:global(.equipped) {
   border: 2px solid var(--primary-3);
 }
 
@@ -1012,12 +860,12 @@ html[data-theme='dark'] .app-logo-light {
   gap: 6px;
 }
 
-.daily-reward-card.claimed {
+.daily-reward-card:global(.claimed) {
   border-color: var(--primary-1);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 }
 
-.daily-reward-card.today {
+.daily-reward-card:global(.today) {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0));
 }
 
@@ -1102,7 +950,7 @@ html[data-theme='dark'] .app-logo-light {
   max-width: 600px;
 }
 
-.now-playing-card .spacer {
+.now-playing-card :global(.spacer) {
   flex-grow: 1;
 }
 
@@ -1113,7 +961,7 @@ html[data-theme='dark'] .app-logo-light {
   object-fit: cover;
 }
 
-.song-cover.placeholder-cover {
+.song-cover:global(.placeholder-cover) {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1188,7 +1036,7 @@ html[data-theme='dark'] .app-logo-light {
   gap: 5px;
 }
 
-.cosmetic-card.equipped {
+.cosmetic-card:global(.equipped) {
   background-color: var(--bg);
   border: 2px solid var(--primary-3);
 }
@@ -1209,7 +1057,7 @@ html[data-theme='dark'] .app-logo-light {
   border: 2px solid var(--primary-2);
 }
 
-.cosmetic-card .spacer {
+.cosmetic-card :global(.spacer) {
   flex-grow: 1;
 }
 
@@ -1499,7 +1347,7 @@ html[data-theme='dark'] .app-logo-light {
   max-width: 400px;
 }
 
-.upgrade-card.active {
+.upgrade-card:global(.active) {
   background-color: var(--bg);
   border-color: var(--primary-3);
 }
@@ -1516,56 +1364,12 @@ html[data-theme='dark'] .app-logo-light {
   text-align: center;
 }
 
-.upgrade-card .spacer {
+.upgrade-card :global(.spacer) {
   flex-grow: 1;
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .app-header {
-    padding: 15px;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .app-header h1 {
-    font-size: 1.5rem;
-    width: 100%;
-    text-align: center;
-    order: 1;
-  }
-
-  .app-logo {
-    height: 45px;
-    order: 0;
-  }
-
-  .nav-tabs {
-    width: 100%;
-    order: 3;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 5px;
-  }
-
-  .nav-tabs span {
-    padding: 6px 10px;
-    font-size: 0.85rem;
-  }
-
-  .user-info {
-    order: 2;
-  }
-
-  .app-header .spacer {
-    display: none;
-  }
-
-  .app-main {
-    padding: 15px;
-  }
-
   .money-tab-content {
     min-height: calc(100vh - 180px);
   }
@@ -1589,31 +1393,10 @@ html[data-theme='dark'] .app-logo-light {
   .money-info-line {
     width: 100%;
   }
-
-  .tab-content {
-    text-align: center;
-  }
 }
 
 /* Small Mobile (phones in portrait) */
 @media (max-width: 480px) {
-  .app-header h1 {
-    font-size: 1.2rem;
-  }
-
-  .app-logo {
-    height: 35px;
-  }
-
-  .nav-tabs {
-    gap: 5px;
-  }
-
-  .nav-tabs span {
-    padding: 5px 8px;
-    font-size: 0.75rem;
-  }
-
   .money-tab-content h1 {
     font-size: 2em;
   }
@@ -1621,64 +1404,16 @@ html[data-theme='dark'] .app-logo-light {
   .money-tab-content h1 img {
     width: 40px !important;
   }
-
-  .app-main {
-    padding: 10px;
-  }
 }
 
 /* Tablet and larger screens */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .app-header {
-    padding: 18px;
-  }
-
-  .nav-tabs span {
-    font-size: 0.9rem;
-    padding: 7px 11px;
-  }
-
   .money-tab-content h1 {
     font-size: 6em;
   }
 
   .money-tab-content h1 img {
     width: 90px !important;
-  }
-}
-
-/* Desktop: force two-row tabs and center user-info between the rows */
-@media (min-width: 1025px) {
-  .app-header {
-    /* keep header items vertically centered to align title */
-    align-items: center;
-    gap: 20px;
-  }
-
-  .nav-tabs {
-    /* ensure the two nav rows remain stacked and take available space */
-    flex: 1 1 auto;
-    margin-top: 8px;
-    gap: 6px;
-  }
-
-  .nav-row {
-    justify-content: flex-start;
-  }
-
-  .nav-row .tab {
-    display: inline-flex;
-    flex: 0 0 auto;
-  }
-
-  /* center the user info vertically between the two tab rows */
-  .user-info {
-    align-self: center;
-  }
-
-  /* keep the spacer to push user-info to the far right */
-  .app-header .spacer {
-    flex-grow: 1;
   }
 }
 

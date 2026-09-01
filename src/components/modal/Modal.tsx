@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import './Modal.css';
+import styles from './Modal.module.css';
 import { IconX } from '@tabler/icons-react';
 
 interface ModalProps {
@@ -29,19 +29,19 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="modal-overlay" onMouseDown={onClose}>
+    <div className={styles['modal-overlay']} onMouseDown={onClose}>
       <div
-        className="modal"
+        className={styles.modal}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         onMouseDown={e => e.stopPropagation()}
         style={width ? { width: `${width}px` } : {}}
       >
-        <button className="modal-close" aria-label="Close" onClick={onClose}>
+        <button className={styles['modal-close']} aria-label="Close" onClick={onClose}>
           <IconX size={15} />
         </button>
-        <div className="modal-body">{children}</div>
+        <div className={styles['modal-body']}>{children}</div>
       </div>
     </div>
   );

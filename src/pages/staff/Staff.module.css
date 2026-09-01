@@ -465,10 +465,6 @@
   min-width: 220px;
 }
 
-.ip-map-select .select {
-  width: 100%;
-}
-
 .ip-map-body {
   display: flex;
   align-items: center;

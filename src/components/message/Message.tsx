@@ -1,10 +1,11 @@
 import React from 'react';
-import './Message.css';
+import styles from './Message.module.css';
 import { formatRelativeTime, titleCase } from '../../../server/common/math';
 import { EmojiText } from '../EmojiText';
 import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';
 import { dismissEphemeralMessage } from '../../helpers/social';
+import { useSocket } from '../../providers/socket';
 import { Avatar } from '../avatar/Avatar';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { Nameplate } from '../nameplate/Nameplate';
@@ -13,16 +14,12 @@ interface MessageProps {
   user?: IUser;
   message: IMessage;
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  updateMessages?: () => void;
 }
 
-export const Message: React.FC<MessageProps> = ({
-  user,
-  message,
-  onContextMenu,
-  updateMessages,
-}) => {
+export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }) => {
   const self = user ? user.uuid === message.sender_uuid : false;
+
+  const { request } = useSocket();
 
   const sanitizeText = (text: string): string => {
     const div = document.createElement('div');
@@ -200,7 +197,7 @@ export const Message: React.FC<MessageProps> = ({
         case 'mention':
           nodes.push(
             <span key={nodes.length}>
-              <EmojiText className="message-mention">{token.content as string}</EmojiText>
+              <EmojiText className={styles['message-mention']}>{token.content as string}</EmojiText>
             </span>
           );
           break;
@@ -221,19 +218,16 @@ export const Message: React.FC<MessageProps> = ({
 
   const handleEphemeralClick = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     e.preventDefault();
-    void dismissEphemeralMessage(message.uuid);
-    if (updateMessages) {
-      updateMessages();
-    }
+    void dismissEphemeralMessage(message.uuid, request);
   };
 
   return (
     <div
-      className={`message-item ${self ? 'self' : ''} ${message.ephemeral ? 'ephemeral' : ''}`}
+      className={`${styles['message-item']} ${self ? styles.self : ''} ${message.ephemeral ? styles.ephemeral : ''}`}
       onContextMenu={onContextMenu}
     >
-      <div className="message-header">
-        <span className="message-sender">
+      <div className={styles['message-header']}>
+        <span className={styles['message-sender']}>
           <Avatar
             src={message.sender_avatar_url || undefined}
             alt=""
@@ -271,7 +265,7 @@ export const Message: React.FC<MessageProps> = ({
           {message.ephemeral ? (
             <>
               <span
-                className="message-clickable message-metadata"
+                className={`${styles['message-clickable']} ${styles['message-metadata']}`}
                 onClick={handleEphemeralClick}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -289,11 +283,11 @@ export const Message: React.FC<MessageProps> = ({
           ) : (
             ''
           )}
-          {message.edited ? <span className="message-metadata">(Edited) </span> : ''}
+          {message.edited ? <span className={styles['message-metadata']}>(Edited) </span> : ''}
           {message.time_sent && formatRelativeTime(new Date(message.time_sent))}
         </span>
       </div>
-      <div className={`message-content ${message.shouted ? 'shouted' : ''}`}>
+      <div className={`${styles['message-content']} ${message.shouted ? styles.shouted : ''}`}>
         {renderMarkdown(message.content)}
       </div>
     </div>

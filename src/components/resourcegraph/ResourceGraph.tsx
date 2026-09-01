@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './ResourceGraph.css';
+import styles from './ResourceGraph.module.css';
 import { Graph } from '../graph/Graph';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { EmojiText } from '../EmojiText';
@@ -55,7 +55,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
     currentPrice !== null ? currentPrice : data.length > 0 ? data.at(-1) || 0 : null;
 
   return (
-    <div className="graph-container">
+    <div className={styles['graph-container']}>
       {hydrated && (
         <>
           <Graph
@@ -67,9 +67,9 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
             fill={fill}
           />
           <div className="graph-spacer"></div>
-          <div className="graph-under">
+          <div className={styles['graph-under']}>
             <div className="graph-info">
-              <div className="graph-info-lines">
+              <div className={styles['graph-info-lines']}>
                 <span>
                   Resource: <EmojiText>{resource.icon}</EmojiText> {resource.name}
                 </span>
@@ -82,8 +82,8 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
                 </span>
               </div>
             </div>
-            <div className="spacer"></div>
-            <Button onClick={onBuySellClick} className="graph-button">
+            <div className={styles.spacer}></div>
+            <Button onClick={onBuySellClick} className={styles['graph-button']}>
               Buy/Sell
             </Button>
           </div>

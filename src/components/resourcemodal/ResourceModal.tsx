@@ -1,5 +1,5 @@
 import React from 'react';
-import './ResourceModal.css';
+import styles from './ResourceModal.module.css';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { Button, EmojiText, Input, Modal } from '..';
 import { buyResource, sellResource } from '../../helpers/resource';
@@ -52,18 +52,18 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} {...props}>
       <div className="market-modal">
         <div className="market-header">
-          <h2 className="market-title">
+          <h2 className={styles['market-title']}>
             <EmojiText>{resource.icon}</EmojiText> <span>{resource.name}</span>
           </h2>
-          <div className="market-switches">
+          <div className={styles['market-switches']}>
             <span
-              className={marketMode === 'buy' ? 'switch active' : 'switch'}
+              className={marketMode === 'buy' ? `${styles.switch} ${styles.active}` : styles.switch}
               onClick={() => setMarketMode('buy')}
             >
               Buy
             </span>
             <span
-              className={marketMode === 'sell' ? 'switch active' : 'switch'}
+              className={marketMode === 'sell' ? `${styles.switch} ${styles.active}` : styles.switch}
               onClick={() => setMarketMode('sell')}
             >
               Sell
@@ -73,9 +73,9 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
         <div className="market-content">
           {marketMode === 'buy' ? (
             <div className="buy-section">
-              <div className="market-resource-info">
-                <span className="market-resource-name">{resource.name}</span>
-                <span className="market-resource-value mono">
+              <div className={styles['market-resource-info']}>
+                <span className={styles['market-resource-name']}>{resource.name}</span>
+                <span className={`${styles['market-resource-value']} mono`}>
                   {smartFormatNumber(resourcePrice)} per{' '}
                   {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                 </span>
@@ -85,12 +85,12 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                 min="1"
                 value={marketQuantity === 0 ? '' : marketQuantity.toString()}
                 placeholder="Quantity to buy"
-                className="market-input"
+                className={styles['market-input']}
                 onValueChange={value => setMarketQuantity(Number(value))}
               />
-              <div className="market-quantity-controls">
+              <div className={styles['market-quantity-controls']}>
                 <Button
-                  className="market-quantity-button"
+                  className={styles['market-quantity-button']}
                   onClick={() => {
                     // Calculate 10% of affordable quantity
                     const affordableQuantity = Math.floor(money / resourcePrice);
@@ -101,7 +101,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   10% of money
                 </Button>
                 <Button
-                  className="market-quantity-button"
+                  className={styles['market-quantity-button']}
                   onClick={() => {
                     // Calculate 50% of affordable quantity
                     const affordableQuantity = Math.floor(money / resourcePrice);
@@ -112,7 +112,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                   50% of money
                 </Button>
                 <Button
-                  className="market-quantity-button"
+                  className={styles['market-quantity-button']}
                   onClick={() => {
                     // Calculate 100% of affordable quantity
                     const affordableQuantity = Math.floor(money / resourcePrice);
@@ -123,7 +123,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                 </Button>
               </div>
               {marketQuantity > 0 && (
-                <p className="market-total-cost">
+                <p className={styles['market-total-cost']}>
                   Total Cost:{' '}
                   <span className="mono">{smartFormatNumber(resourcePrice * marketQuantity)}</span>{' '}
                   for {smartFormatNumber(marketQuantity, false)}{' '}
@@ -132,9 +132,9 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     : resource.unit}
                 </p>
               )}
-              <div className="market-buttons">
+              <div className={styles['market-buttons']}>
                 <Button
-                  className="market-button"
+                  className={styles['market-button']}
                   disabled={resourcePrice * marketQuantity > money || marketQuantity === 0}
                   onClickAsync={onBuyButtonClick}
                 >
@@ -142,7 +142,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                 </Button>
                 {!disableSeeMore && (
                   <Button
-                    className="market-button"
+                    className={styles['market-button']}
                     onClick={() => {
                       onClose();
                       onSeeMore();
@@ -156,15 +156,15 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
           ) : (
             <div className="sell-section">
               {quantity === 0 && (
-                <p className="market-no-quantity">
+                <p className={styles['market-no-quantity']}>
                   You have no {resource.name.toLowerCase()} to sell.
                 </p>
               )}
               {quantity > 0 && (
                 <div>
-                  <div className="market-resource-info">
-                    <span className="market-resource-name">{resource.name}</span>
-                    <span className="market-resource-value mono">
+                  <div className={styles['market-resource-info']}>
+                    <span className={styles['market-resource-name']}>{resource.name}</span>
+                    <span className={`${styles['market-resource-value']} mono`}>
                       {smartFormatNumber(resourcePrice)} per{' '}
                       {resource.unit.endsWith('s') ? resource.unit.slice(0, -1) : resource.unit}
                     </span>
@@ -176,12 +176,12 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     value={marketQuantity === 0 ? '' : marketQuantity.toString()}
                     max={quantity}
                     placeholder="Quantity to sell"
-                    className="market-input"
+                    className={styles['market-input']}
                     onValueChange={value => setMarketQuantity(Number(value))}
                   />
-                  <div className="market-quantity-controls">
+                  <div className={styles['market-quantity-controls']}>
                     <Button
-                      className="market-quantity-button"
+                      className={styles['market-quantity-button']}
                       onClick={() => {
                         // Calculate 10% of available quantity
                         const tenPercent = Math.max(1, Math.floor(quantity * 0.1));
@@ -191,7 +191,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                       10% of quantity
                     </Button>
                     <Button
-                      className="market-quantity-button"
+                      className={styles['market-quantity-button']}
                       onClick={() => {
                         // Calculate 50% of available quantity
                         const fiftyPercent = Math.max(1, Math.floor(quantity * 0.5));
@@ -201,7 +201,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                       50% of quantity
                     </Button>
                     <Button
-                      className="market-quantity-button"
+                      className={styles['market-quantity-button']}
                       onClick={() => {
                         // Calculate 100% of available quantity
                         setMarketQuantity(quantity);
@@ -211,7 +211,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     </Button>
                   </div>
                   {marketQuantity > 0 && (
-                    <p className="market-total-cost">
+                    <p className={styles['market-total-cost']}>
                       Total Value:{' '}
                       <span className="mono">
                         {smartFormatNumber(resourcePrice * marketQuantity)}
@@ -222,9 +222,9 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                         : resource.unit}
                     </p>
                   )}
-                  <div className="market-buttons">
+                  <div className={styles['market-buttons']}>
                     <Button
-                      className="market-button"
+                      className={styles['market-button']}
                       disabled={marketQuantity > quantity || marketQuantity === 0}
                       onClickAsync={onSellButtonClick}
                     >
@@ -232,7 +232,7 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                     </Button>
                     {!disableSeeMore && (
                       <Button
-                        className="market-button"
+                        className={styles['market-button']}
                         onClick={() => {
                           onClose();
                           onSeeMore();

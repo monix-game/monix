@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import './DebugOverlay.css';
+import styles from './DebugOverlay.module.css';
 import { useSocket } from '../../providers/socket';
 
 type DebugOverlayPosition = 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
@@ -14,7 +14,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ position = 'topleft'
   const [isOnline, setIsOnline] = useState<boolean>(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
-  const positionClass = useMemo(() => `debug-overlay-${position}`, [position]);
+  const positionClass = useMemo(() => styles[`debug-overlay-${position}`], [position]);
   const { ping } = useSocket();
 
   useEffect(() => {
@@ -72,17 +72,17 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ position = 'topleft'
   }, []);
 
   return (
-    <div className={`debug-overlay ${positionClass}`} role="status" aria-live="polite">
-      <div className="debug-overlay-title">Debug Overlay</div>
-      <div className="debug-overlay-row">
+    <div className={`${styles['debug-overlay']} ${positionClass}`} role="status" aria-live="polite">
+      <div className={styles['debug-overlay-title']}>Debug Overlay</div>
+      <div className={styles['debug-overlay-row']}>
         <span>Ping</span>
         <span>{pingMs === null ? '—' : `${pingMs}ms`}</span>
       </div>
-      <div className="debug-overlay-row">
+      <div className={styles['debug-overlay-row']}>
         <span>FPS</span>
         <span>{fps}</span>
       </div>
-      <div className="debug-overlay-row">
+      <div className={styles['debug-overlay-row']}>
         <span>Network</span>
         <span>{isOnline ? 'online' : 'offline'}</span>
       </div>

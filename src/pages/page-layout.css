@@ -1,0 +1,273 @@
+.app-header {
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+  border-bottom: 2px dashed var(--primary-3);
+  position: relative;
+  z-index: 1;
+  background-color: var(--bg);
+  height: auto;
+  min-height: 100px;
+  flex-wrap: nowrap;
+}
+
+.app-header .spacer {
+  flex-grow: 1;
+}
+
+.app-logo {
+  height: 65px;
+  margin-right: -15px;
+  user-select: none;
+}
+
+html[data-theme='light'] .app-logo-dark {
+  display: none;
+}
+
+html[data-theme='dark'] .app-logo-light {
+  display: none;
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 10px;
+  user-select: none;
+}
+
+.nav-tabs {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nav-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.nav-tabs .tab {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px 10px 0 0;
+  border-top: 2px solid var(--primary-2);
+  border-left: 2px solid var(--primary-2);
+  border-right: 2px solid var(--primary-2);
+  border-bottom: 0px dotted var(--primary-2);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.nav-tabs .tab.active {
+  background-color: var(--dark-bg);
+  font-weight: 600;
+  border-bottom: 2px dotted var(--primary-2);
+}
+
+.nav-tabs .tab.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-tabs .tab:hover {
+  background-color: var(--dark-bg);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.username-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.username-info svg {
+  vertical-align: middle;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  vertical-align: middle;
+}
+
+.username-info .username {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.username-info .username.clickable {
+  cursor: pointer;
+}
+
+.username-info .username.clickable:hover {
+  text-decoration: underline;
+}
+
+.user-money {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.user-money div {
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  user-select: none;
+  gap: 5px;
+}
+
+.app-main {
+  padding: 20px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.tab-content h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  user-select: none;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 15px;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+    width: 100%;
+    text-align: center;
+    order: 1;
+  }
+
+  .app-logo {
+    height: 45px;
+    order: 0;
+  }
+
+  .nav-tabs {
+    width: 100%;
+    order: 3;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 5px;
+  }
+
+  .nav-tabs span {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+
+  .user-info {
+    order: 2;
+  }
+
+  .app-header .spacer {
+    display: none;
+  }
+
+  .app-main {
+    padding: 15px;
+  }
+
+  .tab-content {
+    text-align: center;
+  }
+}
+
+/* Small Mobile (phones in portrait) */
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .app-logo {
+    height: 35px;
+  }
+
+  .nav-tabs {
+    gap: 5px;
+  }
+
+  .nav-tabs span {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+
+  .app-main {
+    padding: 10px;
+  }
+}
+
+/* Tablet and larger screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-header {
+    padding: 18px;
+  }
+
+  .nav-tabs span {
+    font-size: 0.9rem;
+    padding: 7px 11px;
+  }
+}
+
+/* Desktop: force two-row tabs and center user-info between the rows */
+@media (min-width: 1025px) {
+  .app-header {
+    /* keep header items vertically centered to align title */
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-tabs {
+    /* ensure the two nav rows remain stacked and take available space */
+    flex: 1 1 auto;
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .nav-row {
+    justify-content: flex-start;
+  }
+
+  .nav-row .tab {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  /* center the user info vertically between the two tab rows */
+  .user-info {
+    align-self: center;
+  }
+
+  /* keep the spacer to push user-info to the far right */
+  .app-header .spacer {
+    flex-grow: 1;
+  }
+}

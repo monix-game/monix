@@ -1,5 +1,5 @@
 import React from 'react';
-import './PetModal.css';
+import styles from './PetModal.module.css';
 import { Button, EmojiText, Input, Modal } from '../..';
 import type { IPet } from '../../../../server/common/models/pet';
 import {
@@ -100,54 +100,54 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
         onClose();
       }}
     >
-      <div className="pet-modal">
-        <div className="pet-modal-header">
-          <div className="pet-modal-icon">
+      <div className={styles['pet-modal']}>
+        <div className={styles['pet-modal-header']}>
+          <div className={styles['pet-modal-icon']}>
             <span role="img" aria-label={type.name}>
               <EmojiText>{type.icon}</EmojiText>
             </span>
           </div>
-          <div className="pet-modal-info">
-            <span className="pet-modal-name">{pet.name || 'Unnamed Pet'}</span>
-            <span className="pet-modal-type">{type.name}</span>
+          <div className={styles['pet-modal-info']}>
+            <span className={styles['pet-modal-name']}>{pet.name || 'Unnamed Pet'}</span>
+            <span className={styles['pet-modal-type']}>{type.name}</span>
           </div>
         </div>
         {!pet.is_dead && (
           <>
-            <div className="pet-modal-exp">
-              <div className="pet-modal-exp-info">
-                <span className="pet-modal-level">Level: {pet.level}</span>
-                <span className="pet-modal-exp-amount">
+            <div className={styles['pet-modal-exp']}>
+              <div className={styles['pet-modal-exp-info']}>
+                <span className={styles['pet-modal-level']}>Level: {pet.level}</span>
+                <span className={styles['pet-modal-exp-amount']}>
                   EXP: {smartFormatNumber(pet.exp, false)} /{' '}
                   {smartFormatNumber(expRequiredForLevel(pet.level), false)}
                 </span>
               </div>
-              <div className="pet-modal-exp-bar">
+              <div className={styles['pet-modal-exp-bar']}>
                 <div
-                  className="pet-modal-exp-fill"
+                  className={styles['pet-modal-exp-fill']}
                   style={{ width: `${(pet.exp / expRequiredForLevel(pet.level)) * 100}%` }}
                 ></div>
               </div>
             </div>
-            <div className="pet-modal-stats">
-              <span className="pet-modal-sleeping">
+            <div className={styles['pet-modal-stats']}>
+              <span className={styles['pet-modal-sleeping']}>
                 {isPetAsleep(pet) &&
                   `💤 Sleeping for ${formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}`}
                 {!isPetAsleep(pet) && `😄 Sleeping in ${formatTimeUntilSleep(pet.uuid)}`}
               </span>
-              <div className="pet-modal-stat">
-                <span className="pet-modal-stat-label">Happiness:</span>
-                <span className="pet-modal-stat-value">{happiness}%</span>
+              <div className={styles['pet-modal-stat']}>
+                <span className={styles['pet-modal-stat-label']}>Happiness:</span>
+                <span className={styles['pet-modal-stat-value']}>{happiness}%</span>
               </div>
-              <div className="pet-modal-stat">
-                <span className="pet-modal-stat-label">Hunger:</span>
-                <span className="pet-modal-stat-value">{hunger}%</span>
+              <div className={styles['pet-modal-stat']}>
+                <span className={styles['pet-modal-stat-label']}>Hunger:</span>
+                <span className={styles['pet-modal-stat-value']}>{hunger}%</span>
               </div>
             </div>
           </>
         )}
         {namingPet && (
-          <div className="pet-modal-input">
+          <div className={styles['pet-modal-input']}>
             <Input
               value={petNameInput}
               onValueChange={value => setPetNameInput(value)}
@@ -162,7 +162,7 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
             />
           </div>
         )}
-        <div className="pet-modal-actions">
+        <div className={styles['pet-modal-actions']}>
           {pet.name === '' && !confirmingRelease && !namingPet && !pet.is_dead && (
             <>
               <Button onClick={() => setNamingPet(true)}>Give a Name</Button>

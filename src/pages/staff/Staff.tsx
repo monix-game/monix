@@ -1,4 +1,4 @@
-import './Staff.css';
+import styles from './Staff.module.css';
 import { useCallback, useEffect, useState, useRef, startTransition } from 'react';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
@@ -1120,51 +1120,51 @@ export default function Staff() {
               Good {titleCase(timeOfDay)}, {user ? user.username : 'User'}
             </h2>
             <p>Monix at a glance</p>
-            <div className="dashboard-grid">
+            <div className={`${styles['dashboard-grid']}`}>
               {!dashboardHydrated && <Spinner size={28} />}
               {dashboardHydrated && dashboardData && (
                 <>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>👤 Total Users</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.totalUsers}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.totalUsers}</span>
                   </div>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>🛡️ Active Punishments</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.totalPunishments}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.totalPunishments}</span>
                   </div>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>🛡️ Punishments Last 24h</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.punishmentsLast24Hours}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.punishmentsLast24Hours}</span>
                   </div>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>📋 Open Reports</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.openReports}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.openReports}</span>
                   </div>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>📋 Reports Last 24h</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.reportsLast24Hours}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.reportsLast24Hours}</span>
                   </div>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>⚖️ Open Appeals</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.openAppeals}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.openAppeals}</span>
                   </div>
-                  <div className="dashboard-card">
+                  <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>⚖️ Appeals Last 24h</EmojiText>
                     </h3>
-                    <span className="big-number">{dashboardData?.appealsLast24Hours}</span>
+                    <span className={`${styles['big-number']}`}>{dashboardData?.appealsLast24Hours}</span>
                   </div>
                 </>
               )}
@@ -1182,7 +1182,7 @@ export default function Staff() {
               ).length !== 1 &&
                 `There are currently ${reports.filter(r => reportsStatusFilter === 'all' || r.status === reportsStatusFilter).length} reports`}
             </h2>
-            <div className="review-filter">
+            <div className={`${styles['review-filter']}`}>
               <p>Filter by status:</p>
               <Select
                 value={reportsStatusFilter}
@@ -1195,7 +1195,7 @@ export default function Staff() {
                 ]}
               />
             </div>
-            <div className="review-list">
+            <div className={`${styles['review-list']}`}>
               {!reportsHydrated && <Spinner size={28} />}
               {reportsHydrated &&
                 reports.filter(
@@ -1209,30 +1209,30 @@ export default function Staff() {
                       new Date(b.time_reported).getTime() - new Date(a.time_reported).getTime()
                   )
                   .map(r => (
-                    <div key={r.uuid} className="review-card">
-                      <div className="review-header">
-                        <span className={`review-badge ${r.status}`}>{titleCase(r.status)}</span>
+                    <div key={r.uuid} className={`${styles['review-card']}`}>
+                      <div className={`${styles['review-header']}`}>
+                        <span className={`${styles['review-badge']} ${r.status}`}>{titleCase(r.status)}</span>
                         <span className="review-time">
                           {formatRelativeTime(new Date(r.time_reported))}
                         </span>
                       </div>
-                      <div className="review-body">
-                        <div className="staff-info-list">
-                          <div className="staff-info-line">
+                      <div className={`${styles['review-body']}`}>
+                        <div className={`${styles['staff-info-list']}`}>
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Category</span>
                             <span className="mono">{getCategoryById(r.reason)?.name}</span>
                           </div>
-                          <div className="staff-info-line">
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Message Content</span>
                             <span className="mono">{r.message_content}</span>
                           </div>
-                          <div className="staff-info-line">
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Details</span>
                             <span className="mono">{r.details || 'N/A'}</span>
                           </div>
                         </div>
                         {r.status === 'pending' && (
-                          <div className="review-buttons">
+                          <div className={`${styles['review-buttons']}`}>
                             <Button
                               color="blue"
                               onClick={() => {
@@ -1291,7 +1291,7 @@ export default function Staff() {
               ).length !== 1 &&
                 `There are currently ${appeals.filter(a => appealsStatusFilter === 'all' || a.status === appealsStatusFilter).length} appeals`}
             </h2>
-            <div className="review-filter">
+            <div className={`${styles['review-filter']}`}>
               <p>Filter by status:</p>
               <Select
                 value={appealsStatusFilter}
@@ -1304,7 +1304,7 @@ export default function Staff() {
                 ]}
               />
             </div>
-            <div className="review-list">
+            <div className={`${styles['review-list']}`}>
               {!appealsHydrated && <Spinner size={28} />}
               {appealsHydrated &&
                 appeals.filter(
@@ -1318,28 +1318,28 @@ export default function Staff() {
                       new Date(b.time_submitted).getTime() - new Date(a.time_submitted).getTime()
                   )
                   .map(a => (
-                    <div key={a.uuid} className="review-card">
-                      <div className="review-header">
-                        <span className={`review-badge ${a.status}`}>{titleCase(a.status)}</span>
+                    <div key={a.uuid} className={`${styles['review-card']}`}>
+                      <div className={`${styles['review-header']}`}>
+                        <span className={`${styles['review-badge']} ${a.status}`}>{titleCase(a.status)}</span>
                         <span className="review-time">
                           {formatRelativeTime(new Date(a.time_submitted))}
                         </span>
                       </div>
-                      <div className="review-body">
-                        <div className="staff-info-list">
-                          <div className="staff-info-line">
+                      <div className={`${styles['review-body']}`}>
+                        <div className={`${styles['staff-info-list']}`}>
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Punishment Category</span>
                             <span className="mono">
                               {getCategoryById(a.punishment_category_id)?.name}
                             </span>
                           </div>
-                          <div className="staff-info-line">
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Appeal Text</span>
                             <span className="mono">{a.reason}</span>
                           </div>
                         </div>
                         {a.status === 'pending' && (
-                          <div className="review-buttons">
+                          <div className={`${styles['review-buttons']}`}>
                             <Button
                               color="blue"
                               onClick={() => {
@@ -1371,12 +1371,12 @@ export default function Staff() {
         {tab === 'logs' && (
           <div className="tab-content">
             <h2>Staff Logs</h2>
-            <p className="staff-log-description">
+            <p className={`${styles['staff-log-description']}`}>
               Audit trail for moderation actions, system updates, and staff activity.
             </p>
-            <div className="log-toolbar">
+            <div className={`${styles['log-toolbar']}`}>
               <Input
-                className="log-search-input"
+                className={`${styles['log-search-input']}`}
                 placeholder="Search message, user, or data..."
                 value={logsSearch}
                 onValueChange={value => setLogsSearch(value)}
@@ -1421,43 +1421,43 @@ export default function Staff() {
               </Button>
             </div>
             {logsHydrated && (
-              <div className="log-summary">
+              <div className={`${styles['log-summary']}`}>
                 Showing {sortedLogs.length} of {logs.length} logs
               </div>
             )}
-            <div className="log-list">
+            <div className={`${styles['log-list']}`}>
               {!logsHydrated && <Spinner size={28} />}
               {logsHydrated && sortedLogs.length === 0 && <b>No logs to show.</b>}
               {logsHydrated &&
                 sortedLogs.map(entry => (
-                  <div key={entry.uuid} className="log-card">
-                    <div className="log-header">
-                      <div className="log-title">
-                        <span className={`log-badge level-${entry.level}`}>
+                  <div key={entry.uuid} className={`${styles['log-card']}`}>
+                    <div className={`${styles['log-header']}`}>
+                      <div className={`${styles['log-title']}`}>
+                        <span className={`${styles['log-badge']} level-${entry.level}`}>
                           {entry.level.toUpperCase()}
                         </span>
-                        <span className="log-badge log-type">{logTypeLabel(entry.type)}</span>
-                        <span className="log-message">{entry.message}</span>
+                        <span className={`${styles['log-badge']} log-type`}>{logTypeLabel(entry.type)}</span>
+                        <span className={`${styles['log-message']}`}>{entry.message}</span>
                       </div>
                       <span className="log-time">
                         {formatRelativeTime(new Date(entry.timestamp))}
                       </span>
                     </div>
-                    <div className="log-meta">
+                    <div className={`${styles['log-meta']}`}>
                       <span className="log-user">
                         {entry.username ? `by ${entry.username}` : 'system'}
                       </span>
                       <span className="mono log-uuid">{entry.uuid}</span>
                     </div>
                     {entry.data && entry.data.length > 0 && (
-                      <div className="staff-info-list log-data-list">
+                      <div className={`${styles['staff-info-list']} ${styles['log-data-list']}`}>
                         {entry.data.map(field => (
                           <div
                             key={`${entry.uuid}-${field.key}-${field.value}`}
-                            className="staff-info-line log-data-line"
+                            className={`${styles['staff-info-line']} ${styles['log-data-line']}`}
                           >
                             <span>{field.key}</span>
-                            <span className="mono log-data-value">{field.value}</span>
+                            <span className={`mono ${styles['log-data-value']}`}>{field.value}</span>
                           </div>
                         ))}
                       </div>
@@ -1471,9 +1471,9 @@ export default function Staff() {
           <div className="tab-content">
             <h2>User Management</h2>
             <p>Search and manage users in the system.</p>
-            <div className="user-search">
+            <div className={`${styles['user-search']}`}>
               <Input
-                className="user-search-input"
+                className={`${styles['user-search-input']}`}
                 placeholder="Search by username or UUID..."
                 value={filter}
                 onValueChange={value => {
@@ -1481,7 +1481,7 @@ export default function Staff() {
                 }}
               />
             </div>
-            <div className="user-list">
+            <div className={`${styles['user-list']}`}>
               {!usersHydrated && <Spinner size={28} />}
               {usersHydrated && users.length === 0 && <p>No users found.</p>}
               {usersHydrated &&
@@ -1500,8 +1500,8 @@ export default function Staff() {
                   }
 
                   return (
-                    <div key={u.uuid} className="user-card">
-                      <div className="user-card-header">
+                    <div key={u.uuid} className={`${styles['user-card']}`}>
+                      <div className={`${styles['user-card-header']}`}>
                         <div className="user-card-avatar">
                           <Avatar
                             src={u.avatar_data_uri || undefined}
@@ -1519,7 +1519,7 @@ export default function Staff() {
                         <Nameplate
                           text={u.username}
                           styleKey={cardNameplateStyle}
-                          className="staff-username"
+                          className={`${styles['staff-username']}`}
                         />
                         {u.equipped_cosmetics?.tag && (
                           <span
@@ -1536,23 +1536,23 @@ export default function Staff() {
                         )}
                       </div>
                       <div className="user-card-body">
-                        <div className="staff-info-list">
-                          <div className="staff-info-line">
+                        <div className={`${styles['staff-info-list']}`}>
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>UUID:</span>
                             <span className="mono">{u.uuid}</span>
                           </div>
-                          <div className="staff-info-line">
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Registered:</span>
                             <span className="mono">
                               {new Date(u.time_created * 1000).toLocaleDateString()}
                             </span>
                           </div>
-                          <div className="staff-info-line">
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Total Punishments:</span>
                             <span className="mono">{u.punishments ? u.punishments.length : 0}</span>
                           </div>
                         </div>
-                        <div className="user-card-buttons">
+                        <div className={`${styles['user-card-buttons']}`}>
                           <Button
                             onClick={() => {
                               setSelectedUser(u);
@@ -1607,7 +1607,7 @@ export default function Staff() {
         )}
         {tab === 'ip' && (
           <div className="tab-content">
-            <div className="ip-header">
+            <div className={`${styles['ip-header']}`}>
               <div>
                 <h2>IP Data</h2>
                 <p>Review IP activity for a selected user.</p>
@@ -1618,19 +1618,19 @@ export default function Staff() {
             </div>
             {!ipTabUser && <p>Select a user from the Users tab to view IP details.</p>}
             {ipTabUser && (
-              <div className="ip-layout">
-                <div className="ip-card">
+              <div className={`${styles['ip-layout']}`}>
+                <div className={`${styles['ip-card']}`}>
                   <h3>User Snapshot</h3>
-                  <div className="staff-info-list">
-                    <div className="staff-info-line">
+                  <div className={`${styles['staff-info-list']}`}>
+                    <div className={`${styles['staff-info-line']}`}>
                       <span>User</span>
                       <span className="mono">{ipTabUser.username}</span>
                     </div>
-                    <div className="staff-info-line">
+                    <div className={`${styles['staff-info-line']}`}>
                       <span>UUID</span>
                       <span className="mono">{ipTabUser.uuid}</span>
                     </div>
-                    <div className="staff-info-line">
+                    <div className={`${styles['staff-info-line']}`}>
                       <span>Current IP</span>
                       <span className="mono">
                         {ipTabUser.ip_history?.length
@@ -1638,7 +1638,7 @@ export default function Staff() {
                           : 'N/A'}
                       </span>
                     </div>
-                    <div className="staff-info-line">
+                    <div className={`${styles['staff-info-line']}`}>
                       <span>Last Seen</span>
                       <span className="mono">
                         {ipTabUser.ip_history?.length
@@ -1652,18 +1652,18 @@ export default function Staff() {
                     </div>
                   </div>
                 </div>
-                <div className="ip-card">
+                <div className={`${styles['ip-card']}`}>
                   <h3>IP History</h3>
                   {!ipTabHydrated && <Spinner size={28} />}
                   {ipTabHydrated && (ipTabUser.ip_history || []).length === 0 && (
                     <p>No IP history recorded for this user.</p>
                   )}
                   {ipTabHydrated && (ipTabUser.ip_history || []).length > 0 && (
-                    <div className="ip-history-list">
+                    <div className={`${styles['ip-history-list']}`}>
                       {ipHistorySorted.map(entry => (
                         <div
                           key={`${entry.ip}-${entry.timestamp}`}
-                          className={`ip-history-item ${entry.ip === ipSelected ? 'active' : ''}`}
+                          className={`${styles['ip-history-item']} ${entry.ip === ipSelected ? 'active' : ''}`}
                           role="button"
                           tabIndex={0}
                           onClick={() => setIpSelected(entry.ip)}
@@ -1683,29 +1683,29 @@ export default function Staff() {
                     </div>
                   )}
                 </div>
-                <div className="ip-card ip-map-card">
-                  <div className="ip-map-header">
+                <div className={`${styles['ip-card']} ${styles['ip-map-card']}`}>
+                  <div className={`${styles['ip-map-header']}`}>
                     <h3>Saved IP Map</h3>
-                    <div className="ip-map-select" />
+                    <div className={`${styles['ip-map-select']}`} />
                   </div>
-                  <div className="ip-map-body">
+                  <div className={`${styles['ip-map-body']}`}>
                     {!ipSelected && <p>No saved IPs available.</p>}
                     {ipSelected && ipGeoLoading && <Spinner size={28} />}
                     {ipSelected && !ipGeoLoading && ipGeoError && (
-                      <p className="ip-error">{ipGeoError}</p>
+                      <p className={`${styles['ip-error']}`}>{ipGeoError}</p>
                     )}
                     {ipSelected && !ipGeoLoading && !ipGeoError && selectedIpGeo && (
                       <iframe
                         ref={iframeRef}
                         title={'IP Map'}
                         srcDoc={iframeSrcDoc}
-                        className="ip-map"
+                        className={`${styles['ip-map']}`}
                         aria-hidden={false}
                       />
                     )}
                   </div>
                   {ipSelected && selectedIpGeo && (
-                    <div className="ip-map-meta">
+                    <div className={`${styles['ip-map-meta']}`}>
                       {[selectedIpGeo.city, selectedIpGeo.region, selectedIpGeo.country]
                         .filter(Boolean)
                         .join(', ') || 'Location unavailable'}
@@ -1723,12 +1723,12 @@ export default function Staff() {
             <p>Toggle game systems on or off for everyone.</p>
             {!featureSettingsHydrated && <Spinner size={28} />}
             {featureSettingsHydrated && (
-              <div className="feature-toggle-grid">
+              <div className={`${styles['feature-toggle-grid']}`}>
                 {featureToggleItems.map(item => {
                   const enabled = featureSettings.features[item.key];
                   return (
-                    <div key={item.key} className="feature-toggle-card">
-                      <div className="feature-toggle-info">
+                    <div key={item.key} className={`${styles['feature-toggle-card']}`}>
+                      <div className={`${styles['feature-toggle-info']}`}>
                         <h3>{item.title}</h3>
                         <p>{item.description}</p>
                       </div>
@@ -1746,14 +1746,14 @@ export default function Staff() {
               </div>
             )}
             {featureSettingsError && (
-              <div className="feature-toggle-error">{featureSettingsError}</div>
+              <div className={`${styles['feature-toggle-error']}`}>{featureSettingsError}</div>
             )}
           </div>
         )}
       </main>
 
       <Modal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)}>
-        <div className="staff-modal">
+        <div className={`${styles['staff-modal']}`}>
           {selectedReport && selectedReportAction && (
             <>
               {selectedReportAction === 'change_category' && (
@@ -1791,7 +1791,7 @@ export default function Staff() {
       </Modal>
 
       <Modal isOpen={appealModalOpen} onClose={() => setAppealModalOpen(false)}>
-        <div className="staff-modal">
+        <div className={`${styles['staff-modal']}`}>
           {selectedAppeal && selectedAppealAction && (
             <>
               <h2>Confirm Appeal Action</h2>
@@ -1812,13 +1812,13 @@ export default function Staff() {
         onClose={() => setPunishmentsModalOpen(false)}
         width={600}
       >
-        <div className="staff-modal">
+        <div className={`${styles['staff-modal']}`}>
           <h2>
             {punishmentsModalUser
               ? `${punishmentsModalUser.username}'s Punishments`
               : 'Punishments'}
           </h2>
-          <div className="review-filter">
+          <div className={`${styles['review-filter']}`}>
             <p>Filter by status:</p>
             <Select
               value={punishmentsFilter}
@@ -1847,35 +1847,35 @@ export default function Staff() {
                   : formatRemainingTime(Math.ceil(getRemainingDuration(punishment) / 1000));
 
               return (
-                <div key={punishment.uuid} className="review-card">
-                  <div className="review-header">
-                    <span className={`review-badge ${isActive ? 'reviewed' : 'dismissed'}`}>
+                <div key={punishment.uuid} className={`${styles['review-card']}`}>
+                  <div className={`${styles['review-header']}`}>
+                    <span className={`${styles['review-badge']} ${isActive ? 'reviewed' : 'dismissed'}`}>
                       {isActive ? 'Active' : 'Inactive'}
                     </span>
                     <span className="review-time">
                       {formatRelativeTime(new Date(punishment.issued_at))}
                     </span>
                   </div>
-                  <div className="review-body">
-                    <div className="staff-info-list">
-                      <div className="staff-info-line">
+                  <div className={`${styles['review-body']}`}>
+                    <div className={`${styles['staff-info-list']}`}>
+                      <div className={`${styles['staff-info-line']}`}>
                         <span>Category</span>
                         <span className="mono">{punishment.category?.name || 'Unknown'}</span>
                       </div>
-                      <div className="staff-info-line">
+                      <div className={`${styles['staff-info-line']}`}>
                         <span>Level</span>
                         <span className="mono">{punishment.level}</span>
                       </div>
-                      <div className="staff-info-line">
+                      <div className={`${styles['staff-info-line']}`}>
                         <span>Original Duration</span>
                         <span className="mono">{originalDuration}</span>
                       </div>
-                      <div className="staff-info-line">
+                      <div className={`${styles['staff-info-line']}`}>
                         <span>Remaining Duration</span>
                         <span className="mono">{isActive ? remainingDuration : 'N/A'}</span>
                       </div>
                     </div>
-                    <div className="review-buttons">
+                    <div className={`${styles['review-buttons']}`}>
                       {isActive && (
                         <Button
                           color="red"
@@ -1912,10 +1912,10 @@ export default function Staff() {
       </Modal>
 
       <Modal isOpen={editUserModalOpen} onClose={() => setEditUserModalOpen(false)} width={520}>
-        <div className="staff-modal">
+        <div className={`${styles['staff-modal']}`}>
           {editUserTarget && (
             <>
-              <div className="staff-edit-header">
+              <div className={`${styles['staff-edit-header']}`}>
                 <Avatar
                   src={editUserTarget.avatar_data_uri || undefined}
                   alt="User Avatar"
@@ -1930,18 +1930,18 @@ export default function Staff() {
                 />
                 <div>
                   <h2>Edit {editUserTarget.username}</h2>
-                  <div className="mono staff-edit-uuid">{editUserTarget.uuid}</div>
+                  <div className={`mono ${styles['staff-edit-uuid']}`}>{editUserTarget.uuid}</div>
                 </div>
               </div>
               {editUserPage === 'root' && (
-                <div className="staff-edit-nav">
-                  <div className="staff-edit-nav-grid">
+                <div className={`${styles['staff-edit-nav']}`}>
+                  <div className={`${styles['staff-edit-nav-grid']}`}>
                     {editNavItems.map(item => {
                       const ItemIcon = item.icon;
                       return (
                         <div
                           key={item.key}
-                          className={`staff-edit-nav-item ${item.disabled ? 'disabled' : ''}`}
+                          className={`${styles['staff-edit-nav-item']} ${item.disabled ? 'disabled' : ''}`}
                           role="button"
                           tabIndex={item.disabled ? -1 : 0}
                           onClick={() => {
@@ -1964,7 +1964,7 @@ export default function Staff() {
                       );
                     })}
                   </div>
-                  <div className="staff-edit-nav-actions">
+                  <div className={`${styles['staff-edit-nav-actions']}`}>
                     <Button secondary onClick={() => setEditUserModalOpen(false)}>
                       Close
                     </Button>
@@ -1972,7 +1972,7 @@ export default function Staff() {
                 </div>
               )}
               {editUserPage === 'economy' && (
-                <div className="staff-edit-section">
+                <div className={`${styles['staff-edit-section']}`}>
                   <Input
                     label="Money"
                     value={editMoney}
@@ -2005,8 +2005,8 @@ export default function Staff() {
                       },
                     ]}
                   />
-                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
-                  <div className="staff-edit-actions">
+                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSaveEconomyEdits} isLoading={editUserSaving}>
                       Save Money & Gems
                     </Button>
@@ -2017,7 +2017,7 @@ export default function Staff() {
                 </div>
               )}
               {editUserPage === 'avatar' && (
-                <div className="staff-edit-section">
+                <div className={`${styles['staff-edit-section']}`}>
                   <Input
                     label="Avatar File"
                     type="file"
@@ -2040,8 +2040,8 @@ export default function Staff() {
                       }
                     }}
                   />
-                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
-                  <div className="staff-edit-actions">
+                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSaveAvatarEdits} isLoading={editUserSaving}>
                       Save Avatar
                     </Button>
@@ -2052,12 +2052,12 @@ export default function Staff() {
                 </div>
               )}
               {editUserPage === 'role' && (
-                <div className="staff-edit-section">
+                <div className={`${styles['staff-edit-section']}`}>
                   {roleOptions.length === 0 ? (
                     <p>You do not have any roles you can assign.</p>
                   ) : (
                     <>
-                      <div className="staff-edit-line">
+                      <div className={`${styles['staff-edit-line']}`}>
                         <span>Role</span>
                         <Select
                           value={editRole}
@@ -2065,8 +2065,8 @@ export default function Staff() {
                           options={roleOptions}
                         />
                       </div>
-                      {editUserError && <div className="staff-edit-error">{editUserError}</div>}
-                      <div className="staff-edit-actions">
+                      {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                      <div className={`${styles['staff-edit-actions']}`}>
                         <Button onClickAsync={handleSaveRoleEdits} isLoading={editUserSaving}>
                           Save Role
                         </Button>
@@ -2079,7 +2079,7 @@ export default function Staff() {
                 </div>
               )}
               {editUserPage === 'pets' && (
-                <div className="staff-edit-section">
+                <div className={`${styles['staff-edit-section']}`}>
                   <Input
                     label="Pet Slots"
                     value={editPetSlots}
@@ -2091,8 +2091,8 @@ export default function Staff() {
                       },
                     ]}
                   />
-                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
-                  <div className="staff-edit-actions">
+                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSavePetSlotsEdits} isLoading={editUserSaving}>
                       Save Pet Slots
                     </Button>
@@ -2103,11 +2103,11 @@ export default function Staff() {
                 </div>
               )}
               {editUserPage === 'cosmetics' && (
-                <div className="staff-edit-section">
-                  <div className="staff-edit-cosmetics">
+                <div className={`${styles['staff-edit-section']}`}>
+                  <div className={`${styles['staff-edit-cosmetics']}`}>
                     <div>
                       <h3>Unlocked Nameplates</h3>
-                      <div className="staff-edit-cosmetics-grid">
+                      <div className={`${styles['staff-edit-cosmetics-grid']}`}>
                         {cosmeticsByType.nameplate.map(cosmetic => (
                           <Checkbox
                             key={cosmetic.id}
@@ -2120,7 +2120,7 @@ export default function Staff() {
                     </div>
                     <div>
                       <h3>Unlocked Tags</h3>
-                      <div className="staff-edit-cosmetics-grid">
+                      <div className={`${styles['staff-edit-cosmetics-grid']}`}>
                         {cosmeticsByType.tag.map(cosmetic => (
                           <Checkbox
                             key={cosmetic.id}
@@ -2133,7 +2133,7 @@ export default function Staff() {
                     </div>
                     <div>
                       <h3>Unlocked Frames</h3>
-                      <div className="staff-edit-cosmetics-grid">
+                      <div className={`${styles['staff-edit-cosmetics-grid']}`}>
                         {cosmeticsByType.frame.map(cosmetic => (
                           <Checkbox
                             key={cosmetic.id}
@@ -2145,8 +2145,8 @@ export default function Staff() {
                       </div>
                     </div>
                   </div>
-                  <div className="staff-edit-equip">
-                    <div className="staff-edit-line">
+                  <div className={`${styles['staff-edit-equip']}`}>
+                    <div className={`${styles['staff-edit-line']}`}>
                       <span>Equipped Nameplate</span>
                       <Select
                         value={editEquippedNameplate}
@@ -2160,7 +2160,7 @@ export default function Staff() {
                         ]}
                       />
                     </div>
-                    <div className="staff-edit-line">
+                    <div className={`${styles['staff-edit-line']}`}>
                       <span>Equipped Tag</span>
                       <Select
                         value={editEquippedTag}
@@ -2174,7 +2174,7 @@ export default function Staff() {
                         ]}
                       />
                     </div>
-                    <div className="staff-edit-line">
+                    <div className={`${styles['staff-edit-line']}`}>
                       <span>Equipped Frame</span>
                       <Select
                         value={editEquippedFrame}
@@ -2189,8 +2189,8 @@ export default function Staff() {
                       />
                     </div>
                   </div>
-                  {editUserError && <div className="staff-edit-error">{editUserError}</div>}
-                  <div className="staff-edit-actions">
+                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSaveCosmeticsEdits} isLoading={editUserSaving}>
                       Save Cosmetics
                     </Button>

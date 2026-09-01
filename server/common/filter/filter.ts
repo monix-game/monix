@@ -10,7 +10,7 @@ export default class ProfanityFilter {
 
   constructor(wordlistOverride?: string, subsOverride?: CharSubs) {
     const wordlistSource = wordlistOverride ?? wordlistText;
-    const subsSource = subsOverride ?? (subsData as CharSubs);
+    const subsSource = subsOverride ?? (subsData);
 
     this.profaneWords = this._parseWordlist(wordlistSource);
 

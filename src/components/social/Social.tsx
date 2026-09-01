@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import './Social.css';
+import styles from './Social.module.css';
 import type { IRoom } from '../../../server/common/models/room';
 import { EmojiText } from '../EmojiText';
 import {
@@ -267,7 +267,9 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
     setMessageInput(prev => `@${msg.sender_username} ${prev}`);
     hideContextMenu();
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const el = document.querySelector('.social-message-input input') as HTMLInputElement | null;
+    const el = document.querySelector(
+      `.${styles['social-message-input']} input`
+    ) as HTMLInputElement | null;
     if (el) el.focus();
   };
 
@@ -304,15 +306,15 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
   };
 
   return (
-    <div className="social-root">
-      <div className="social-sidebar">
-        <div className="social-sidebar-inner">
+    <div className={styles['social-root']}>
+      <div className={styles['social-sidebar']}>
+        <div className={styles['social-sidebar-inner']}>
           <h2>Social</h2>
-          <div className="social-sidebar-rooms">
+          <div className={styles['social-sidebar-rooms']}>
             {rooms.map(r => (
               <div
                 key={r.uuid}
-                className={`social-room-item ${r.uuid === room.uuid ? 'active' : ''}`}
+                className={`${styles['social-room-item']} ${r.uuid === room.uuid ? styles.active : ''}`}
                 onClick={() => {
                   setRoom(r);
                   void fetchMessages(r.uuid);
@@ -334,18 +336,18 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
           </div>
         </div>
       </div>
-      <div className="social-main">
+      <div className={styles['social-main']}>
         <h2>
           <EmojiText>{room.name}</EmojiText>
         </h2>
-        <div className="message-container" ref={messageContainerRef}>
+        <div className={styles['message-container']} ref={messageContainerRef}>
           {!hydrated && (
-            <div className="loading-messages">
+            <div className={styles['loading-messages']}>
               <Spinner size={48} />
             </div>
           )}
           {hydrated && messages.length === 0 && (
-            <div className="no-messages">No messages yet. Start the conversation!</div>
+            <div className={styles['no-messages']}>No messages yet. Start the conversation!</div>
           )}
           {hydrated &&
             messages.length > 0 &&
@@ -357,17 +359,16 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 onContextMenu={e => {
                   onMessageContextMenu(e.nativeEvent, msg);
                 }}
-                updateMessages={() => void fetchMessages()}
               />
             ))}
           {contextMenu.visible && contextMenu.message && (
             <div
-              className="context-menu"
+              className={styles['context-menu']}
               style={{ left: contextMenu.x, top: contextMenu.y, position: 'fixed' }}
               onClick={e => e.stopPropagation()}
             >
               <div
-                className="context-menu-item"
+                className={styles['context-menu-item']}
                 onClick={() => {
                   void copyText(contextMenu.message!.content);
                   hideContextMenu();
@@ -388,7 +389,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               {contextMenu.message.sender_uuid !== user.uuid &&
                 contextMenu.message.sender_uuid !== 'nyx' && (
                   <div
-                    className="context-menu-item"
+                    className={styles['context-menu-item']}
                     onClick={() => {
                       replyToMessage(contextMenu.message!);
                       hideContextMenu();
@@ -414,7 +415,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                   'admin'
                 ) && (
                   <div
-                    className="context-menu-item"
+                    className={styles['context-menu-item']}
                     onClick={() => {
                       setReportedMessage(contextMenu.message!);
                       setIsReportModalOpen(true);
@@ -443,7 +444,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                         contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
                       )))) && (
                   <div
-                    className="context-menu-item"
+                    className={styles['context-menu-item']}
                     onClick={() => {
                       setEditedMessage(contextMenu.message!);
                       setEditContent(contextMenu.message!.content);
@@ -474,7 +475,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                         contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
                       )))) && (
                   <div
-                    className="context-menu-item"
+                    className={styles['context-menu-item']}
                     onClick={() => {
                       void deleteMessage(contextMenu.message!.uuid);
                       void fetchMessages();
@@ -497,14 +498,14 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
             </div>
           )}
         </div>
-        <div className="social-main-bottom">
+        <div className={styles['social-main-bottom']}>
           {!room.restrict_send_to ||
           (room.restrict_send_to && hasRole(user.role, room.restrict_send_to)) ? (
             <Input
               placeholder="Type a message..."
               onValueChange={value => setMessageInput(value)}
               value={messageInput}
-              className="social-message-input"
+              className={styles['social-message-input']}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   void sendMessageClick();
@@ -512,7 +513,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
               }}
             />
           ) : (
-            <div className="social-restricted-notice">
+            <div className={styles['social-restricted-notice']}>
               You do not have permission to send messages in this room.
             </div>
           )}
@@ -520,10 +521,10 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       </div>
 
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
-        <div className="social-modal-content">
+        <div className={styles['social-modal-content']}>
           <h2>Edit Message</h2>
           <Input value={editContent} onValueChange={value => setEditContent(value)} />
-          <div className="social-modal-actions">
+          <div className={styles['social-modal-actions']}>
             <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
             <Button color="blue" onClickAsync={editMessageClick}>
               Save Changes
@@ -533,7 +534,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
       </Modal>
 
       <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)}>
-        <div className="social-modal-content">
+        <div className={styles['social-modal-content']}>
           <h2>Report Message</h2>
           <p>Please select a reason for reporting this message:</p>
           <Select
@@ -551,7 +552,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
             value={reportDetails}
             onValueChange={value => setReportDetails(value)}
           />
-          <div className="social-modal-actions">
+          <div className={styles['social-modal-actions']}>
             <Button onClick={() => setIsReportModalOpen(false)}>Cancel</Button>
             <Button color="red" onClickAsync={reportMessageClick}>
               Submit Report

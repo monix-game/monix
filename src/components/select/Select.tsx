@@ -1,5 +1,5 @@
 import React from 'react';
-import './Select.css';
+import styles from './Select.module.css';
 
 interface SelectProps {
   options: Array<{ label: string; value: string }>;
@@ -13,7 +13,7 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, disabl
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="select"
+      className={styles.select}
       disabled={disabled}
     >
       {options.map(option => (

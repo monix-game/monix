@@ -1,6 +1,6 @@
 import React from 'react';
-import './AnimatedBackground.css';
+import styles from './AnimatedBackground.module.css';
 
 export const AnimatedBackground: React.FC = () => {
-  return <div className="animated-background" />;
+  return <div className={styles['animated-background']} />;
 };

@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState, useId } from 'react';
-import './Avatar.css';
+import styles from './Avatar.module.css';
 import { IconUser } from '@tabler/icons-react';
 import { darkFrame } from '../../assets/cosmetics';
 
@@ -35,7 +35,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   }, [src]);
 
   const avatarClassName = useMemo(() => {
-    let baseClass = 'avatar';
+    let baseClass = styles.avatar;
     if (styleKey) {
       baseClass += ` avatar--${styleKey}`;
     }
@@ -53,17 +53,17 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <span className={avatarClassName} {...rest} style={mergedStyle}>
-      <span className="avatar__image">
+      <span className={styles['avatar__image']}>
         {/* eslint-disable-next-line react-hooks/refs */}
         {isLoaded && imgRef.current && src ? (
           <img src={src} alt={alt} id={`avatar-img-${uniqueId}`} />
         ) : (
-          <IconUser className="avatar-placeholder" size={size} />
+          <IconUser className={styles['avatar-placeholder']} size={size} />
         )}
       </span>
       {frameSrc ? (
         <span
-          className="avatar__frame"
+          className={styles['avatar__frame']}
           style={{ backgroundImage: `url(${frameSrc})` }}
           aria-hidden
         />

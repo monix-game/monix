@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './PetShopModal.css';
+import styles from './PetShopModal.module.css';
 import { Button, EmojiText, Modal, PaymentModal } from '../..';
 import { petTypes } from '../../../../server/common/petTypes';
 import { buyPet } from '../../../helpers/pets';
@@ -41,18 +41,18 @@ export const PetShopModal: React.FC<PetShopModalProps> = ({
   return (
     <>
       <Modal isOpen={isOpen && isPetShopModalOpen} onClose={onClose}>
-        <div className="pet-shop-modal">
-          <div className="pet-shop-modal-header">
+        <div className={styles['pet-shop-modal']}>
+          <div className={styles['pet-shop-modal-header']}>
             <h2>
               <EmojiText>🐶 </EmojiText>
               Pet Shop
             </h2>
           </div>
-          <div className="pet-shop-modal-content">
-            <div className="pet-shop-modal-list">
+          <div className={styles['pet-shop-modal-content']}>
+            <div className={styles['pet-shop-modal-list']}>
               {petTypes.map(type => (
-                <div key={type.id} className="pet-shop-modal-item">
-                  <div className="pet-shop-modal-item-info">
+                <div key={type.id} className={styles['pet-shop-modal-item']}>
+                  <div className={styles['pet-shop-modal-item-info']}>
                     <h3>
                       <EmojiText>{type.icon}</EmojiText> {type.name}
                     </h3>

@@ -1,5 +1,5 @@
 import React from 'react';
-import './Input.css';
+import styles from './Input.module.css';
 import { IconX } from '@tabler/icons-react';
 
 export interface InputPredicate {
@@ -38,12 +38,12 @@ export const Input: React.FC<InputProps> = ({
   // For file inputs we must not control `value` nor override the parent's `onChange`.
   if (isFileInput) {
     return (
-      <div className={`input ${className || ''}`}>
-        {label && <span className="input-label">{label}</span>}
-        <input {...props} className={`input-inner ${color}`} disabled={disabled} />
+      <div className={`${styles.input} ${className || ''}`}>
+        {label && <span className={styles['input-label']}>{label}</span>}
+        <input {...props} className={`${styles['input-inner']} ${styles[color]}`} disabled={disabled} />
         {errorText && (
-          <span className="input-label">
-            <IconX size={15} className="icon" />
+          <span className={styles['input-label']}>
+            <IconX size={15} className={styles.icon} />
             <span>{errorText}</span>
           </span>
         )}
@@ -52,12 +52,12 @@ export const Input: React.FC<InputProps> = ({
   }
 
   return (
-    <div className={`input ${className || ''}`}>
-      {label && <span className="input-label">{label}</span>}
+    <div className={`${styles.input} ${className || ''}`}>
+      {label && <span className={styles['input-label']}>{label}</span>}
       <input
         type={isPassword ? 'password' : 'text'}
         {...props}
-        className={`input-inner ${color}`}
+        className={`${styles['input-inner']} ${styles[color]}`}
         disabled={disabled}
         value={value}
         onChange={e => {
@@ -78,8 +78,8 @@ export const Input: React.FC<InputProps> = ({
         }}
       />
       {errorText && (
-        <span className="input-label">
-          <IconX size={15} className="icon" />
+        <span className={styles['input-label']}>
+          <IconX size={15} className={styles.icon} />
           <span>{errorText}</span>
         </span>
       )}

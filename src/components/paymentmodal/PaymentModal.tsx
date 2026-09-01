@@ -1,5 +1,5 @@
 import React from 'react';
-import './PaymentModal.css';
+import styles from './PaymentModal.module.css';
 import { Modal } from '../modal/Modal';
 import { Button } from '../button/Button';
 import { hasGems, smartFormatNumber } from '../../../server/common/math';
@@ -28,14 +28,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="payment-modal">
-        <span className="review-subtitle">Review</span>
+      <div className={styles['payment-modal']}>
+        <span className={styles['review-subtitle']}>Review</span>
         <h3>Purchase Details</h3>
-        <div className="payment-section">
-          <div className="payment-section-left">{productName}</div>
-          <div className="payment-section-right">
+        <div className={styles['payment-section']}>
+          <div className={styles['payment-section-left']}>{productName}</div>
+          <div className={styles['payment-section-right']}>
             {type === 'gems' ? (
-              <div className="payment-gems-amount">
+              <div className={styles['payment-gems-amount']}>
                 <IconDiamond size={20} />
                 {smartFormatNumber(amount, false, false, false)}
               </div>
@@ -45,13 +45,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
         </div>
         <h3>Pay With</h3>
-        <div className="payment-section">
-          <div className="payment-section-left">
+        <div className={styles['payment-section']}>
+          <div className={styles['payment-section-left']}>
             {type === 'gems' ? 'Gems Balance' : 'Virtual Money Balance'}
           </div>
-          <div className="payment-section-right">
+          <div className={styles['payment-section-right']}>
             {type === 'gems' ? (
-              <div className="payment-gems-amount">
+              <div className={styles['payment-gems-amount']}>
                 <IconDiamond size={20} />
                 {smartFormatNumber(balance, false, true, false)}
               </div>
@@ -60,16 +60,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             )}
           </div>
         </div>
-        <span className="payment-disclaimer">
+        <span className={styles['payment-disclaimer']}>
           Pressing the purchase button means you're claiming a limited license to use this product/item in
           Monix.{' '}
-          <span className="payment-disclaimer-secondary">
+          <span className={styles['payment-disclaimer-secondary']}>
             Purchases are non-refundable. Once purchased, items will be delivered to your account
             within 24 hours.
           </span>
         </span>
-        <div className="payment-actions">
-          <div className="payment-secure">
+        <div className={styles['payment-actions']}>
+          <div className={styles['payment-secure']}>
             <IconLock />
             <span>Secure</span>
           </div>

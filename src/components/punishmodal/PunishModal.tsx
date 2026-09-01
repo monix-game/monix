@@ -1,5 +1,5 @@
 import React from 'react';
-import './PunishModal.css';
+import styles from './PunishModal.module.css';
 import { Button, Input, Modal, Select } from '..';
 import type { IUser } from '../../../server/common/models/user';
 import { punishUser } from '../../helpers/staff';
@@ -25,14 +25,14 @@ export const PunishModal: React.FC<PunishModalProps> = ({ userToPunish, isOpen, 
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="punish-modal">
-        <div className="punish-modal-header">
+      <div className={styles['punish-modal']}>
+        <div className={styles['punish-modal-header']}>
           <span>
             Punishing <b>{userToPunish.username}</b>
           </span>
         </div>
-        <div className="punish-content">
-          <div className="punish-category">
+        <div className={styles['punish-content']}>
+          <div className={styles['punish-category']}>
             <p>Category</p>
             <Select
               value={category}
@@ -43,7 +43,7 @@ export const PunishModal: React.FC<PunishModalProps> = ({ userToPunish, isOpen, 
               }))}
             />
           </div>
-          <div className="punish-reason">
+          <div className={styles['punish-reason']}>
             <p>Reason</p>
             <Input
               value={reason}

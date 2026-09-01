@@ -1,5 +1,5 @@
 import React from 'react';
-import './Pet.css';
+import styles from './Pet.module.css';
 import { EmojiText } from '../../EmojiText';
 import { petTypes } from '../../../../server/common/petTypes';
 import {
@@ -25,54 +25,54 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
   const type = petTypes.find(t => t.id === pet.type_id)!;
 
   return (
-    <div className="pet" onClick={onClick}>
-      <div className="pet-header">
-        <div className="pet-icon">
+    <div className={styles.pet} onClick={onClick}>
+      <div className={styles['pet-header']}>
+        <div className={styles['pet-icon']}>
           <span role="img" aria-label={type.name}>
             <EmojiText>{type.icon}</EmojiText>
           </span>
         </div>
-        <div className="pet-info">
-          <span className="pet-name">{pet.name || 'Unnamed Pet'}</span>
-          <span className="pet-type">{type.name}</span>
+        <div className={styles['pet-info']}>
+          <span className={styles['pet-name']}>{pet.name || 'Unnamed Pet'}</span>
+          <span className={styles['pet-type']}>{type.name}</span>
         </div>
       </div>
       {!pet.is_dead && (
         <>
-          <div className="pet-exp">
-            <div className="pet-exp-info">
-              <span className="pet-level">Level: {pet.level}</span>
-              <span className="pet-exp-amount">
+          <div className={styles['pet-exp']}>
+            <div className={styles['pet-exp-info']}>
+              <span className={styles['pet-level']}>Level: {pet.level}</span>
+              <span className={styles['pet-exp-amount']}>
                 EXP: {smartFormatNumber(pet.exp, false)} /{' '}
                 {smartFormatNumber(expRequiredForLevel(pet.level), false)}
               </span>
             </div>
-            <div className="pet-exp-bar">
+            <div className={styles['pet-exp-bar']}>
               <div
-                className="pet-exp-fill"
+                className={styles['pet-exp-fill']}
                 style={{ width: `${(pet.exp / expRequiredForLevel(pet.level)) * 100}%` }}
               ></div>
             </div>
           </div>
-          <div className="pet-stats">
-            <span className="pet-sleeping">
+          <div className={styles['pet-stats']}>
+            <span className={styles['pet-sleeping']}>
               {isPetAsleep(pet) &&
                 `💤 Sleeping for ${formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}`}
               {!isPetAsleep(pet) && `😄 Sleeping in ${formatTimeUntilSleep(pet.uuid)}`}
             </span>
-            <div className="pet-stat">
-              <span className="pet-stat-label">Happiness:</span>
-              <span className="pet-stat-value">{happiness}%</span>
+            <div className={styles['pet-stat']}>
+              <span className={styles['pet-stat-label']}>Happiness:</span>
+              <span className={styles['pet-stat-value']}>{happiness}%</span>
             </div>
-            <div className="pet-stat">
-              <span className="pet-stat-label">Hunger:</span>
-              <span className="pet-stat-value">{hunger}%</span>
+            <div className={styles['pet-stat']}>
+              <span className={styles['pet-stat-label']}>Hunger:</span>
+              <span className={styles['pet-stat-value']}>{hunger}%</span>
             </div>
           </div>
         </>
       )}
       {pet.is_dead && (
-        <div className="pet-dead-message">
+        <div className={styles['pet-dead-message']}>
           <EmojiText>💀</EmojiText> This pet has passed away.
         </div>
       )}

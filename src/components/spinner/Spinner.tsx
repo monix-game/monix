@@ -1,5 +1,5 @@
 import React from 'react';
-import './Spinner.css';
+import styles from './Spinner.module.css';
 
 interface SpinnerProps {
   size?: number;
@@ -10,7 +10,7 @@ interface SpinnerProps {
 export const Spinner: React.FC<SpinnerProps> = ({ size = 14, style, className }) => {
   return (
     <span
-      className={`spinner ${className || ''}`}
+      className={`${styles.spinner} ${className || ''}`}
       style={{ width: size, height: size, ...style }}
     ></span>
   );

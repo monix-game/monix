@@ -5,7 +5,6 @@ import edit from './edit';
 import deleteMsg from './delete';
 import roomMessages from './room-messages';
 import rooms from './rooms';
-import ephemeralDismiss from './ephemeral-dismiss';
 import report from './report';
 
 export const socialRoutes = new Elysia()
@@ -16,7 +15,6 @@ export const socialRoutes = new Elysia()
   .use(deleteMsg)
   .use(roomMessages)
   .use(rooms)
-  .use(ephemeralDismiss)
   .use(report);
 
 export default socialRoutes;

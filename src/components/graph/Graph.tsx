@@ -1,5 +1,5 @@
 import React from 'react';
-import './Graph.css';
+import styles from './Graph.module.css';
 
 type GraphProps = {
   data: number[];
@@ -77,7 +77,7 @@ export const Graph: React.FC<GraphProps> = ({
 
   return (
     <svg
-      className="graph"
+      className={styles.graph}
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
@@ -86,8 +86,8 @@ export const Graph: React.FC<GraphProps> = ({
     >
       <defs>
         <linearGradient id="graph-grad" x1="0" x2="0" y1="0" y2="1">
-          <stop className="graph-grad-stop0" offset="0%" />
-          <stop className="graph-grad-stop1" offset="100%" />
+          <stop className={styles['graph-grad-stop0']} offset="0%" />
+          <stop className={styles['graph-grad-stop1']} offset="100%" />
         </linearGradient>
       </defs>
 
@@ -102,7 +102,7 @@ export const Graph: React.FC<GraphProps> = ({
             x2={leftPad + innerW}
             y1={yy}
             y2={yy}
-            className="graph-grid-h"
+            className={styles['graph-grid-h']}
           />
         );
       })}
@@ -116,7 +116,7 @@ export const Graph: React.FC<GraphProps> = ({
           x2={p[0]}
           y1={topPad}
           y2={topPad + innerH}
-          className="graph-grid-v"
+          className={styles['graph-grid-v']}
         />
       ))}
 
@@ -126,21 +126,35 @@ export const Graph: React.FC<GraphProps> = ({
         x2={leftPad + innerW}
         y1={topPad + innerH}
         y2={topPad + innerH}
-        className="graph-axis"
+        className={styles['graph-axis']}
       />
-      <line x1={leftPad} x2={leftPad} y1={topPad} y2={topPad + innerH} className="graph-axis" />
+      <line
+        x1={leftPad}
+        x2={leftPad}
+        y1={topPad}
+        y2={topPad + innerH}
+        className={styles['graph-axis']}
+      />
 
       {/* area fill */}
-      <path d={areaPath} className="graph-area" />
+      <path d={areaPath} className={styles['graph-area']} />
 
       {/* line */}
-      <path d={linePath} className="graph-line" />
+      <path d={linePath} className={styles['graph-line']} />
 
       {/* markers */}
       {points.map((p, i) => {
         if (i === 0 || i === points.length - 1) return null;
         // eslint-disable-next-line react-x/no-array-index-key
-        return <circle key={`pt-${i}`} cx={p[0]} cy={p[1]} r={3.25} className="graph-point" />;
+        return (
+          <circle
+            key={`pt-${i}`}
+            cx={p[0]}
+            cy={p[1]}
+            r={3.25}
+            className={styles['graph-point']}
+          />
+        );
       })}
     </svg>
   );

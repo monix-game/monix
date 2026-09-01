@@ -1,5 +1,5 @@
 import React from 'react';
-import './Slider.css';
+import styles from './Slider.module.css';
 
 interface SliderProps extends React.InputHTMLAttributes<HTMLInputElement> {
   min: number;
@@ -18,11 +18,11 @@ export const Slider: React.FC<SliderProps> = ({
   ...props
 }) => {
   return (
-    <div className="slider-container">
-      <span className="slider-label">{Math.round((value / max) * 100)}%</span>
+    <div className={styles['slider-container']}>
+      <span className={styles['slider-label']}>{Math.round((value / max) * 100)}%</span>
       <input
         type="range"
-        className="slider"
+        className={styles.slider}
         min={min}
         max={max}
         step={step}

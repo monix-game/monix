@@ -1,6 +1,12 @@
 import { WebSocketServer } from 'ws';
 import type { Server } from 'node:http';
-import { getSessionByToken, getUserByUUID, getRoomByUUID } from './db';
+import {
+  getSessionByToken,
+  getUserByUUID,
+  getRoomByUUID,
+  getMessageByUUID,
+  deleteMessageByUUID,
+} from './db';
 import {
   buildFishLeaderboard,
   buildMoneyLeaderboard,
@@ -346,6 +352,34 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           }
           break;
         }
+        case 'ephemeral:dismiss': {
+          const body = msg as { message_uuid?: string };
+          const target = getAuthData(ws);
+          const socketUser = target.socketUser;
+          const fail = (error: string) =>
+            ws.send(JSON.stringify({ type: 'ephemeral:dismiss_result', ok: false, error }));
+          if (!socketUser) {
+            fail('Not authenticated');
+            break;
+          }
+          const message_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+          const message = await getMessageByUUID(message_uuid || '');
+          if (!message) {
+            fail('Message not found');
+            break;
+          }
+          if (!message.ephemeral || message.ephemeral_user_uuid !== socketUser.uuid) {
+            fail('You are not allowed to dismiss this message');
+            break;
+          }
+          await deleteMessageByUUID(message.uuid);
+          ws.send(JSON.stringify({ type: 'ephemeral:dismiss_result', ok: true }));
+          if (message.room_uuid) {
+            const messages = await chatSnapshot(message.room_uuid);
+            if (messages) broadcast(`chat:${message.room_uuid}`, messages);
+          }
+          break;
+        }
       }
     } catch {
       // Ignore malformed messages.
@@ -357,9 +391,17 @@ export function attachSocketServer(server: Server) {
   wss.on('connection', rawWs => {
     const ws = rawWs as unknown as WSSocket;
     ws.data = {};
+    let messageChain: Promise<void> = Promise.resolve();
     rawWs.on('message', data => {
       const raw = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
-      void handleSocketMessage(ws, raw.toString('utf8'));
+      const text = raw.toString('utf8');
+      // Handle messages sequentially per connection so that e.g. `auth` fully
+      // resolves before a following `user:get`/`subscribe` is processed. This
+      // avoids initial snapshots/requests being dropped while auth is pending,
+      // which otherwise delays the client's game hydration on load.
+      messageChain = messageChain
+        .then(() => handleSocketMessage(ws, text))
+        .catch(() => {});
     });
     rawWs.on('close', () => {
       for (const [channel, set] of subscribers) {

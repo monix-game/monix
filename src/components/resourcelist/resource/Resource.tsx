@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './Resource.css';
+import styles from './Resource.module.css';
 import type { ResourceInfo } from '../../../../server/common/resources';
 import { getResourceQuantity } from '../../../helpers/resource';
 import { EmojiText } from '../../EmojiText';
@@ -41,24 +41,24 @@ export const Resource: React.FC<ResourceProps> = ({
 
   return (
     <div
-      className="resource"
+      className={styles.resource}
       onClick={() => {
         setMarketModalResource(info);
         setMarketModalOpen(true);
       }}
       {...props}
     >
-      <div className="resource-info">
-        <span className="resource-icon">
+      <div className={styles['resource-info']}>
+        <span className={styles['resource-icon']}>
           <EmojiText>{info.icon}</EmojiText>
         </span>
-        <span className="resource-name">{info.name}</span>
+        <span className={styles['resource-name']}>{info.name}</span>
       </div>
-      <div className="resource-amount">
-        <span className="resource-quantity">{quantityShort}</span>
-        <span className="resource-unit">{unit}</span>
+      <div className={styles['resource-amount']}>
+        <span className={styles['resource-quantity']}>{quantityShort}</span>
+        <span className={styles['resource-unit']}>{unit}</span>
       </div>
-      <div className="resource-value">
+      <div className={styles['resource-value']}>
         <small>VALUE</small>
         <span className="mono">{valueShort}</span>
       </div>

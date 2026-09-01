@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './Settings.css';
+import styles from './Settings.module.css';
 import type { IUser } from '../../../server/common/models/user';
 import { SettingsOption } from './settingsoption/SettingsOption';
 import {
@@ -91,9 +91,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
 
   return (
     <>
-      <div className="settings-container">
-        <h1 className="settings-title">Settings</h1>
-        <h2 className="settings-header">General</h2>
+      <div className={styles['settings-container']}>
+        <h1 className={styles['settings-title']}>Settings</h1>
+        <h2 className={styles['settings-header']}>General</h2>
         <SettingsOption
           type="select"
           icon={<IconBrush />}
@@ -150,7 +150,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           }}
         />
 
-        <h2 className="settings-header">Social</h2>
+        <h2 className={styles['settings-header']}>Social</h2>
         <SettingsOption
           type="button"
           icon={<IconUserCircle />}
@@ -171,8 +171,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           />
         )}
 
-        <h2 className="settings-header">Notifications</h2>
-        <h2 className="settings-header">Privacy</h2>
+        <h2 className={styles['settings-header']}>Notifications</h2>
+        <h2 className={styles['settings-header']}>Privacy</h2>
         <SettingsOption
           type="checkbox"
           icon={<IconEyeClosed />}
@@ -186,7 +186,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           }}
         />
 
-        <h2 className="settings-header">Developer</h2>
+        <h2 className={styles['settings-header']}>Developer</h2>
         <SettingsOption
           type="checkbox"
           icon={<IconBug />}
@@ -217,7 +217,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           }}
         />
 
-        <h2 className="settings-header">Account</h2>
+        <h2 className={styles['settings-header']}>Account</h2>
         <SettingsOption
           type="button"
           icon={<IconLogout />}
@@ -265,7 +265,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             }}
           />
         )}
-        <div className="settings-danger-section">
+        <div className={styles['settings-danger-section']}>
           {user.setup_totp && (
             <SettingsOption
               type="button"
@@ -290,7 +290,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             }}
           />
         </div>
-        <h2 className="settings-header">About</h2>
+        <h2 className={styles['settings-header']}>About</h2>
         <SettingsOption
           type="button"
           icon={<IconInfoCircle />}
@@ -299,7 +299,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           buttonLabel="View Credits"
           buttonAction={() => setIsCreditsModalOpen(true)}
         />
-        <p className="settings-version-info">
+        <p className={styles['settings-version-info']}>
           You are playing Monix on version{' '}
           <span className="mono">
             {
@@ -321,7 +321,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             <>
               , <IconGitCommit size={14} style={{ verticalAlign: 'middle' }} /> commit{' '}
               <span
-                className="mono settings-clickable"
+                className={`mono ${styles['settings-clickable']}`}
                 onClick={() => {
                   window.open(`https://github.com/monix-game/monix/commit/${COMMIT}`, '_blank');
                 }}
@@ -333,7 +333,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </p>
       </div>
       <Modal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)}>
-        <div className="settings-confirm-modal">
+        <div className={styles['settings-confirm-modal']}>
           <h2>Confirm Delete Account</h2>
           <p>Are you sure you want to delete your account? This action cannot be undone.</p>
           <Button onClick={() => setIsDeleteAccountModalOpen(false)}>Cancel</Button>
@@ -352,10 +352,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </div>
       </Modal>
       <Modal isOpen={is2FAModalOpen} onClose={() => setIs2FAModalOpen(false)}>
-        <div className="settings-confirm-modal">
+        <div className={styles['settings-confirm-modal']}>
           <h2>Setup 2FA</h2>
           <p>Scan the QR code below with your authenticator app.</p>
-          <QRCodeSVG value={twoFASetupURI} className="settings-qr-code" />
+          <QRCodeSVG value={twoFASetupURI} className={styles['settings-qr-code']} />
           <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
           <Button
             onClickAsync={async () => {
@@ -372,7 +372,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </div>
       </Modal>
       <Modal isOpen={is2FARemoveModalOpen} onClose={() => setIs2FARemoveModalOpen(false)}>
-        <div className="settings-confirm-modal">
+        <div className={styles['settings-confirm-modal']}>
           <h2>Remove 2FA</h2>
           <p>Enter the code from your authenticator app to remove 2FA.</p>
           <Input label="Enter Code from App" value={twoFACode} onValueChange={setTwoFACode} />
@@ -391,7 +391,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </div>
       </Modal>
       <Modal isOpen={isAvatarModalOpen} onClose={() => setIsAvatarModalOpen(false)}>
-        <div className="settings-confirm-modal">
+        <div className={styles['settings-confirm-modal']}>
           <h2>Upload Avatar</h2>
           <p>Upload a new avatar image for your profile.</p>
           <Input
@@ -407,7 +407,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             }}
           />
           {avatarFile && avatarFile.type.split('/')[0] !== 'image' && (
-            <p className="settings-modal-error">
+            <p className={styles['settings-modal-error']}>
               Selected file is not an image. Please select a valid image file.
             </p>
           )}
@@ -432,7 +432,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </div>
       </Modal>
       <Modal isOpen={isDeleteAvatarModalOpen} onClose={() => setIsDeleteAvatarModalOpen(false)}>
-        <div className="settings-confirm-modal">
+        <div className={styles['settings-confirm-modal']}>
           <h2>Confirm Remove Avatar</h2>
           <p>Are you sure you want to remove your avatar? This action cannot be undone.</p>
           <Button onClick={() => setIsDeleteAvatarModalOpen(false)}>Cancel</Button>
@@ -447,7 +447,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </div>
       </Modal>
       <Modal isOpen={isChangePasswordModalOpen} onClose={() => setIsChangePasswordModalOpen(false)}>
-        <div className="settings-confirm-modal">
+        <div className={styles['settings-confirm-modal']}>
           <h2>Change Password</h2>
           <p>Enter your current and new password.</p>
           <Input
@@ -493,17 +493,17 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         </div>
       </Modal>
       <Modal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)}>
-        <div className="settings-credits-modal">
+        <div className={styles['settings-credits-modal']}>
           <h2>Credits</h2>
-          <p className="settings-credits-subtitle">Built with care by the creators below.</p>
-          <div className="settings-credits-grid">
-            <div className="settings-credits-card">
-              <div className="settings-credits-name">proplayer919</div>
-              <div className="settings-credits-role">Development & Creator</div>
+          <p className={styles['settings-credits-subtitle']}>Built with care by the creators below.</p>
+          <div className={styles['settings-credits-grid']}>
+            <div className={styles['settings-credits-card']}>
+              <div className={styles['settings-credits-name']}>proplayer919</div>
+              <div className={styles['settings-credits-role']}>Development & Creator</div>
             </div>
-            <div className="settings-credits-card">
-              <div className="settings-credits-name">Ferretosan</div>
-              <div className="settings-credits-role">Music</div>
+            <div className={styles['settings-credits-card']}>
+              <div className={styles['settings-credits-name']}>Ferretosan</div>
+              <div className={styles['settings-credits-role']}>Music</div>
             </div>
           </div>
           <Button onClick={() => setIsCreditsModalOpen(false)} secondary>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import './ResourceList.css';
+import styles from './ResourceList.module.css';
 import { type ResourceInfo } from '../../../server/common/resources';
 import { Resource } from './resource/Resource';
 import { Spinner } from '../spinner/Spinner';
@@ -42,16 +42,16 @@ export const ResourceList: React.FC<ResourceListProps> = ({
   }, [resourceSearchTerm, sortedResources]);
 
   return (
-    <div className="resource-container">
-      <div className="resource-search-bar">
+    <div className={styles['resource-container']}>
+      <div className={styles['resource-search-bar']}>
         <Input
           value={resourceSearchTerm}
           onValueChange={value => setResourceSearchTerm(value)}
           placeholder="Search resources..."
-          className="resource-search-input"
+          className={styles['resource-search-input']}
         />
       </div>
-      <div className="resource-list">
+      <div className={styles['resource-list']}>
         {filteredResources.map((resource, index) => (
           <Resource
             // eslint-disable-next-line react-x/no-array-index-key
@@ -64,7 +64,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
         ))}
 
         {!resourceListHydrated && (
-          <div className="no-resources">
+          <div className={styles['no-resources']}>
             <Spinner size={30}></Spinner>
           </div>
         )}

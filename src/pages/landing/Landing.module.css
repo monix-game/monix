@@ -14,7 +14,7 @@
   margin-bottom: 50px;
 }
 
-.landing-header .spacer {
+.landing-header :global(.spacer) {
   flex-grow: 1;
 }
 
