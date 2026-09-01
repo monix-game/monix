@@ -14,11 +14,15 @@ import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
 import { LogEntry, logEntryFromDoc, logEntryToDoc } from '../common/models/logEntry';
 import { type IPoll, pollFromDoc, pollToDoc } from '../common/models/poll';
+import { createLogger } from './logging';
+
+const log = createLogger('db');
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
 
 export async function connectDB(uri: string) {
+  log.info('Connecting to MongoDB...');
   client = new MongoClient(uri, {
     maxPoolSize: 50,
     minPoolSize: 1,
@@ -29,6 +33,7 @@ export async function connectDB(uri: string) {
   });
   await client.connect();
   db = client.db();
+  log.info('MongoDB connected');
 
   // Create indexes
   await db.collection('users').createIndex({ uuid: 1 }, { unique: true });
@@ -63,6 +68,7 @@ export async function connectDB(uri: string) {
       await createRoom(room);
     }
   }
+  log.info('Database indexes and default rooms ensured');
 }
 
 function ensureDB(): Db {

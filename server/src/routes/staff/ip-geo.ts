@@ -1,5 +1,8 @@
 import { Elysia, t } from 'elysia';
 import { deriveAuth, onlyRole } from '../../middleware';
+import { createLogger } from '../../logging';
+
+const log = createLogger('ip-geo');
 
 export const ipGeo = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -91,7 +94,7 @@ export const ipGeo = new Elysia()
       set.status = 400;
       return { error: fallback.error || primary.error || 'Unable to resolve IP location' };
     } catch (err) {
-      console.error('Failed to fetch IP geolocation', err);
+      log.error({ err }, 'Failed to fetch IP geolocation');
       set.status = 500;
       return { error: 'Failed to fetch IP geolocation' };
     }

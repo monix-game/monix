@@ -5,6 +5,9 @@ import { getUserByUsername, updateUser } from '../../db';
 import Stripe from 'stripe';
 import { buildRequestLogData, log } from '../../helpers/logging';
 import { GEMS_LOOKUP } from './config';
+import { createLogger } from '../../logging';
+
+const slog = createLogger('stripe');
 
 export const stripeWebhook = new Elysia().post('/stripe', async ({ request, headers, set }) => {
   const payload = await request.text();
@@ -19,7 +22,7 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
       const item_key = session.metadata?.item;
 
       if (!username || !item_key) {
-        console.error('⚠️  Missing metadata in Stripe session');
+        slog.warn('Stripe webhook missing metadata');
         await log({
           uuid: v4(),
           timestamp: new Date(),
@@ -38,7 +41,7 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
 
       const user = await getUserByUsername(username);
       if (!user) {
-        console.error('⚠️  User not found for username:', username);
+        slog.warn({ username }, 'Stripe webhook user not found');
         await log({
           uuid: v4(),
           timestamp: new Date(),
@@ -57,7 +60,7 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
 
       const gemsAmount = GEMS_LOOKUP[item_key];
       if (!gemsAmount) {
-        console.error('⚠️  Unknown gems product ID:', item_key);
+        slog.warn({ item_key }, 'Stripe webhook unknown product');
         await log({
           uuid: v4(),
           timestamp: new Date(),
@@ -95,7 +98,7 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
     }
   } catch (err) {
     if (err instanceof Stripe.errors.StripeSignatureVerificationError) {
-      console.error('⚠️  Webhook signature verification failed.', err.message);
+      slog.error({ err: err.message }, 'Webhook signature verification failed');
       await log({
         uuid: v4(),
         timestamp: new Date(),
@@ -109,7 +112,7 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
       set.status = 400;
       return `Webhook Error: ${err.message}`;
     } else {
-      console.error('⚠️  Webhook error:', err);
+      slog.error({ err }, 'Stripe webhook error');
       await log({
         uuid: v4(),
         timestamp: new Date(),

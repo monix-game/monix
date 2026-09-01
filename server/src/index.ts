@@ -1,11 +1,15 @@
 import { createServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import fs from 'node:fs';
 import { Elysia } from 'elysia';
 import cors from '@elysiajs/cors';
 import { connectDB } from './db';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { attachSocketServer, setupSocketPublishers } from './socket';
+import { ensureValidCertificate } from './certs';
+import { logger, createLogger } from './logging';
 
 import pingRoutes from './routes/ping';
 import userRoutes from './routes/user';
@@ -20,6 +24,8 @@ import fishingRoutes from './routes/fishing';
 import petsRoutes from './routes/pets';
 import socialRoutes from './routes/social';
 import staffRoutes from './routes/staff';
+
+const log = createLogger('server');
 
 const app = new Elysia()
   .use(
@@ -86,26 +92,41 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     const response = await app.fetch(request);
     await writeResponse(res, response);
   } catch (err) {
-    console.error('Request handler error:', err);
+    log.error({ err }, 'Request handler error');
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Internal Server Error' }));
   }
 }
 
-const server = createServer((req, res) => {
-  void handleRequest(req, res);
-});
-
 async function start() {
   await connectDB(MONGO_URI);
+
+  const certConfig = await ensureValidCertificate();
+  let server: ReturnType<typeof createServer>;
+
+  if (certConfig) {
+    const key = fs.readFileSync(certConfig.keyPath);
+    const cert = fs.readFileSync(certConfig.certPath);
+    server = createHttpsServer({ key, cert }, (req, res) => {
+      void handleRequest(req, res);
+    });
+    log.info('HTTPS server created with TLS certificates');
+  } else {
+    server = createServer((req, res) => {
+      void handleRequest(req, res);
+    });
+    log.info('HTTP server created (TLS disabled)');
+  }
+
   attachSocketServer(server);
   setupSocketPublishers();
   server.listen(PORT, () => {
-    console.log(`Starting server on port ${PORT}`);
+    const protocol = certConfig ? 'https' : 'http';
+    log.info(`Server started on ${protocol}://0.0.0.0:${PORT}`);
   });
 }
 
 start().catch(err => {
-  console.error('Failed to start server:', err);
+  logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });

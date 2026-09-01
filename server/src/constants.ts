@@ -1,6 +1,7 @@
 import Filter from '../common/filter/filter';
 import Stripe from 'stripe';
 import { DiscordClient } from './helpers/discord';
+import path from 'node:path';
 
 export const PORT = Number(process.env.PORT || 6200);
 
@@ -27,5 +28,16 @@ export const SERVER_PUBLIC_IP = process.env.SERVER_PUBLIC_IP || '';
 
 export const WEBAUTHN_RP_ID = process.env.WEBAUTHN_RP_ID || 'localhost';
 export const WEBAUTHN_RP_NAME = process.env.WEBAUTHN_RP_NAME || 'Monix';
+
+export const ENABLE_TLS = process.env.ENABLE_TLS === 'true';
+export const CERT_DIR = process.env.CERT_DIR || path.join(process.cwd(), 'certs');
+export const CERT_PATH = process.env.CERT_PATH || path.join(CERT_DIR, 'cert.pem');
+export const KEY_PATH = process.env.KEY_PATH || path.join(CERT_DIR, 'key.pem');
+export const ACCOUNT_KEY_PATH = process.env.ACCOUNT_KEY_PATH || path.join(CERT_DIR, 'account.pem');
+
+export const NETLIFY_AUTH_TOKEN = process.env.NETLIFY_AUTH_TOKEN || '';
+export const NETLIFY_ZONE_NAME = process.env.NETLIFY_ZONE_NAME || '';
+export const DOMAIN_NAME = process.env.DOMAIN_NAME || '';
+export const ACME_EMAIL = process.env.ACME_EMAIL || '';
 
 export const profanityFilter = new Filter();

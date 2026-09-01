@@ -1,5 +1,6 @@
 services:
   mongodb:
+    container_name: monix-mongodb
     image: mongo:7
     restart: unless-stopped
     volumes:
@@ -8,6 +9,14 @@ services:
       - "27017:27017"
 
   server:
+    container_name: monix-server
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 512M
+        reservations:
+          memory: 256M
     build:
       context: ./server
     restart: unless-stopped
@@ -15,8 +24,11 @@ services:
       - .env
     ports:
       - "6200:6200"
+    volumes:
+      - certs_data:/usr/src/app/certs
     depends_on:
       - mongodb
 
 volumes:
-  mongo_data:
+  mongo_data: {}
+  certs_data: {}

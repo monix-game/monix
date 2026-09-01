@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import type { Server } from 'node:http';
+import type { Server as HttpsServer } from 'node:https';
 import {
   getSessionByToken,
   getUserByUUID,
@@ -20,6 +21,9 @@ import {
 } from './helpers/snapshots';
 import { sendChatMessage } from './helpers/chat';
 import type { IUser } from '../common/models/user';
+import { createLogger } from './logging';
+
+const log = createLogger('ws');
 
 // ---------------------------------------------------------------------------
 // Channel registry
@@ -382,15 +386,17 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
         }
       }
     } catch {
-      // Ignore malformed messages.
+      log.debug('Ignored malformed WebSocket message');
     }
 }
 
-export function attachSocketServer(server: Server) {
+export function attachSocketServer(server: Server | HttpsServer) {
   const wss = new WebSocketServer({ server, path: '/ws' });
+  log.info('WebSocket server attached on /ws');
   wss.on('connection', rawWs => {
     const ws = rawWs as unknown as WSSocket;
     ws.data = {};
+    log.debug('WebSocket client connected');
     let messageChain: Promise<void> = Promise.resolve();
     rawWs.on('message', data => {
       const raw = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
@@ -404,6 +410,7 @@ export function attachSocketServer(server: Server) {
         .catch(() => {});
     });
     rawWs.on('close', () => {
+      log.debug('WebSocket client disconnected');
       for (const [channel, set] of subscribers) {
         if (set.has(ws)) {
           set.delete(ws);
@@ -423,4 +430,5 @@ export function setupSocketPublishers() {
   startPricesPublisher();
   startUserPublisher();
   startRoomsPublisher();
+  log.info('All socket publishers started');
 }

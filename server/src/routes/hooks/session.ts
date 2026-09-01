@@ -3,6 +3,9 @@ import { v4 } from 'uuid';
 import { stripe } from '../../constants';
 import { buildRequestLogData, log } from '../../helpers/logging';
 import { GEMS_LOOKUP, PRICE_IDS } from './config';
+import { createLogger } from '../../logging';
+
+const slog = createLogger('stripe');
 
 export const createCheckoutSession = new Elysia().post(
   '/session',
@@ -47,7 +50,7 @@ export const createCheckoutSession = new Elysia().post(
 
       return { url: session.url };
     } catch (err) {
-      console.error('⚠️  Stripe error:', err);
+      slog.error({ err }, 'Stripe error');
       await log({
         uuid: v4(),
         timestamp: new Date(),

@@ -19,7 +19,7 @@ type AuthResult = {
 
 async function authenticateRequest(headers: HeaderMap): Promise<AuthResult> {
   const authHeader = headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return { user: null, session: null };
   }
 

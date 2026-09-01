@@ -38,7 +38,7 @@ export function SocketProvider({ children }: Readonly<Props>) {
 
   const sendMessage = React.useCallback((data: unknown) => {
     const socket = socketRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(data));
     }
   }, []);

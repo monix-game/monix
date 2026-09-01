@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { createLogger } from '../logging';
+
+const log = createLogger('discord');
 
 export type DiscordEmbed = {
   title?: string;
@@ -48,7 +51,7 @@ export class DiscordClient {
     try {
       await axios.post(this.webhookUrl, message);
     } catch (error) {
-      console.error('Failed to send message to Discord:', error);
+      log.error({ error }, 'Failed to send message to Discord');
     }
   }
 }
