@@ -1004,6 +1004,16 @@ export default function Staff() {
       title: 'Social',
       description: 'Social rooms, messages, and moderation tools.',
     },
+    {
+      key: 'gemPurchases',
+      title: 'Gem Purchases',
+      description: 'Buying gems with real money through the store.',
+    },
+    {
+      key: 'cosmeticPurchases',
+      title: 'Cosmetic Purchases',
+      description: 'Buying cosmetics with gems from the store.',
+    },
   ];
 
   return (

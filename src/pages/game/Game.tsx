@@ -242,6 +242,8 @@ export default function Game() {
   const fishingDisabled = !featureFlags.fishingAquarium;
   const petsDisabled = !featureFlags.pets;
   const socialDisabled = !featureFlags.social;
+  const gemPurchasesDisabled = !featureFlags.gemPurchases;
+  const cosmeticPurchasesDisabled = !featureFlags.cosmeticPurchases;
   const fishingCooldownMs =
     user?.upgrades?.magic_jellybean?.expires_at &&
     user.upgrades.magic_jellybean.expires_at > fishingNow
@@ -2559,85 +2561,108 @@ export default function Game() {
               {storeView === 'gems' && (
                 <div className={styles['gems-section']}>
                   <h3>Gems Store</h3>
-                  <div className={styles['gem-card-list']}>
-                    <GemCard
-                      amount={100}
-                      price="A$1.00"
-                      onClickAsync={async () => {
-                        const url = await createPaymentSession('gems_pack_100', user!.username);
-                        if (url) globalThis.location.href = url;
-                      }}
-                    />
-                    <GemCard
-                      amount={500}
-                      price="A$4.50"
-                      onClickAsync={async () => {
-                        const url = await createPaymentSession('gems_pack_500', user!.username);
-                        if (url) globalThis.location.href = url;
-                      }}
-                    />
-                    <GemCard
-                      amount={1000}
-                      price="A$8.50"
-                      onClickAsync={async () => {
-                        const url = await createPaymentSession('gems_pack_1000', user!.username);
-                        if (url) globalThis.location.href = url;
-                      }}
-                    />
-                  </div>
+                  {gemPurchasesDisabled ? (
+                    <p className={styles['feature-disabled-message']}>
+                      Gem purchases have been disabled by staff.
+                    </p>
+                  ) : (
+                    <div className={styles['gem-card-list']}>
+                      <GemCard
+                        amount={100}
+                        price="A$1.00"
+                        onClickAsync={async () => {
+                          const url = await createPaymentSession('gems_pack_100', user!.username);
+                          if (url) globalThis.location.href = url;
+                        }}
+                      />
+                      <GemCard
+                        amount={500}
+                        price="A$4.50"
+                        onClickAsync={async () => {
+                          const url = await createPaymentSession('gems_pack_500', user!.username);
+                          if (url) globalThis.location.href = url;
+                        }}
+                      />
+                      <GemCard
+                        amount={1000}
+                        price="A$8.50"
+                        onClickAsync={async () => {
+                          const url = await createPaymentSession('gems_pack_1000', user!.username);
+                          if (url) globalThis.location.href = url;
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
               {storeView === 'cosmetics' && (
                 <>
-                  <div className={styles['cosmetics-store-controls']}>
-                    <Checkbox
-                      label="Hide already bought cosmetics"
-                      checked={hideBoughtCosmetics}
-                      onClick={setHideBoughtCosmetics}
-                    />
-                  </div>
-                  {(() => {
-                    const buyable = cosmetics.filter(
-                      c =>
-                        c.buyable &&
-                        (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
-                    );
-                    if (buyable.length === 0) {
-                      return (
-                        <p className={styles['no-cosmetics-message']}>
-                          No cosmetics are available for purchase at this time. Please check back
-                          later or remove filters.
-                        </p>
-                      );
-                    }
-                    const nameplates = buyable.filter(c => c.type === 'nameplate');
-                    const tags = buyable.filter(c => c.type === 'tag');
-                    return (
-                      <>
-                        {nameplates.length > 0 && (
-                          <div className={styles['cosmetics-section']}>
-                            <h3 className={styles['cosmetics-section-title']}>
-                              <EmojiText>🪪</EmojiText> Nameplates
-                            </h3>
-                            <div className={styles['cosmetics-grid']}>
-                              {nameplates.map(renderCosmeticShopCard)}
-                            </div>
-                          </div>
-                        )}
-                        {tags.length > 0 && (
-                          <div className={styles['cosmetics-section']}>
-                            <h3 className={styles['cosmetics-section-title']}>
-                              <EmojiText>🏷️</EmojiText> Tags
-                            </h3>
-                            <div className={styles['cosmetics-grid']}>
-                              {tags.map(renderCosmeticShopCard)}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {cosmeticPurchasesDisabled ? (
+                    <p className={styles['feature-disabled-message']}>
+                      Cosmetic purchases have been disabled by staff.
+                    </p>
+                  ) : (
+                    <>
+                      <div className={styles['cosmetics-store-controls']}>
+                        <Checkbox
+                          label="Hide already bought cosmetics"
+                          checked={hideBoughtCosmetics}
+                          onClick={setHideBoughtCosmetics}
+                        />
+                      </div>
+                      {(() => {
+                        const allBuyable = cosmetics.filter(c => c.buyable);
+                        const buyable = cosmetics.filter(
+                          c =>
+                            c.buyable &&
+                            (!hideBoughtCosmetics || !user?.cosmetics_unlocked?.includes(c.id))
+                        );
+                        if (buyable.length === 0) {
+                          if (hideBoughtCosmetics && allBuyable.length > 0) {
+                            return (
+                              <p className={styles['no-cosmetics-message']}>
+                                You have purchased every available cosmetic. Your filter is hiding
+                                them, so nothing is shown here.
+                              </p>
+                            );
+                          }
+                          return (
+                            <p className={styles['no-cosmetics-message']}>
+                              No cosmetics are available for purchase at this time. Please check
+                              back later or remove filters.
+                            </p>
+                          );
+                        }
+                        const nameplates = buyable.filter(c => c.type === 'nameplate');
+                        const tags = buyable.filter(c => c.type === 'tag');
+                        return (
+                          <>
+                            {nameplates.length > 0 && (
+                              <div className={styles['cosmetics-section']}>
+                                <h3 className={styles['cosmetics-section-title']}>
+                                  <EmojiText>🪪</EmojiText> Nameplates
+                                </h3>
+                                <div className={styles['cosmetics-grid']}>
+                                  {nameplates.map(renderCosmeticShopCard)}
+                                </div>
+                              </div>
+                            )}
+                            {tags.length > 0 && (
+                              <div className={styles['cosmetics-section']}>
+                                <h3 className={styles['cosmetics-section-title']}>
+                                  <EmojiText>🏷️</EmojiText> Tags
+                                </h3>
+                                <div className={styles['cosmetics-grid']}>
+                                  {tags.map(renderCosmeticShopCard)}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </>
+                  )}
                 </>
               )}
             </div>

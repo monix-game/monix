@@ -4,10 +4,15 @@ import { stripe } from '../../constants';
 import { buildRequestLogData, log } from '../../helpers/logging';
 import { GEMS_LOOKUP, PRICE_IDS } from './config';
 import { createLogger } from '../../logging';
+import { deriveAuth, onlyAuth, onlyFeatureEnabled } from '../../middleware';
 
 const slog = createLogger('stripe');
 
-export const createCheckoutSession = new Elysia().post(
+export const createCheckoutSession = new Elysia()
+  .derive(({ headers }) => deriveAuth(headers))
+  .onBeforeHandle(onlyAuth)
+  .onBeforeHandle(onlyFeatureEnabled('gemPurchases'))
+  .post(
   '/session',
   async ({ body, set, headers }) => {
     const { item, username } = body;

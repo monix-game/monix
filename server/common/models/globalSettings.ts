@@ -3,6 +3,8 @@ export interface IFeatureFlags {
   fishingAquarium: boolean;
   pets: boolean;
   social: boolean;
+  gemPurchases: boolean;
+  cosmeticPurchases: boolean;
 }
 
 export interface IGlobalSettings {
@@ -15,6 +17,8 @@ export const DEFAULT_GLOBAL_SETTINGS: IGlobalSettings = {
     fishingAquarium: true,
     pets: true,
     social: true,
+    gemPurchases: true,
+    cosmeticPurchases: true,
   },
 };
 
@@ -27,6 +31,10 @@ export function convertToGlobalSettings(settings: Partial<IGlobalSettings>): IGl
         settings.features?.fishingAquarium ?? DEFAULT_GLOBAL_SETTINGS.features.fishingAquarium,
       pets: settings.features?.pets ?? DEFAULT_GLOBAL_SETTINGS.features.pets,
       social: settings.features?.social ?? DEFAULT_GLOBAL_SETTINGS.features.social,
+      gemPurchases:
+        settings.features?.gemPurchases ?? DEFAULT_GLOBAL_SETTINGS.features.gemPurchases,
+      cosmeticPurchases:
+        settings.features?.cosmeticPurchases ?? DEFAULT_GLOBAL_SETTINGS.features.cosmeticPurchases,
     },
   };
 }
@@ -53,6 +61,8 @@ export function globalSettingsToDoc(settings: IGlobalSettings): IGlobalSettings 
       fishingAquarium: settings.features.fishingAquarium,
       pets: settings.features.pets,
       social: settings.features.social,
+      gemPurchases: settings.features.gemPurchases,
+      cosmeticPurchases: settings.features.cosmeticPurchases,
     },
   };
 }

@@ -780,6 +780,14 @@
   gap: 14px;
 }
 
+.feature-disabled-message {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  user-select: none;
+  text-align: center;
+  margin-top: 8px;
+}
+
 .jail-tab,
 .appeal-tab {
   display: flex;
