@@ -31,6 +31,7 @@ import { addUserConnection, removeUserConnection } from './helpers/presence';
 import { applyActivityTracking } from './middleware';
 import { DEFAULT_USER_STATS, type IUser } from '../common/models/user';
 import type { IMessage } from '../common/models/message';
+import type { IRoom } from '../common/models/room';
 import { createLogger } from './logging';
 import { profanityFilter } from './constants';
 import { hasRole } from '../common/roles';
@@ -130,8 +131,8 @@ export function markChatChannelDirty(roomUuid: string) {
  * `chat:new-message` channel. Online clients use this to show the unread dot
  * on the Social tab and in-app toasts without polling every room.
  */
-export function broadcastNewChatMessage(roomName: string, message: IMessage) {
-  broadcast('chat:new-message', {
+export function broadcastNewChatMessage(roomName: string, message: IMessage, room: IRoom | null) {
+  const payload = {
     room_uuid: message.room_uuid,
     room_name: roomName,
     sender_uuid: message.sender_uuid,
@@ -139,7 +140,30 @@ export function broadcastNewChatMessage(roomName: string, message: IMessage) {
     sender_avatar_url: message.sender_avatar_url,
     content: message.content,
     time_sent: message.time_sent,
-  });
+  };
+  const channel = 'chat:new-message';
+  const set = subscribers.get(channel);
+  if (!set || set.size === 0) return;
+  const msg = JSON.stringify({ type: 'snapshot', channel, data: payload });
+  for (const ws of set) {
+    // Only deliver staff/private room notifications to users who can see them,
+    // mirroring canViewRoom + membership checks in push.ts. Otherwise regular
+    // users would be notified (unread dot + toast) about messages they can't see.
+    if (room?.type === 'staff') {
+      const role = getAuthData(ws).socketUser?.role ?? 'user';
+      if (role === 'user') continue;
+    }
+    if (room?.type === 'private') {
+      const auth = getAuthData(ws);
+      const uuid = auth.socketUser?.uuid;
+      if (!uuid || !room.members?.includes(uuid)) continue;
+    }
+    try {
+      ws.send(msg);
+    } catch {
+      // Ignore disconnected sockets; cleaned up on close.
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +512,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
             if (messages) broadcast(`chat:${room_uuid}`, messages);
 
             if (result.message && room) {
-              broadcastNewChatMessage(room.name, result.message);
+              broadcastNewChatMessage(room.name, result.message, room);
               void notifyNewChatMessage(result.message, room);
             }
           }
