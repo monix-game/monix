@@ -1643,10 +1643,6 @@
 }
 
 .market-panel {
-  background-color: var(--bg);
-  border: 2px solid var(--primary-1);
-  border-radius: var(--border-radius);
-  padding: 15px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1657,6 +1653,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding: 4px 2px;
 }
 
 .market-panel-header h2 {

@@ -67,7 +67,6 @@
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  margin-bottom: 4px;
 }
 
 .resource-name {
@@ -90,7 +89,7 @@
 }
 
 .quantity-button {
-  flex-grow: 1;
+  flex: 1;
 }
 
 .total-cost {
@@ -100,7 +99,7 @@
 }
 
 .action-button {
-  flex-grow: 1;
+  width: 100%;
 }
 
 .no-quantity {
