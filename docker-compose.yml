@@ -23,7 +23,7 @@ services:
     ports:
       - "6200:6200"
     volumes:
-      - certs_data:/usr/src/app/certs
+      - certs_data:/app/certs
     depends_on:
       - mongodb
 
