@@ -2,9 +2,11 @@ import { createServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { Elysia } from 'elysia';
 import cors from '@elysiajs/cors';
 import { connectDB } from './db';
+import { connectRedis, disconnectRedis } from './redis';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { attachSocketServer, setupSocketPublishers } from './socket';
@@ -71,8 +73,27 @@ function readBody(req: IncomingMessage): Promise<Buffer> {
 }
 
 async function writeResponse(res: ServerResponse, response: Response) {
-  res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+  const headers = new Headers(response.headers);
   const body = Buffer.from(await response.arrayBuffer());
+
+  // Gzip-compress JSON/text responses when the client accepts it. Compression
+  // happens here (at the Node HTTP boundary) rather than via an Elysia plugin
+  // because this stack hand-rolls the Request/Response bridge in handleRequest.
+  if (body.length > 512) {
+    const encodings = (headers.get('accept-encoding') || '').split(',').map(e => e.trim().toLowerCase());
+    if (encodings.includes('gzip')) {
+      const compressed = gzipSync(body);
+      if (compressed.length < body.length) {
+        headers.set('content-encoding', 'gzip');
+        headers.set('vary', 'accept-encoding');
+        res.writeHead(response.status, Object.fromEntries(headers.entries()));
+        res.end(compressed);
+        return;
+      }
+    }
+  }
+
+  res.writeHead(response.status, Object.fromEntries(headers.entries()));
   res.end(body);
 }
 
@@ -114,6 +135,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 async function start() {
   await connectDB(MONGO_URI);
+  await connectRedis();
 
   const certConfig = await ensureValidCertificate();
   let server: ReturnType<typeof createServer>;
@@ -138,6 +160,15 @@ async function start() {
     const protocol = certConfig ? 'https' : 'http';
     log.info(`Server started on ${protocol}://0.0.0.0:${PORT}`);
   });
+
+  const shutdown = async () => {
+    log.info('Shutting down...');
+    server.close();
+    await disconnectRedis();
+    process.exit(0);
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 start().catch(err => {

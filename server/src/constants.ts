@@ -13,6 +13,7 @@ export const CORS_ORIGINS = rawOrigins
   .filter(Boolean);
 
 export const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/monix';
+export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 export const SESSION_EXPIRES_IN = Number(process.env.SESSION_EXPIRES_IN || 172800); // default 2 days
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';

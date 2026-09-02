@@ -19,11 +19,60 @@ import {
   pushSubscriptionFromDoc,
 } from '../common/models/pushSubscription';
 import { createLogger } from './logging';
+import { cacheGet, cacheSet, cacheDel } from './redis';
 
 const log = createLogger('db');
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
+
+// ---------------------------------------------------------------------------
+// In-memory TTL cache (for data that rarely changes and is small)
+// ---------------------------------------------------------------------------
+
+function memCache<T>(ttlMs: number): {
+  get: (key: string) => T | null;
+  set: (key: string, value: T) => void;
+  del: (key: string) => void;
+  clear: () => void;
+} {
+  const store = new Map<string, { value: T; expiresAt: number }>();
+  return {
+    get(key: string) {
+      const entry = store.get(key);
+      if (!entry) return null;
+      if (Date.now() > entry.expiresAt) {
+        store.delete(key);
+        return null;
+      }
+      return entry.value;
+    },
+    set(key: string, value: T) {
+      if (store.size > 500) store.clear();
+      store.set(key, { value, expiresAt: Date.now() + ttlMs });
+    },
+    del(key: string) {
+      store.delete(key);
+    },
+    clear() {
+      store.clear();
+    },
+  };
+}
+
+const roomCache = memCache<IRoom[]>(30_000);   // 30s – rooms almost never change
+const settingsCache = memCache<IGlobalSettings>(15_000); // 15s
+const messagesCache = memCache<IMessage[]>(2_000); // 2s – chat messages update more often
+
+// ---------------------------------------------------------------------------
+// Redis cache key helpers
+// ---------------------------------------------------------------------------
+
+const SESSION_TTL = 60 * 60 * 24 * 2; // 2 days in seconds (matches SESSION_EXPIRES_IN default)
+const USER_TTL = 5; // 5 seconds – fast enough for live game state, cuts DB load dramatically
+
+function sessionKey(token: string) { return `sess:${token}`; }
+function userKey(uuid: string) { return `usr:${uuid}`; }
 
 export async function connectDB(uri: string) {
   log.info('Connecting to MongoDB...');
@@ -85,9 +134,13 @@ function ensureDB(): Db {
 }
 
 export async function getGlobalSettings(): Promise<IGlobalSettings> {
+  const cached = settingsCache.get('features');
+  if (cached) return cached;
   const database = ensureDB();
   const doc = await database.collection('global_settings').findOne({ key: 'features' });
-  return doc ? globalSettingsFromDoc(doc) : DEFAULT_GLOBAL_SETTINGS;
+  const settings = doc ? globalSettingsFromDoc(doc) : DEFAULT_GLOBAL_SETTINGS;
+  settingsCache.set('features', settings);
+  return settings;
 }
 
 export async function updateGlobalSettings(settings: IGlobalSettings): Promise<void> {
@@ -99,29 +152,61 @@ export async function updateGlobalSettings(settings: IGlobalSettings): Promise<v
       { $set: { key: 'features', settings: globalSettingsToDoc(settings) } },
       { upsert: true }
     );
+  settingsCache.del('features');
 }
 
 export async function getUserByUUID(uuid: string): Promise<IUser | null> {
+  const cached = await cacheGet<IUser>(userKey(uuid));
+  if (cached) return cached;
+
   const database = ensureDB();
   const doc = await database.collection('users').findOne({ uuid });
-  return doc ? userFromDoc(doc) : null;
+  if (!doc) return null;
+  const user = userFromDoc(doc);
+  void cacheSet(userKey(uuid), user, USER_TTL);
+  return user;
 }
 
 export async function getUsersByUUID(uuids: string[]): Promise<IUser[]> {
   const unique = uuids.filter(Boolean);
   if (unique.length === 0) return [];
-  const database = ensureDB();
-  const docs = await database
-    .collection('users')
-    .find({ uuid: { $in: unique } })
-    .toArray();
-  return docs.map(userFromDoc);
+
+  // Check Redis for each UUID; fall back to MongoDB for misses
+  const results = new Map<string, IUser>();
+  const misses: string[] = [];
+
+  const cached = await Promise.all(
+    unique.map(async (uuid) => ({ uuid, user: await cacheGet<IUser>(userKey(uuid)) }))
+  );
+  for (const { uuid, user } of cached) {
+    if (user) results.set(uuid, user);
+    else misses.push(uuid);
+  }
+
+  if (misses.length > 0) {
+    const database = ensureDB();
+    const docs = await database
+      .collection('users')
+      .find({ uuid: { $in: misses } })
+      .toArray();
+    for (const doc of docs) {
+      const user = userFromDoc(doc);
+      results.set(user.uuid, user);
+      void cacheSet(userKey(user.uuid), user, USER_TTL);
+    }
+  }
+
+  return Array.from(results.values());
 }
 
 export async function getUserByUsername(username: string): Promise<IUser | null> {
+  // Username lookups bypass Redis (infrequent, not on hot path)
   const database = ensureDB();
   const doc = await database.collection('users').findOne({ username });
-  return doc ? userFromDoc(doc) : null;
+  if (!doc) return null;
+  const user = userFromDoc(doc);
+  void cacheSet(userKey(user.uuid), user, USER_TTL);
+  return user;
 }
 
 export async function getAllUsers(): Promise<IUser[]> {
@@ -133,16 +218,19 @@ export async function getAllUsers(): Promise<IUser[]> {
 export async function createUser(user: IUser): Promise<void> {
   const database = ensureDB();
   await database.collection('users').insertOne(userToDoc(user));
+  void cacheSet(userKey(user.uuid), user, USER_TTL);
 }
 
 export async function updateUser(user: IUser): Promise<void> {
   const database = ensureDB();
   await database.collection('users').updateOne({ uuid: user.uuid }, { $set: userToDoc(user) });
+  void cacheSet(userKey(user.uuid), user, USER_TTL);
 }
 
 export async function deleteUserByUUID(uuid: string): Promise<void> {
   const database = ensureDB();
   await database.collection('users').deleteOne({ uuid });
+  void cacheDel(userKey(uuid));
 }
 
 export async function getUserSessions(user_uuid: string): Promise<ISession[]> {
@@ -152,24 +240,40 @@ export async function getUserSessions(user_uuid: string): Promise<ISession[]> {
 }
 
 export async function getSessionByToken(token: string): Promise<ISession | null> {
+  // Fast path: check Redis first (eliminates a MongoDB round-trip on every auth'd request)
+  const cached = await cacheGet<ISession>(sessionKey(token));
+  if (cached) return cached;
+
   const database = ensureDB();
   const doc = await database.collection('sessions').findOne({ token });
-  return doc ? sessionFromDoc(doc) : null;
+  if (!doc) return null;
+  const session = sessionFromDoc(doc);
+  // Cache for the remaining lifetime of the session
+  const remainingTtl = Math.max(1, Math.floor(session.expires_at - Date.now() / 1000));
+  void cacheSet(sessionKey(token), session, Math.min(remainingTtl, SESSION_TTL));
+  return session;
 }
 
 export async function createSession(session: ISession): Promise<void> {
   const database = ensureDB();
   await database.collection('sessions').insertOne(sessionToDoc(session));
+  const remainingTtl = Math.max(1, Math.floor(session.expires_at - Date.now() / 1000));
+  void cacheSet(sessionKey(session.token), session, Math.min(remainingTtl, SESSION_TTL));
 }
 
 export async function deleteSessionByToken(token: string): Promise<void> {
   const database = ensureDB();
   await database.collection('sessions').deleteOne({ token });
+  void cacheDel(sessionKey(token));
 }
 
 export async function deleteSessionsByUserUUID(user_uuid: string): Promise<void> {
   const database = ensureDB();
+  const sessions = await database.collection('sessions').find({ user_uuid }).toArray();
   await database.collection('sessions').deleteMany({ user_uuid });
+  for (const s of sessions) {
+    void cacheDel(sessionKey(s.token));
+  }
 }
 
 export async function createPet(pet: IPet): Promise<void> {
@@ -207,16 +311,21 @@ export async function getPetByUUID(uuid: string): Promise<IPet | null> {
 export async function createMessage(message: IMessage): Promise<void> {
   const database = ensureDB();
   await database.collection('messages').insertOne(messageToDoc(message));
+  messagesCache.del(message.room_uuid);
 }
 
 export async function getMessagesByRoomUUID(room_uuid: string): Promise<IMessage[]> {
+  const cached = messagesCache.get(room_uuid);
+  if (cached) return cached;
   const database = ensureDB();
   const docs = await database
     .collection('messages')
     .find({ room_uuid })
     .sort({ time_sent: 1 })
     .toArray();
-  return docs.map(messageFromDoc);
+  const messages = docs.map(messageFromDoc);
+  messagesCache.set(room_uuid, messages);
+  return messages;
 }
 
 export async function getMessageByUUID(uuid: string): Promise<IMessage | null> {
@@ -228,6 +337,7 @@ export async function getMessageByUUID(uuid: string): Promise<IMessage | null> {
 export async function deleteMessageByUUID(uuid: string): Promise<void> {
   const database = ensureDB();
   await database.collection('messages').deleteOne({ uuid });
+  messagesCache.clear(); // conservative invalidation – messages change rarely
 }
 
 export async function deleteMessagesByRoomUUID(
@@ -248,6 +358,7 @@ export async function deleteMessagesByRoomUUID(
   } else {
     await database.collection('messages').deleteMany({ room_uuid });
   }
+  messagesCache.del(room_uuid);
 }
 
 export async function markMessagesDeletedByRoomUUID(
@@ -282,6 +393,7 @@ export async function markMessagesDeletedByRoomUUID(
       },
     }
   );
+  messagesCache.del(room_uuid);
 }
 
 export async function updateMessage(message: IMessage): Promise<void> {
@@ -289,6 +401,7 @@ export async function updateMessage(message: IMessage): Promise<void> {
   await database
     .collection('messages')
     .updateOne({ uuid: message.uuid }, { $set: messageToDoc(message) });
+  messagesCache.del(message.room_uuid);
 }
 
 export async function createRoom(room: IRoom): Promise<void> {
@@ -297,6 +410,10 @@ export async function createRoom(room: IRoom): Promise<void> {
 }
 
 export async function getRoomByUUID(uuid: string): Promise<IRoom | null> {
+  const rooms = roomCache.get('all');
+  if (rooms) {
+    return rooms.find(r => r.uuid === uuid) ?? null;
+  }
   const database = ensureDB();
   const doc = await database.collection('rooms').findOne({ uuid });
   return doc ? roomFromDoc(doc) : null;
@@ -305,17 +422,23 @@ export async function getRoomByUUID(uuid: string): Promise<IRoom | null> {
 export async function updateRoom(room: IRoom): Promise<void> {
   const database = ensureDB();
   await database.collection('rooms').updateOne({ uuid: room.uuid }, { $set: roomToDoc(room) });
+  roomCache.del('all');
 }
 
 export async function deleteRoomByUUID(uuid: string): Promise<void> {
   const database = ensureDB();
   await database.collection('rooms').deleteOne({ uuid });
+  roomCache.del('all');
 }
 
 export async function getAllRooms(): Promise<IRoom[]> {
+  const cached = roomCache.get('all');
+  if (cached) return cached;
   const database = ensureDB();
   const docs = await database.collection('rooms').find({}).toArray();
-  return docs.map(roomFromDoc);
+  const rooms = docs.map(roomFromDoc);
+  roomCache.set('all', rooms);
+  return rooms;
 }
 
 export async function createReport(report: IReport): Promise<void> {
