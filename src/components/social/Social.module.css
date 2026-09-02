@@ -39,6 +39,7 @@
 }
 
 .social-room-item {
+  position: relative;
   padding: 10px;
   border-radius: var(--border-radius);
   border: 2px dashed var(--primary-2);
@@ -46,6 +47,18 @@
   transition: background-color 0.3s;
   width: fit-content;
   min-width: 200px;
+}
+
+.social-room-notif-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--red-1);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 
 .social-room-item:hover,

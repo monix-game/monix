@@ -144,7 +144,7 @@ export async function notifyNewChatMessage(message: IMessage, room: IRoom | null
       body,
       tag: `monix-${user_uuid}`,
       data: {
-        url: '/game?tab=social',
+        url: `/game?tab=social&room=${room.uuid}`,
       },
     });
   }

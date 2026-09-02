@@ -386,6 +386,31 @@ export default function Game() {
   // Social states
   const [socialRoom, setSocialRoom] = useState<string>('general');
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
+  const deepLinkHandledRef = useRef(false);
+
+  // Handle ?tab=social&room=<uuid> deep links (from push notifications).
+  useEffect(() => {
+    if (!gameHydrated || socialDisabled || deepLinkHandledRef.current) return;
+
+    const params = new URLSearchParams(globalThis.location.search);
+    if (params.get('tab') === 'social') {
+      const targetRoom = params.get('room');
+      startTransition(() => {
+        if (targetRoom && socialRooms.some(r => r.uuid === targetRoom)) {
+          setSocialRoom(targetRoom);
+        } else if (!targetRoom && socialRooms.length > 0) {
+          setSocialRoom(socialRooms[0].uuid);
+        }
+        setTabTo('social');
+      });
+      deepLinkHandledRef.current = true;
+
+      const url = new URL(globalThis.location.href);
+      url.searchParams.delete('tab');
+      url.searchParams.delete('room');
+      globalThis.history.replaceState(null, '', url.toString());
+    }
+  }, [gameHydrated, socialDisabled, socialRooms, setTabTo]);
 
   const notificationsEnabled = (user?.settings?.notifications_enabled ?? false) && !socialDisabled;
 
@@ -393,17 +418,12 @@ export default function Game() {
     (roomUuid: string) => tab === 'social' && socialRoom === roomUuid,
     [tab, socialRoom]
   );
-  const {
-    totalUnread,
-    toasts,
-    dismissToast,
-    clearRoom,
-    clearAll,
-  } = useChatNotifications({
-    userUuid: user?.uuid ?? null,
-    enabled: notificationsEnabled,
-    isRoomActive,
-  });
+  const { totalUnread, unreadByRoom, toasts, dismissToast, clearRoom, clearAll } =
+    useChatNotifications({
+      userUuid: user?.uuid ?? null,
+      enabled: notificationsEnabled,
+      isRoomActive,
+    });
 
   // Mark a room as read when it becomes the active social room.
   useEffect(() => {
@@ -1168,6 +1188,41 @@ export default function Game() {
   const [paymentModalAquarium, setPaymentModalAquarium] = useState<boolean>(false);
   const [paymentModalSellRodId, setPaymentModalSellRodId] = useState<string | null>(null);
 
+  const isMoneyPayment =
+    paymentModalSellRodId ||
+    paymentModalUpgradeId ||
+    paymentModalRodId ||
+    paymentModalBaitId ||
+    paymentModalAquarium;
+
+  const paymentModalAmount = (() => {
+    if (paymentModalSellRodId)
+      return Math.floor((fishingRods.find(r => r.id === paymentModalSellRodId)?.price || 0) * 0.5);
+    if (paymentModalUpgradeId)
+      return UPGRADES.find(u => u.id === paymentModalUpgradeId)?.price_per_half_hour || 0;
+    if (paymentModalRodId) return fishingRods.find(r => r.id === paymentModalRodId)?.price || 0;
+    if (paymentModalBaitId)
+      return (
+        (fishingBaits.find(b => b.id === paymentModalBaitId)?.price || 0) * paymentModalBaitQty
+      );
+    if (paymentModalAquarium)
+      return getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1);
+    return cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0;
+  })();
+
+  const paymentModalProductName = (() => {
+    if (paymentModalSellRodId)
+      return `${fishingRods.find(r => r.id === paymentModalSellRodId)?.name || 'Unknown Rod'} (Sale)`;
+    if (paymentModalUpgradeId)
+      return UPGRADES.find(u => u.id === paymentModalUpgradeId)?.name || 'Unknown Upgrade';
+    if (paymentModalRodId)
+      return fishingRods.find(r => r.id === paymentModalRodId)?.name || 'Unknown Rod';
+    if (paymentModalBaitId)
+      return fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait';
+    if (paymentModalAquarium) return 'Aquarium Upgrade';
+    return cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic';
+  })();
+
   return (
     <>
       <div className="app-container">
@@ -1175,8 +1230,12 @@ export default function Game() {
         <NotificationToasts
           toasts={toasts}
           onDismiss={dismissToast}
-          onClick={() => {
-            if (!socialDisabled) setTabTo('social');
+          onClick={toast => {
+            if (socialDisabled) return;
+            if (socialRooms.some(r => r.uuid === toast.roomUuid)) {
+              setSocialRoom(toast.roomUuid);
+            }
+            setTabTo('social');
           }}
         />
         <header className="app-header">
@@ -1659,7 +1718,7 @@ export default function Game() {
                                         })}
                                       </div>
                                       <span className={styles['bait-price']}>
-                                        <EmojiText>💎</EmojiText> x{quantity}
+                                        x{quantity} Owned
                                       </span>
                                       <div className="spacer"></div>
                                       {!isEquipped && (
@@ -2141,6 +2200,7 @@ export default function Game() {
                   setRoom={room => setSocialRoom(room.uuid)}
                   rooms={socialRooms}
                   user={user!}
+                  unreadByRoom={unreadByRoom}
                 />
               </div>
             ))}
@@ -3026,55 +3086,11 @@ export default function Game() {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         isLoading={isLoadingPaymentModal}
-        type={
-          paymentModalSellRodId ||
-          paymentModalUpgradeId ||
-          paymentModalRodId ||
-          paymentModalBaitId ||
-          paymentModalAquarium
-            ? 'money'
-            : 'gems'
-        }
+        type={isMoneyPayment ? 'money' : 'gems'}
         mode={paymentModalSellRodId ? 'sell' : 'buy'}
-        amount={
-          paymentModalSellRodId
-            ? Math.floor((fishingRods.find(r => r.id === paymentModalSellRodId)?.price || 0) * 0.5)
-            : paymentModalUpgradeId
-              ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.price_per_half_hour || 0
-              : paymentModalRodId
-                ? fishingRods.find(r => r.id === paymentModalRodId)?.price || 0
-                : paymentModalBaitId
-                  ? (fishingBaits.find(b => b.id === paymentModalBaitId)?.price || 0) *
-                    paymentModalBaitQty
-                  : paymentModalAquarium
-                    ? getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
-                    : cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0
-        }
-        balance={
-          paymentModalSellRodId ||
-          paymentModalUpgradeId ||
-          paymentModalRodId ||
-          paymentModalBaitId ||
-          paymentModalAquarium
-            ? (user?.money ?? 0)
-            : (user?.gems ?? 0)
-        }
-        productName={
-          paymentModalSellRodId
-            ? `${
-                fishingRods.find(r => r.id === paymentModalSellRodId)?.name || 'Unknown Rod'
-              } (Sale)`
-            : paymentModalUpgradeId
-              ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.name || 'Unknown Upgrade'
-              : paymentModalRodId
-                ? fishingRods.find(r => r.id === paymentModalRodId)?.name || 'Unknown Rod'
-                : paymentModalBaitId
-                  ? fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait'
-                  : paymentModalAquarium
-                    ? 'Aquarium Upgrade'
-                    : cosmetics.find(c => c.id === paymentModalCosmeticId)?.name ||
-                      'Unknown Cosmetic'
-        }
+        amount={paymentModalAmount}
+        balance={isMoneyPayment ? (user?.money ?? 0) : (user?.gems ?? 0)}
+        productName={paymentModalProductName}
         onClose={() => setIsPaymentModalOpen(false)}
         onPurchase={async () => {
           setIsLoadingPaymentModal(true);

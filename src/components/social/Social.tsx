@@ -27,6 +27,7 @@ interface SocialProps {
   room: IRoom;
   setRoom: (room: IRoom) => void;
   rooms: IRoom[];
+  unreadByRoom?: Record<string, number>;
 }
 
 const areMessagesEqual = (msgs1: IMessage[], msgs2: IMessage[]) => {
@@ -39,7 +40,7 @@ const areMessagesEqual = (msgs1: IMessage[], msgs2: IMessage[]) => {
   return true;
 };
 
-export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) => {
+export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unreadByRoom }) => {
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
   const profanityFilter = React.useMemo(() => new Filter(), []);
@@ -330,6 +331,9 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms }) =>
                 tabIndex={0}
               >
                 <EmojiText>{r.name}</EmojiText>
+                {r.uuid !== room.uuid && (unreadByRoom?.[r.uuid] ?? 0) > 0 && (
+                  <span className={styles['social-room-notif-dot']} />
+                )}
               </div>
             ))}
           </div>
