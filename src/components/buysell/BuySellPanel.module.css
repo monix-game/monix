@@ -1,21 +1,38 @@
-.market-title {
-  font-size: 2rem;
-  font-weight: 600;
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 15px;
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+  background-color: var(--bg);
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
   text-align: center;
 }
 
-.market-title > * {
+.title > * {
   vertical-align: middle;
 }
 
-.market-switches {
+.switches {
   display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
 }
 
-.market-switches .switch {
+.switches .switch {
   padding: 8px 16px;
   border-radius: var(--border-radius);
   background-color: var(--dark-bg);
@@ -25,73 +42,70 @@
   transition: background-color 0.3s ease;
 }
 
-.market-switches .switch:first-child {
+.switches .switch:first-child {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.market-switches .switch:last-child {
+.switches .switch:last-child {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
 
-.market-switches .switch.active,
-.market-switches .switch:hover {
+.switches .switch.active,
+.switches .switch:hover {
   background-color: var(--primary-1);
 }
 
-.market-resource-info {
-  margin-bottom: 12px;
+.content {
   display: flex;
-  flex-direction: flex;
-  gap: 8px;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.market-resource-name {
+.resource-info {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.resource-name {
   font-size: 1rem;
   font-weight: 500;
 }
 
-.market-resource-value {
+.resource-value {
   font-size: 1rem;
   color: var(--text-muted);
 }
 
-.market-input {
+.input {
   width: 100%;
-  margin-bottom: 12px;
 }
 
-.market-quantity-controls {
-  width: 100%;
+.quantity-controls {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
-.market-quantity-button {
+.quantity-button {
   flex-grow: 1;
 }
 
-.market-total-cost {
+.total-cost {
   font-size: 1rem;
   text-align: center;
-  margin-bottom: 10px;
+  margin: 0;
 }
 
-.market-buttons {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.market-button {
+.action-button {
   flex-grow: 1;
 }
 
-.market-no-quantity {
+.no-quantity {
   text-align: center;
   color: var(--text-muted);
   font-size: 1rem;
+  margin: 0;
 }

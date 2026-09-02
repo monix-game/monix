@@ -4,13 +4,11 @@ import { Graph } from '../graph/Graph';
 import type { ResourceInfo } from '../../../server/common/resources';
 import { EmojiText } from '../EmojiText';
 import { Spinner } from '../spinner/Spinner';
-import { Button } from '../button/Button';
 import { smartFormatNumber } from '../../../server/common/math';
 import { useSocket } from '../../providers/socket';
 
 interface ResourceGraphProps {
   resource: ResourceInfo;
-  onBuySellClick: () => void;
   width?: number;
   height?: number;
   padding?: number;
@@ -20,7 +18,6 @@ interface ResourceGraphProps {
 
 export const ResourceGraph: React.FC<ResourceGraphProps> = ({
   resource,
-  onBuySellClick,
   width,
   height,
   padding,
@@ -109,9 +106,6 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
               </div>
             </div>
             <div className={styles.spacer}></div>
-            <Button onClick={onBuySellClick} className={styles['graph-button']}>
-              Buy/Sell
-            </Button>
           </div>
         </>
       )}

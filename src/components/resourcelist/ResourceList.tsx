@@ -6,8 +6,7 @@ import { Spinner } from '../spinner/Spinner';
 import { Input } from '../input/Input';
 
 interface ResourceListProps {
-  setMarketModalResource: (resource: ResourceInfo) => void;
-  setMarketModalOpen: (open: boolean) => void;
+  onSelect: (resource: ResourceInfo) => void;
   resourceListHydrated?: boolean;
   sortedResources?: ResourceInfo[];
   resourcePrices?: { [key: string]: number };
@@ -15,8 +14,7 @@ interface ResourceListProps {
 }
 
 export const ResourceList: React.FC<ResourceListProps> = ({
-  setMarketModalResource,
-  setMarketModalOpen,
+  onSelect,
   resourceListHydrated = false,
   sortedResources = [],
   resourcePrices = {},
@@ -61,8 +59,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
             info={resource}
             price={resourcePrices[resource.id] || 0}
             changePct={resourceChanges[resource.id]}
-            setMarketModalResource={setMarketModalResource}
-            setMarketModalOpen={setMarketModalOpen}
+            onSelect={onSelect}
           />
         ))}
 

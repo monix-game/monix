@@ -257,16 +257,17 @@ export function buildResourcePrices(): { [resourceId: string]: number } {
 }
 
 /**
- * Percentage change for every resource over the last hour, e.g. +2.4 | -0.8.
- * The frontend uses this to render a 1h change badge next to each resource.
+ * Percentage change for every resource over the last 45 seconds, e.g. +2.4 | -0.8.
+ * Mirrors the change shown on the ResourceGraph, which compares the first and
+ * last of its last-10-point (5s-spaced) window.
  */
 export function buildResourceChanges(): { [resourceId: string]: number } {
   const now = Math.floor(Date.now() / 1000);
-  const hourAgo = now - 60 * 60;
+  const windowStart = now - 45;
   const data: { [resourceId: string]: number } = {};
   for (const r of resources) {
     const current = generatePrice(r.id, now);
-    const previous = generatePrice(r.id, hourAgo);
+    const previous = generatePrice(r.id, windowStart);
     data[r.id] = previous > 0 ? ((current - previous) / previous) * 100 : 0;
   }
   return data;

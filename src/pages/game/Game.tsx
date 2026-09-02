@@ -8,7 +8,7 @@ import {
   AnimatedBackground,
   ResourceGraph,
   Button,
-  ResourceModal,
+  BuySellPanel,
   PetsList,
   Settings,
   Leaderboard,
@@ -174,8 +174,6 @@ export default function Game() {
 
   // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
-  const [marketModalResource, setMarketModalResource] = useState<ResourceInfo | null>(null);
-  const [marketModalOpen, setMarketModalOpen] = useState<boolean>(false);
 
   const currentFishingEvent = useMemo(() => getCurrentFishingEvent(eventNow), [eventNow]);
   const tutorialSteps = useMemo<TutorialStep[]>(
@@ -752,7 +750,7 @@ export default function Game() {
     if (!isTutorialOpen) return;
 
     startTransition(() => {
-      if (tab === 'resources' && marketModalResource) {
+      if (tab === 'resources') {
         setTutorialProgress(prev => ({
           ...prev,
           openedResourceModal: true,
@@ -773,7 +771,7 @@ export default function Game() {
         }));
       }
     });
-  }, [isTutorialOpen, tab, marketModalResource, fishingSubview]);
+  }, [isTutorialOpen, tab, fishingSubview]);
 
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
@@ -871,8 +869,7 @@ export default function Game() {
   useEffect(() => {
     if (!resourceMarketDisabled) return;
     queueMicrotask(() => {
-      setMarketModalOpen(false);
-      setMarketModalResource(null);
+      setMarketResourceDetails('gold');
     });
   }, [resourceMarketDisabled]);
 
@@ -1225,8 +1222,9 @@ export default function Game() {
                 </div>
                 <div className={styles['resources-two-pane']}>
                   <ResourceList
-                    setMarketModalResource={setMarketModalResource}
-                    setMarketModalOpen={setMarketModalOpen}
+                    onSelect={(resource: ResourceInfo) => {
+                      setMarketResourceDetails(resource.id);
+                    }}
                     resourceListHydrated={resourceListHydrated}
                     sortedResources={sortedResources}
                     resourcePrices={resourcePrices}
@@ -1250,11 +1248,23 @@ export default function Game() {
                         )}
                       </span>
                     </div>
-                    <ResourceGraph
+                    <ResourceGraph resource={getResourceById(marketResourceDetails)!} />
+                    <BuySellPanel
+                      key={marketResourceDetails}
                       resource={getResourceById(marketResourceDetails)!}
-                      onBuySellClick={() => {
-                        setMarketModalOpen(true);
-                        setMarketModalResource(getResourceById(marketResourceDetails)!);
+                      quantity={resourceQuantities[marketResourceDetails] || 0}
+                      resourcePrice={resourcePrices[marketResourceDetails] || 0}
+                      money={user ? user.money || 0 : 0}
+                      onBuySell={() => {
+                        void updateEverything();
+                        const fetchQuantity = async () => {
+                          const qty = await getResourceQuantity(marketResourceDetails);
+                          setResourceQuantities(prev => ({
+                            ...prev,
+                            [marketResourceDetails]: qty || 0,
+                          }));
+                        };
+                        void fetchQuantity();
                       }}
                     />
                   </div>
@@ -2558,37 +2568,6 @@ export default function Game() {
           )}
         </main>
 
-        {marketModalResource && (
-          <ResourceModal
-            resource={marketModalResource}
-            quantity={resourceQuantities[marketModalResource.id] || 0}
-            resourcePrice={resourcePrices[marketModalResource.id] || 0}
-            money={user ? user.money || 0 : 0}
-            isOpen={marketModalOpen}
-            disableSeeMore={false}
-            onClose={() => {
-              setMarketModalOpen(false);
-              setMarketModalResource(null);
-            }}
-            onSeeMore={() => {
-              setTabTo('resources');
-              setMarketResourceDetails(marketModalResource.id);
-              setMarketModalOpen(false);
-            }}
-            onBuySell={() => {
-              // Refresh the resource's value and quantity
-              void updateEverything();
-              const fetchQuantity = async () => {
-                const qty = await getResourceQuantity(marketModalResource.id);
-                setResourceQuantities(prev => ({
-                  ...prev,
-                  [marketModalResource.id]: qty || 0,
-                }));
-              };
-              void fetchQuantity();
-            }}
-          />
-        )}
       </div>
       {isTutorialOpen && (
         <div className={styles['tutorial-dock']} role="status" aria-live="polite">

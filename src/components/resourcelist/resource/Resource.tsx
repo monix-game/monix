@@ -9,16 +9,14 @@ interface ResourceProps {
   info: ResourceInfo;
   price: number;
   changePct?: number;
-  setMarketModalResource: (resource: ResourceInfo) => void;
-  setMarketModalOpen: (open: boolean) => void;
+  onSelect: (resource: ResourceInfo) => void;
 }
 
 export const Resource: React.FC<ResourceProps> = ({
   info,
   price,
   changePct,
-  setMarketModalResource,
-  setMarketModalOpen,
+  onSelect,
   ...props
 }) => {
   const [quantity, setQuantity] = React.useState<number>(0);
@@ -45,8 +43,7 @@ export const Resource: React.FC<ResourceProps> = ({
     <div
       className={styles.resource}
       onClick={() => {
-        setMarketModalResource(info);
-        setMarketModalOpen(true);
+        onSelect(info);
       }}
       {...props}
     >
