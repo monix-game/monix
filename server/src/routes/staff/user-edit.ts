@@ -208,7 +208,9 @@ export const editUser = new Elysia()
       if (remove_avatar) {
         changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> removed` });
       } else if (avatar_url) {
-        changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> set to ${avatar_url}` });
+        const preview = avatar_url.slice(0, 64)
+          .concat(avatar_url.length > 64 ? '...' : '');
+        changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> set to new avatar (${preview})` });
       }
 
       if (cosmetics_unlocked !== undefined) {
