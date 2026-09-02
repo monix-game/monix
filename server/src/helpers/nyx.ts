@@ -1,6 +1,7 @@
 import { createMessage } from '../db';
 import { IMessage } from '../../common/models/message';
 import { v4 } from 'uuid';
+import { markChatChannelDirty } from '../socket';
 
 /**
  * Sends a message from Nyx to a specific user in a specific room.
@@ -29,4 +30,5 @@ export async function sendNyxMessage(
   };
 
   await createMessage(message);
+  markChatChannelDirty(room_uuid);
 }

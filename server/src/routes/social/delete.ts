@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { getMessageByUUID, getRoomByUUID, getUserByUUID, updateMessage } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { hasRole } from '../../../common/roles';
+import { markChatChannelDirty } from '../../socket';
 
 export const deleteMessage = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -55,6 +56,8 @@ export const deleteMessage = new Elysia()
       message.time_edited = Date.now();
       await updateMessage(message);
     }
+
+    markChatChannelDirty(message.room_uuid);
 
     return { success: true };
   });

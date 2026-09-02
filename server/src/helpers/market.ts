@@ -3,18 +3,39 @@ import { resources } from '../../common/resources';
 
 const TAU = Math.PI * 2;
 
+const resourceById = new Map(resources.map(r => [r.id, r]));
+
+// Deterministic pseudo-random values are cached so repeated price generation for
+// the same seed (same resource + time bucket, recomputed by resource-history
+// loops and price broadcasts) does not re-run SHA-256 every time. The cache is
+// bounded: once it grows past a threshold it is simply cleared, since re-seeding
+// a few hashes on the next tick is far cheaper than letting it grow unbounded.
+const randCache = new Map<string, number>();
+const RAND_CACHE_MAX = 100_000;
+
+// Cache of computed prices per resourceId and 5-second bucket. Prices only ever
+// change between buckets, so within a single bucket every caller (history,
+// prices, initial snapshot) reuses the already-computed value instead of
+// recomputing ~7 SHA-256 hashes each.
+const priceByBucket = new Map<string, { bucket: number; price: number }>();
+
 /**
  * Generates a pseudo-random fraction based on a seed string.
  * @param seed - The seed string to generate the pseudo-random number
  * @returns A pseudo-random number between 0 and 1 based on the provided seed
  */
 function pseudoRandomFraction(seed: string): number {
+  let cached = randCache.get(seed);
+  if (cached !== undefined) return cached;
+  if (randCache.size >= RAND_CACHE_MAX) randCache.clear();
   const hash = crypto.createHash('sha256').update(seed).digest('hex');
   // take first 8 hex chars -> 32-bit int
   const slice = hash.slice(0, 8);
 
   const int = Number.parseInt(slice, 16);
-  return int / 0xffffffff;
+  cached = int / 0xffffffff;
+  randCache.set(seed, cached);
+  return cached;
 }
 
 function normalizedNoise(seed: string): number {
@@ -39,16 +60,19 @@ function clamp(value: number, min: number, max: number): number {
  * @returns The generated price for the resource at the given timestamp
  */
 export function generatePrice(resourceId: string, timestamp: number): number {
-  const resource = resources.find(v => v.id === resourceId);
+  const resource = resourceById.get(resourceId);
 
   if (resource === undefined) return 0;
 
+  const interval = 5; // seconds
+  const bucket = Math.floor(timestamp / interval);
+
+  const cached = priceByBucket.get(resourceId);
+  if (cached && cached.bucket === bucket) return cached.price;
+
   const resourceBase = Math.max(resource.basePrice, 0.01);
 
-  const interval = 5; // seconds
-  timestamp = Math.floor(timestamp / interval) * interval;
-
-  const time = timestamp;
+  const time = bucket * interval;
   const baseFloor = Math.max(resourceBase, 1);
 
   const trendPeriodSeconds = 15 * 60; // 15 minutes
@@ -71,5 +95,6 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   let price = resourceBase * (1 + deviation);
   price = Math.max(price, 0.01); // Minimum price of 0.01
 
+  priceByBucket.set(resourceId, { bucket, price });
   return price;
 }

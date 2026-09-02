@@ -77,11 +77,11 @@ export async function punishUser(
   }
 }
 
-export async function pardonUser(uuid: string, punishment_id: string): Promise<boolean> {
+export async function pardonUser(uuid: string, punishment_uuid: string): Promise<boolean> {
   try {
     const resp = await api.post<{ message: string }>('/staff/pardon', {
       target_user_uuid: uuid,
-      punishment_id,
+      punishment_uuid,
     });
     return resp?.success;
   } catch {

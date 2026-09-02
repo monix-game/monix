@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia';
 import { getRoomByUUID, getUserByUUID } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { sendChatMessage } from '../../helpers/chat';
+import { markChatChannelDirty } from '../../socket';
 
 export const sendMessage = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -27,6 +28,7 @@ export const sendMessage = new Elysia()
       if (!result.ok) {
         return { error: result.message };
       }
+      markChatChannelDirty(room_uuid || '');
       return { message: result.message };
     },
     {

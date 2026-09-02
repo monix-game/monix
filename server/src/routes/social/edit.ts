@@ -3,6 +3,7 @@ import { getMessageByUUID, getRoomByUUID, getUserByUUID, updateMessage } from '.
 import { deriveAuth, onlyActive } from '../../middleware';
 import { profanityFilter } from '../../constants';
 import { hasRole } from '../../../common/roles';
+import { markChatChannelDirty } from '../../socket';
 
 export const editMessage = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -82,6 +83,8 @@ export const editMessage = new Elysia()
       message.edited = true;
       message.time_edited = Date.now();
       await updateMessage(message);
+
+      markChatChannelDirty(message.room_uuid);
 
       return { message };
     },

@@ -102,25 +102,41 @@ async function chatSnapshot(roomUuid: string) {
   return 'messages' in result ? result.messages : null;
 }
 
+// Chat channels whose messages changed since the last publisher tick. The
+// channel publisher only rebuilds these instead of recomputing the full room
+// history every second for every active chat channel.
+const dirtyChatChannels = new Set<string>();
+
+/**
+ * Signals that a room's messages changed (e.g. via an HTTP route or bot that
+ * doesn't go through the WebSocket send handler). The chat publisher picks this
+ * up and re-broadcasts the room snapshot to subscribers.
+ */
+export function markChatChannelDirty(roomUuid: string) {
+  dirtyChatChannels.add(roomUuid);
+}
+
 // ---------------------------------------------------------------------------
 // Server-side publishers (replace client-side polling)
 // ---------------------------------------------------------------------------
 
 function startChatPublisher() {
   return setInterval(() => {
-    for (const channel of subscribers.keys()) {
-      if (!channel.startsWith('chat:')) continue;
-      const roomUuid = channel.slice('chat:'.length);
+    if (dirtyChatChannels.size === 0) return;
+    const dirty = Array.from(dirtyChatChannels);
+    dirtyChatChannels.clear();
+    for (const roomUuid of dirty) {
+      if (!isChannelActive(`chat:${roomUuid}`)) continue;
       void (async () => {
         try {
           const messages = await chatSnapshot(roomUuid);
-          if (messages) broadcast(channel, messages);
+          if (messages) broadcast(`chat:${roomUuid}`, messages);
         } catch {
           // Swallow per-channel errors.
         }
       })();
     }
-  }, 1000);
+  }, 750);
 }
 
 function startLeaderboardPublisher() {
@@ -178,34 +194,86 @@ function startUserPublisher() {
   return setInterval(() => {
     const set = subscribers.get('user:me');
     if (!set || set.size === 0) return;
+
+    // Same user may be connected from multiple tabs/devices. Compute and
+    // serialize the snapshot once per user, then share the serialized message
+    // across all of that user's connections instead of re-reading the DB and
+    // re-serializing per connection.
+    const socketsByUser = new Map<string, WSSocket[]>();
     for (const ws of set) {
-      const auth = getAuthData(ws);
-      const socketUser = auth.socketUser;
+      const socketUser = getAuthData(ws).socketUser;
+      if (!socketUser) continue;
+      const bucket = socketsByUser.get(socketUser.uuid);
+      if (bucket) bucket.push(ws);
+      else socketsByUser.set(socketUser.uuid, [ws]);
+    }
+
+    for (const sockets of socketsByUser.values()) {
+      const socketUser = getAuthData(sockets[0]).socketUser;
       if (!socketUser) continue;
       void (async () => {
         try {
           const snapshot = await buildUserSnapshot(socketUser);
           if (!snapshot) return;
-          ws.send(JSON.stringify({ type: 'snapshot', channel: 'user:me', data: snapshot }));
+          const msg = JSON.stringify({ type: 'snapshot', channel: 'user:me', data: snapshot });
+          for (const ws of sockets) {
+            try {
+              ws.send(msg);
+            } catch {
+              // Ignore disconnected sockets; cleaned up on close.
+            }
+          }
         } catch {
           // Swallow per-subscriber errors.
         }
       })();
     }
-  }, 1000);
+  }, 2000);
 }
 
 function startRoomsPublisher() {
   return setInterval(() => {
     const set = subscribers.get('socialRooms');
     if (!set || set.size === 0) return;
+
+    // Regular users see only public rooms -> identical snapshot for all of
+    // them, so compute & serialize once and share across every user-role
+    // connection instead of once per connection. Staff can see staff/private
+    // rooms that vary by membership, so those are still computed per connection.
+    const staffSockets: WSSocket[] = [];
+    const userSockets: WSSocket[] = [];
     for (const ws of set) {
-      const auth = getAuthData(ws);
-      const socketUser = auth.socketUser;
+      const role = getAuthData(ws).socketUser?.role ?? 'user';
+      if (role === 'user') userSockets.push(ws);
+      else staffSockets.push(ws);
+    }
+
+    const push = (wsList: WSSocket[]) => (snapshot: unknown) => {
+      const msg = JSON.stringify({ type: 'snapshot', channel: 'socialRooms', data: snapshot });
+      for (const ws of wsList) {
+        try {
+          ws.send(msg);
+        } catch {
+          // Ignore disconnected sockets; cleaned up on close.
+        }
+      }
+    };
+
+    if (userSockets.length > 0) {
       void (async () => {
         try {
-          const snapshot = await buildRooms(socketUser);
-          ws.send(JSON.stringify({ type: 'snapshot', channel: 'socialRooms', data: snapshot }));
+          push(userSockets)(await buildRooms(null));
+        } catch {
+          // Swallow per-subscriber errors.
+        }
+      })();
+    }
+
+    for (const ws of staffSockets) {
+      const socketUser = getAuthData(ws).socketUser;
+      void (async () => {
+        try {
+          push([ws])(await buildRooms(socketUser ?? null));
         } catch {
           // Swallow per-subscriber errors.
         }

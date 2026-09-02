@@ -13,6 +13,7 @@ import { messageToDoc } from '../../common/models/message';
 import { petToDoc } from '../../common/models/pet';
 import { roomToDoc } from '../../common/models/room';
 import { userToDoc } from '../../common/models/user';
+import type { IUser } from '../../common/models/user';
 import { isUserBanned } from '../../common/punishx/punishx';
 import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrades';
 import { hasRole } from '../../common/roles';
@@ -51,45 +52,53 @@ function finishLeaderboard(leaderboard: LeaderboardEntry[]): LeaderboardEntry[] 
   );
 }
 
-async function rankLeaderboard(
-  users: Awaited<ReturnType<typeof getAllUsers>>,
-  entryFor: (user: (typeof users)[number], index: number) => Promise<LeaderboardEntry>,
-  canRank: (user: (typeof users)[number]) => boolean,
+function entryForUser(user: IUser, money: number, fishCaught: number): LeaderboardEntry {
+  return {
+    rank: 0,
+    username: user.username || 'Unknown',
+    avatar: user.avatar_data_uri,
+    role: user.role,
+    money,
+    fishCaught,
+    magic_jellybean_active: isUpgradeActive(user.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
+    cosmetics: {
+      nameplate: user.equipped_cosmetics?.nameplate,
+      user_tag: user.equipped_cosmetics?.tag,
+    },
+  };
+}
+
+function rankLeaderboard<T>(
+  rankedUsers: T[],
+  entryFor: (user: T, index: number) => LeaderboardEntry,
   hideStaff: boolean
-): Promise<LeaderboardEntry[]> {
-  const ranked = await Promise.all(
-    users.filter(u => canRank(u) && isNotStaff(u, hideStaff)).map((user, index) => entryFor(user, index))
-  );
-  return finishLeaderboard(ranked);
+): LeaderboardEntry[] {
+  const filtered = hideStaff
+    ? rankedUsers.filter(u => isNotStaff(u as { role: string }, true))
+    : rankedUsers;
+  return finishLeaderboard(filtered.map((user, index) => entryFor(user, index + 1)));
 }
 
 export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
   const allUsers = await getAllUsers();
-  const sortedUsers = [...allUsers].sort((a, b) => (b.money || 0) - (a.money || 0));
+  const now = Date.now();
+  const rankable = allUsers
+    .filter(
+      u =>
+        !isUserBanned(u) &&
+        (u.money || 0) > 0 &&
+        (!u.last_seen || now - u.last_seen <= SIX_MONTHS)
+    )
+    .sort((a, b) => (b.money || 0) - (a.money || 0))
+    .slice(0, 15);
 
-  async function entryFor(user: (typeof allUsers)[number], index: number): Promise<LeaderboardEntry> {
-    const userData = await getUserByUUID(user.uuid);
-    return {
-      rank: index + 1,
-      username: userData ? userData.username : 'Unknown',
-      avatar: userData ? userData.avatar_data_uri : undefined,
-      role: userData ? userData.role : 'user',
-      money: user.money || 0,
-      magic_jellybean_active: isUpgradeActive(userData?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
-      cosmetics: {
-        nameplate: userData?.equipped_cosmetics?.nameplate,
-        user_tag: userData?.equipped_cosmetics?.tag,
-      },
-    };
-  }
+  const entryFor = (u: IUser, index: number): LeaderboardEntry => ({
+    ...entryForUser(u, u.money || 0, 0),
+    rank: index,
+  });
 
-  const canRank = (u: (typeof allUsers)[number]) =>
-    !isUserBanned(u) && (u.money || 0) > 0 && (!u.last_seen || Date.now() - u.last_seen <= SIX_MONTHS);
-
-  const [normal, noStaff] = await Promise.all([
-    rankLeaderboard(sortedUsers, entryFor, canRank, false),
-    rankLeaderboard(sortedUsers, entryFor, canRank, true),
-  ]);
+  const normal = rankLeaderboard(rankable, entryFor, false);
+  const noStaff = rankLeaderboard(rankable, entryFor, true);
 
   return { normal, noStaff };
 }
@@ -101,35 +110,29 @@ function getFishCaughtCount(fishCaught?: { [key: string]: number }): number {
 
 export async function buildFishLeaderboard(): Promise<LeaderboardSet> {
   const allUsers = await getAllUsers();
-  const sortedUsers = [...allUsers].sort(
-    (a, b) => getFishCaughtCount(b.fishing?.fish_caught) - getFishCaughtCount(a.fishing?.fish_caught)
-  );
+  const now = Date.now();
+  // Precompute once instead of re-reducing on every sort comparison.
+  const counted = allUsers.map(u => {
+    const fishCaught = getFishCaughtCount(u.fishing?.fish_caught);
+    return { user: u, count: fishCaught };
+  });
+  const rankable = counted
+    .filter(
+      u =>
+        !isUserBanned(u.user) &&
+        u.count > 0 &&
+        (!u.user.last_seen || now - u.user.last_seen <= SIX_MONTHS)
+    )
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 15);
 
-  async function entryFor(user: (typeof allUsers)[number], index: number): Promise<LeaderboardEntry> {
-    const userData = await getUserByUUID(user.uuid);
-    return {
-      rank: index + 1,
-      username: userData ? userData.username : 'Unknown',
-      avatar: userData ? userData.avatar_data_uri : undefined,
-      role: userData ? userData.role : 'user',
-      fishCaught: getFishCaughtCount(user.fishing?.fish_caught),
-      magic_jellybean_active: isUpgradeActive(userData?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
-      cosmetics: {
-        nameplate: userData?.equipped_cosmetics?.nameplate,
-        user_tag: userData?.equipped_cosmetics?.tag,
-      },
-    };
-  }
+  const entryFor = (u: { user: IUser; count: number }, index: number): LeaderboardEntry => ({
+    ...entryForUser(u.user, u.user.money || 0, u.count),
+    rank: index,
+  });
 
-  const canRank = (u: (typeof allUsers)[number]) =>
-    !isUserBanned(u) &&
-    getFishCaughtCount(u.fishing?.fish_caught) > 0 &&
-    (!u.last_seen || Date.now() - u.last_seen <= SIX_MONTHS);
-
-  const [normal, noStaff] = await Promise.all([
-    rankLeaderboard(sortedUsers, entryFor, canRank, false),
-    rankLeaderboard(sortedUsers, entryFor, canRank, true),
-  ]);
+  const normal = rankLeaderboard(rankable, entryFor, false);
+  const noStaff = rankLeaderboard(rankable, entryFor, true);
 
   return { normal, noStaff };
 }

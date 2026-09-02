@@ -40,7 +40,9 @@ export async function connectDB(uri: string) {
   await db.collection('users').createIndex({ username: 1 }, { unique: true });
   await db.collection('sessions').createIndex({ token: 1 }, { unique: true });
   await db.collection('pets').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('pets').createIndex({ owner_uuid: 1 });
   await db.collection('messages').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('messages').createIndex({ room_uuid: 1, time_sent: -1 });
   await db.collection('rooms').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('reports').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('appeals').createIndex({ uuid: 1 }, { unique: true });
