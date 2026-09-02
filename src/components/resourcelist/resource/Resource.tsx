@@ -8,6 +8,7 @@ import { smartFormatNumber } from '../../../../server/common/math';
 interface ResourceProps {
   info: ResourceInfo;
   price: number;
+  changePct?: number;
   setMarketModalResource: (resource: ResourceInfo) => void;
   setMarketModalOpen: (open: boolean) => void;
 }
@@ -15,6 +16,7 @@ interface ResourceProps {
 export const Resource: React.FC<ResourceProps> = ({
   info,
   price,
+  changePct,
   setMarketModalResource,
   setMarketModalOpen,
   ...props
@@ -57,6 +59,23 @@ export const Resource: React.FC<ResourceProps> = ({
       <div className={styles['resource-amount']}>
         <span className={styles['resource-quantity']}>{quantityShort}</span>
         <span className={styles['resource-unit']}>{unit}</span>
+      </div>
+      <div className={styles['resource-price']}>
+        <small>PRICE</small>
+        <div className={styles['resource-change-row']}>
+          <span className={`${styles['resource-price-amount']} mono`}>
+            {smartFormatNumber(price || 0, false, true)}
+          </span>
+          {changePct !== undefined && (
+            <span
+              className={`${styles['resource-change']} ${
+                changePct >= 0 ? styles.up : styles.down
+              }`}
+            >
+              {changePct >= 0 ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%
+            </span>
+          )}
+        </div>
       </div>
       <div className={styles['resource-value']}>
         <small>VALUE</small>

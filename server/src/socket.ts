@@ -19,6 +19,7 @@ import {
   buildPets,
   buildResourceHistory,
   buildResourcePrices,
+  buildResourceChanges,
   buildRooms,
   buildRoomMessages,
   buildSettings,
@@ -28,7 +29,7 @@ import { sendChatMessage } from './helpers/chat';
 import { notifyNewChatMessage } from './helpers/push';
 import { addUserConnection, removeUserConnection } from './helpers/presence';
 import { applyActivityTracking } from './middleware';
-import type { IUser } from '../common/models/user';
+import { DEFAULT_USER_STATS, type IUser } from '../common/models/user';
 import type { IMessage } from '../common/models/message';
 import { createLogger } from './logging';
 import { profanityFilter } from './constants';
@@ -52,6 +53,7 @@ type SocketAuthData = {
   socketUser?: IUser;
   socketAuthed?: boolean;
   remoteIp?: string;
+  connectedAt?: number;
 };
 
 function getAuthData(ws: { data: object }): SocketAuthData {
@@ -199,7 +201,7 @@ function startPetsPublisher() {
 function startResourcesPublisher() {
   return setInterval(() => {
     for (const channel of subscribers.keys()) {
-      if (!channel.startsWith('resources:') || channel === 'resources:prices') continue;
+      if (!channel.startsWith('resources:') || channel === 'resources:prices' || channel === 'resources:changes') continue;
       const resourceId = channel.slice('resources:'.length);
       broadcast(channel, buildResourceHistory(resourceId, 1));
     }
@@ -210,6 +212,9 @@ function startPricesPublisher() {
   return setInterval(() => {
     if (isChannelActive('resources:prices')) {
       broadcast('resources:prices', buildResourcePrices());
+    }
+    if (isChannelActive('resources:changes')) {
+      broadcast('resources:changes', buildResourceChanges());
     }
   }, 5000);
 }
@@ -345,6 +350,8 @@ async function sendInitialSnapshot(channel: string, ws: WSSocket) {
     data = await buildPets(channel.slice('pets:'.length));
   } else if (channel === 'resources:prices') {
     data = buildResourcePrices();
+  } else if (channel === 'resources:changes') {
+    data = buildResourceChanges();
   } else if (channel === 'market:news') {
     data = buildNewsFeed();
   } else if (channel.startsWith('resources:')) {
@@ -409,6 +416,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
                   await updateUser(user);
                 }
                 target.socketUser = user ?? undefined;
+                target.connectedAt = Date.now();
                 if (user) addUserConnection(user.uuid);
               }
             }
@@ -470,6 +478,11 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
             })
           );
           if (result.ok && room_uuid) {
+            // Track lifetime stats: messages sent
+            socketUser.stats ??= DEFAULT_USER_STATS;
+            socketUser.stats.messages_sent = (socketUser.stats.messages_sent || 0) + 1;
+            void updateUser(socketUser);
+
             // Push an up-to-date chat snapshot to subscribers so no HTTP is needed.
             const messages = await chatSnapshot(room_uuid);
             if (messages) broadcast(`chat:${room_uuid}`, messages);
@@ -728,6 +741,24 @@ export function attachSocketServer(server: Server | HttpsServer) {
       const closingUser = getAuthData(ws).socketUser;
       if (closingUser?.uuid) {
         removeUserConnection(closingUser.uuid);
+        // Accumulate playtime for the session that just ended. Re-fetch a fresh
+        // user to avoid clobbering any concurrent writes (e.g. routes that
+        // updated the user while the socket was connected).
+        const connectedAt = getAuthData(ws).connectedAt;
+        if (connectedAt) {
+          void (async () => {
+            try {
+              const fresh = await getUserByUUID(closingUser.uuid);
+              if (!fresh) return;
+              fresh.stats ??= DEFAULT_USER_STATS;
+              fresh.stats.playtime_ms =
+                (fresh.stats.playtime_ms || 0) + (Date.now() - connectedAt);
+              await updateUser(fresh);
+            } catch {
+              // Swallow errors on disconnect bookkeeping.
+            }
+          })();
+        }
       }
       for (const [channel, set] of subscribers) {
         if (set.has(ws)) {

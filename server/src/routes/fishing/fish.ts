@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { getUserByUUID, updateUser } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../../common/upgrades';
 import { calculateFishingResult, getFishValue } from '../../../common/fishing/fishing';
 import type { IFish } from '../../../common/models/fish';
@@ -85,6 +86,16 @@ export const fish = new Elysia()
         if (fetchedUser.fishing.bait_owned[fetchedUser.fishing.equipped_bait ?? ''] <= 0) {
           fetchedUser.fishing.equipped_bait = undefined;
         }
+      }
+
+      // Track lifetime stats
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.fish_caught = (fetchedUser.stats.fish_caught || 0) + 1;
+      if (baitId) {
+        fetchedUser.stats.bait_used = (fetchedUser.stats.bait_used || 0) + 1;
+      }
+      if (auto_sell && success) {
+        fetchedUser.stats.fish_sold = (fetchedUser.stats.fish_sold || 0) + 1;
       }
 
       await updateUser(fetchedUser);

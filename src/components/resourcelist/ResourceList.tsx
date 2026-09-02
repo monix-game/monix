@@ -11,6 +11,7 @@ interface ResourceListProps {
   resourceListHydrated?: boolean;
   sortedResources?: ResourceInfo[];
   resourcePrices?: { [key: string]: number };
+  resourceChanges?: { [key: string]: number };
 }
 
 export const ResourceList: React.FC<ResourceListProps> = ({
@@ -19,6 +20,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
   resourceListHydrated = false,
   sortedResources = [],
   resourcePrices = {},
+  resourceChanges = {},
 }) => {
   const [resourceSearchTerm, setResourceSearchTerm] = useState('');
   const [filteredResources, setFilteredResources] = useState<ResourceInfo[]>(sortedResources);
@@ -58,6 +60,7 @@ export const ResourceList: React.FC<ResourceListProps> = ({
             key={index}
             info={resource}
             price={resourcePrices[resource.id] || 0}
+            changePct={resourceChanges[resource.id]}
             setMarketModalResource={setMarketModalResource}
             setMarketModalOpen={setMarketModalOpen}
           />

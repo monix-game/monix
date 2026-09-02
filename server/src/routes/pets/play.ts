@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { getPetByUUID, getUserByUUID, updatePet } from '../../db';
+import { getPetByUUID, getUserByUUID, updatePet, updateUser } from '../../db';
 import { petToDoc } from '../../../common/models/pet';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { canPlayWithPet, isPetAsleep } from '../../../common/pet';
 
@@ -49,6 +50,10 @@ export const playPet = new Elysia()
 
       // Add experience points to the pet for playing
       pet.exp += 5;
+
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.pets_played = (fetchedUser.stats.pets_played || 0) + 1;
+      await updateUser(fetchedUser);
 
       await updatePet(pet);
 

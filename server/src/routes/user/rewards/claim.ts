@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { updateUser } from '../../../db';
 import { deriveAuth, onlyActive } from '../../../middleware';
 import { DAILY_REWARDS } from '../../../../common/rewards/dailyRewards';
+import { DEFAULT_USER_STATS } from '../../../../common/models/user';
 import { getTimeZoneDayIndex, SYDNEY_TIME_ZONE } from '../../../../common/timezone';
 
 export const claimDailyReward = new Elysia()
@@ -38,6 +39,8 @@ export const claimDailyReward = new Elysia()
     }
 
     user.daily_rewards = { last_claimed_day: currentDay, streak: newStreak };
+    user.stats ??= DEFAULT_USER_STATS;
+    user.stats.daily_rewards_claimed = (user.stats.daily_rewards_claimed || 0) + 1;
     await updateUser(user);
 
     return { claimed: true, streak: newStreak, reward };

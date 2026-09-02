@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { getUserByUUID, updateUser } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { generatePrice } from '../../helpers/market';
 
 export const buyResource = new Elysia()
@@ -42,6 +43,10 @@ export const buyResource = new Elysia()
 
       fetchedUser.resources[resourceId] =
         (fetchedUser.resources[resourceId] || 0) + quantityToBuy;
+
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.resource_buys = (fetchedUser.stats.resource_buys || 0) + 1;
+      fetchedUser.stats.resources_bought = (fetchedUser.stats.resources_bought || 0) + quantityToBuy;
 
       await updateUser(fetchedUser);
 

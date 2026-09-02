@@ -256,6 +256,22 @@ export function buildResourcePrices(): { [resourceId: string]: number } {
   return data;
 }
 
+/**
+ * Percentage change for every resource over the last hour, e.g. +2.4 | -0.8.
+ * The frontend uses this to render a 1h change badge next to each resource.
+ */
+export function buildResourceChanges(): { [resourceId: string]: number } {
+  const now = Math.floor(Date.now() / 1000);
+  const hourAgo = now - 60 * 60;
+  const data: { [resourceId: string]: number } = {};
+  for (const r of resources) {
+    const current = generatePrice(r.id, now);
+    const previous = generatePrice(r.id, hourAgo);
+    data[r.id] = previous > 0 ? ((current - previous) / previous) * 100 : 0;
+  }
+  return data;
+}
+
 /** Current market news feed (dedup with /market/news). */
 export function buildNewsFeed() {
   return buildMarketNewsFeed(Math.floor(Date.now() / 1000));

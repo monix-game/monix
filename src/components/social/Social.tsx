@@ -21,6 +21,7 @@ import { hasRole } from '../../../server/common/roles';
 import { Spinner } from '../spinner/Spinner';
 import Filter from '../../../server/common/filter/filter';
 import { useSocket } from '../../providers/socket';
+import { PollsPanel } from '../polls/PollsPanel';
 
 interface SocialProps {
   user: IUser;
@@ -41,6 +42,7 @@ const areMessagesEqual = (msgs1: IMessage[], msgs2: IMessage[]) => {
 };
 
 export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unreadByRoom }) => {
+  const [socialView, setSocialView] = React.useState<'chat' | 'polls'>('chat');
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
   const profanityFilter = React.useMemo(() => new Filter(), []);
@@ -314,14 +316,18 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
             {rooms.map(r => (
               <div
                 key={r.uuid}
-                className={`${styles['social-room-item']} ${r.uuid === room.uuid ? styles.active : ''}`}
+                className={`${styles['social-room-item']} ${
+                  socialView === 'chat' && r.uuid === room.uuid ? styles.active : ''
+                }`}
                 onClick={() => {
+                  setSocialView('chat');
                   setRoom(r);
                   void fetchMessages(r.uuid);
                   hideContextMenu();
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
+                    setSocialView('chat');
                     setRoom(r);
                     void fetchMessages(r.uuid);
                     hideContextMenu();
@@ -331,15 +337,36 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
                 tabIndex={0}
               >
                 <EmojiText>{r.name}</EmojiText>
-                {r.uuid !== room.uuid && (unreadByRoom?.[r.uuid] ?? 0) > 0 && (
-                  <span className={styles['social-room-notif-dot']} />
-                )}
+                {socialView !== 'polls' &&
+                  r.uuid !== room.uuid &&
+                  (unreadByRoom?.[r.uuid] ?? 0) > 0 && (
+                    <span className={styles['social-room-notif-dot']} />
+                  )}
               </div>
             ))}
+            <div
+              key="polls"
+              className={`${styles['social-room-item']} ${socialView === 'polls' ? styles.active : ''}`}
+              onClick={() => setSocialView('polls')}
+              onKeyDown={e => {
+                if (e.key === 'Enter') setSocialView('polls');
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <EmojiText>🗳️ Polls</EmojiText>
+            </div>
           </div>
         </div>
       </div>
       <div className={styles['social-main']}>
+        {socialView === 'polls' && (
+          <PollsPanel
+            canCreatePoll={user.role === 'admin' || user.role === 'owner'}
+          />
+        )}
+        {socialView === 'chat' && (
+        <>
         <h2>
           <EmojiText>{room.name}</EmojiText>
         </h2>
@@ -521,6 +548,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>

@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { getUserByUUID, updateUser } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { getFishValue, getCurrentFishingEvent, applyAquariumEventModifiers } from '../../../common/fishing/fishing';
 
 export const sellFish = new Elysia()
@@ -54,6 +55,9 @@ export const sellFish = new Elysia()
       // Remove fish from aquarium and add money to user
       fetchedUser.fishing.aquarium.fish.splice(fishIndex, 1);
       fetchedUser.money += value;
+
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.fish_sold = (fetchedUser.stats.fish_sold || 0) + 1;
 
       await updateUser(fetchedUser);
 

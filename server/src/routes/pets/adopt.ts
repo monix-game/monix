@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 import { createPet, getPetsByOwnerUUID, getUserByUUID, updateUser } from '../../db';
 import type { IPet } from '../../../common/models/pet';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { petToDoc } from '../../../common/models/pet';
 import { petTypes } from '../../../common/petTypes';
 import { deriveAuth, onlyActive } from '../../middleware';
@@ -37,6 +38,8 @@ export const adoptPet = new Elysia()
 
     // Deduct the money from the user
     fetchedUser.money = (fetchedUser.money || 0) - 10000;
+    fetchedUser.stats ??= DEFAULT_USER_STATS;
+    fetchedUser.stats.pets_adopted = (fetchedUser.stats.pets_adopted || 0) + 1;
     await updateUser(fetchedUser);
 
     // Get a random pet type from the available pet types

@@ -1,7 +1,12 @@
 import { fnv1a32, mulberry32, weightedRandom } from '../math';
 import type { IFish } from '../models/fish';
 import { fishingBaits } from './fishingBait';
-import { type FishingEventInfo, type CurrentFishingEvent, fishingEvents } from './fishingEvents';
+import {
+  type FishingEventInfo,
+  type CurrentFishingEvent,
+  type UpcomingFishingEvent,
+  fishingEvents,
+} from './fishingEvents';
 import { fishingRods } from './fishingRods';
 import { fishModifiers } from './fishModifiers';
 import { fishTypes } from './fishTypes';
@@ -16,6 +21,22 @@ const AQUARIUM_EVENT_MODIFIER_CHANCE = 0.25;
 const AQUARIUM_EVENT_ROLL_WINDOW_MS = 60 * 1000;
 
 const FISH_MODIFIER_CAP = 3;
+
+const IDLE_MIN_DURATION = 15; // minutes
+const IDLE_MAX_DURATION = 60; // minutes
+const IDLE_PROBABILITY = 0.25;
+
+// How far ahead (in days, starting from the previous day) random-schedule
+// segments are built when computing upcoming events. Date-range (holiday)
+// events are computed independently of this window, so this only bounds the
+// deterministic random schedule lookup - it is far longer than any holiday.
+const UPCOMING_LOOKAHEAD_DAYS = 21;
+
+interface DaySegment {
+  event: FishingEventInfo | null;
+  startAt: number;
+  endsAt: number;
+}
 
 function clampFishModifiers(modifiers: string[] | undefined): string[] {
   if (!modifiers || modifiers.length === 0) {
@@ -117,6 +138,80 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
 }
 
 /**
+ * Deterministically picks the next event (or idle gap) in a day's random
+ * schedule using the seeded RNG. Mirrors the original schedule logic exactly.
+ */
+function pickRandomEvent(
+  rng: () => number,
+  randomEvents: FishingEventInfo[],
+  lastEventId: string | null
+): FishingEventInfo | null {
+  const candidates = lastEventId
+    ? randomEvents.filter(event => event.id !== lastEventId)
+    : randomEvents;
+  const events = candidates.length > 0 ? candidates : randomEvents;
+
+  let totalWeight = 0;
+  for (const event of events) {
+    const minDuration = event.timing.min_duration ?? 30;
+    const maxDuration = event.timing.max_duration ?? 120;
+    const avgDuration = (minDuration + maxDuration) / 2;
+    totalWeight += 1 / avgDuration;
+  }
+
+  const idleWeight = (totalWeight * IDLE_PROBABILITY) / (1 - IDLE_PROBABILITY);
+  const totalWithIdle = totalWeight + idleWeight;
+
+  let target = rng() * totalWithIdle;
+  if (target <= idleWeight) {
+    return null;
+  }
+
+  target -= idleWeight;
+  for (const event of events) {
+    const minDuration = event.timing.min_duration ?? 30;
+    const maxDuration = event.timing.max_duration ?? 120;
+    const avgDuration = (minDuration + maxDuration) / 2;
+    target -= 1 / avgDuration;
+    if (target <= 0) {
+      return event;
+    }
+  }
+
+  return events[0];
+}
+
+/**
+ * Builds the deterministic list of event/idle segments for a full Sydney day.
+ * Segments do not get clamped to the day: a segment starting near the end of
+ * the day keeps its full duration (which can spill into the next day), exactly
+ * as the original schedule allowed.
+ */
+function buildDaySegments(startUtc: number, randomEvents: FishingEventInfo[]): DaySegment[] {
+  const dayParts = getTimeZoneParts(startUtc, SYDNEY_TIME_ZONE);
+  const key = `fishing-event-${dayParts.year}-${dayParts.month - 1}-${dayParts.day}`;
+  const seed = fnv1a32(key);
+  const rng = mulberry32(seed);
+  const dayEnd = startUtc + 24 * 60 * 60 * 1000;
+
+  const segments: DaySegment[] = [];
+  let cursor = startUtc;
+  let lastEventId: string | null = null;
+  while (cursor < dayEnd) {
+    const event = pickRandomEvent(rng, randomEvents, lastEventId);
+    const minDuration = event?.timing.min_duration ?? IDLE_MIN_DURATION;
+    const maxDuration = event?.timing.max_duration ?? IDLE_MAX_DURATION;
+    const durationMinutes = minDuration + Math.floor(rng() * (maxDuration - minDuration + 1));
+    const durationMs = durationMinutes * 60 * 1000;
+    segments.push({ event, startAt: cursor, endsAt: cursor + durationMs });
+    cursor += durationMs;
+    lastEventId = event?.id ?? null;
+  }
+
+  return segments;
+}
+
+/**
  * Determines the currently active fishing event based on the current date and time. It checks for any events that are active during the current time, including both fixed date range events and randomly scheduled events that change throughout the day. For random events, it uses a deterministic algorithm to ensure that all players see the same event at the same time. The function returns the active event along with its end time.
  * @returns An object containing the currently active fishing event and its end time. The event is determined by first checking for any date range events that encompass the current date. If no such event is active, it then checks for random events that are scheduled throughout the day using a deterministic method based on the current date. The returned object includes the event information and the timestamp of when the event will end (in milliseconds since the Unix epoch).
  */
@@ -156,83 +251,24 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
     };
   }
 
-  const eventFromDay = (startUtc: number, timestamp: number): CurrentFishingEvent | null => {
-    const dayParts = getTimeZoneParts(startUtc, SYDNEY_TIME_ZONE);
-    const key = `fishing-event-${dayParts.year}-${dayParts.month - 1}-${dayParts.day}`;
-    const seed = fnv1a32(key);
-    const rng = mulberry32(seed);
-    const dayEnd = startUtc + 24 * 60 * 60 * 1000;
-
-    const idleMinDuration = 15; // minutes
-    const idleMaxDuration = 60; // minutes
-    const idleProbability = 0.25;
-
-    const pickRandomEvent = (lastEventId: string | null) => {
-      const candidates = lastEventId
-        ? randomEvents.filter(event => event.id !== lastEventId)
-        : randomEvents;
-      const events = candidates.length > 0 ? candidates : randomEvents;
-
-      let totalWeight = 0;
-      for (const event of events) {
-        const minDuration = event.timing.min_duration ?? 30;
-        const maxDuration = event.timing.max_duration ?? 120;
-        const avgDuration = (minDuration + maxDuration) / 2;
-        totalWeight += 1 / avgDuration;
-      }
-
-      const idleWeight = (totalWeight * idleProbability) / (1 - idleProbability);
-      const totalWithIdle = totalWeight + idleWeight;
-
-      let target = rng() * totalWithIdle;
-      if (target <= idleWeight) {
-        return null;
-      }
-
-      target -= idleWeight;
-      for (const event of events) {
-        const minDuration = event.timing.min_duration ?? 30;
-        const maxDuration = event.timing.max_duration ?? 120;
-        const avgDuration = (minDuration + maxDuration) / 2;
-        target -= 1 / avgDuration;
-        if (target <= 0) {
-          return event;
-        }
-      }
-
-      return events[0];
-    };
-
-    let cursor = startUtc;
-    let lastEventId: string | null = null;
-    while (cursor < dayEnd) {
-      const event = pickRandomEvent(lastEventId);
-      const minDuration = event?.timing.min_duration ?? idleMinDuration; // in minutes
-      const maxDuration = event?.timing.max_duration ?? idleMaxDuration; // in minutes
-      const durationMinutes = minDuration + Math.floor(rng() * (maxDuration - minDuration + 1));
-      const durationMs = durationMinutes * 60 * 1000;
-      const eventEnd = cursor + durationMs;
-
-      if (timestamp < eventEnd) {
+  const activeIn = (segments: DaySegment[]): CurrentFishingEvent | null => {
+    for (const segment of segments) {
+      if (now < segment.endsAt) {
         return {
-          event,
-          endsAt: eventEnd,
+          event: segment.event,
+          endsAt: segment.endsAt,
         };
       }
-
-      cursor += durationMs;
-      lastEventId = event?.id ?? null;
     }
-
     return null;
   };
 
-  const previousDayEvent = eventFromDay(dayStart - 24 * 60 * 60 * 1000, now);
+  const previousDayEvent = activeIn(buildDaySegments(dayStart - 24 * 60 * 60 * 1000, randomEvents));
   if (previousDayEvent) {
     return previousDayEvent;
   }
 
-  const currentDayEvent = eventFromDay(dayStart, now);
+  const currentDayEvent = activeIn(buildDaySegments(dayStart, randomEvents));
   if (currentDayEvent) {
     return currentDayEvent;
   }
@@ -241,6 +277,79 @@ export function getCurrentFishingEvent(timestamp = Date.now()): CurrentFishingEv
     event: null,
     endsAt: dayStart + 24 * 60 * 60 * 1000,
   };
+}
+
+/**
+ * Computes the next `count` fishing events (idle gaps included) from the given
+ * timestamp. The first entry is the currently active event if one is running.
+ * Date-range (holiday) events override the random schedule for their window,
+ * so their windows are merged into the timeline and shadow any overlapping
+ * random segments, matching how "current event" resolution works.
+ * @returns An array of upcoming events (up to `count`), each with its start and end time and the event info (or null for idle gaps).
+ */
+export function getUpcomingFishingEvents(timestamp: number, count: number): UpcomingFishingEvent[] {
+  const now = timestamp;
+  const nowParts = getTimeZoneParts(now, SYDNEY_TIME_ZONE);
+  const randomEvents = fishingEvents.filter(event => event.timing.type === 'random');
+
+  // Date-range (holiday) events, both for this year and the next (a holiday
+  // that is currently active, or one arriving shortly after the year flips).
+  const rangeSegments: DaySegment[] = [];
+  for (const year of [nowParts.year, nowParts.year + 1]) {
+    for (const event of fishingEvents) {
+      if (event.timing.type !== 'date_range') continue;
+      const startMonth = event.timing.start_month ?? 0;
+      const startDay = event.timing.start_day ?? 1;
+      const endMonth = event.timing.end_month ?? 11;
+      const endDay = event.timing.end_day ?? 31;
+      const startAt = getTimeZoneDateUtc(SYDNEY_TIME_ZONE, year, startMonth, startDay);
+      const endsAt = getTimeZoneDateUtc(SYDNEY_TIME_ZONE, year, endMonth, endDay, 23, 59, 59);
+      if (endsAt > now) {
+        rangeSegments.push({ event, startAt, endsAt });
+      }
+    }
+  }
+
+  // Deterministic random schedule, starting from the previous Sydney day so the
+  // currently active segment (which may have started yesterday) is included.
+  const dayStart = getTimeZoneDayStartUtc(now, SYDNEY_TIME_ZONE);
+  let dayUtc = dayStart - 24 * 60 * 60 * 1000;
+  const randomSegments: DaySegment[] = [];
+  for (let i = 0; i < UPCOMING_LOOKAHEAD_DAYS; i++) {
+    randomSegments.push(...buildDaySegments(dayUtc, randomEvents));
+    dayUtc += 24 * 60 * 60 * 1000;
+  }
+
+  // Random segments that overlap a date-range window are shadowed by it.
+  const merged = [
+    ...rangeSegments,
+    ...randomSegments.filter(
+      segment => !rangeSegments.some(range => segment.startAt < range.endsAt && segment.endsAt > range.startAt)
+    ),
+  ].sort((a, b) => a.startAt - b.startAt);
+
+  const upcoming: UpcomingFishingEvent[] = [];
+  let seenFirstRemaining = false;
+  for (const segment of merged) {
+    if (segment.endsAt <= now) continue;
+    if (upcoming.length >= count) break;
+
+    if (!seenFirstRemaining) {
+      // The first segment that hasn't ended is either the current event or the
+      // next upcoming one - either way it belongs at the front of the preview.
+      seenFirstRemaining = true;
+      upcoming.push({ event: segment.event, startAt: segment.startAt, endsAt: segment.endsAt });
+      continue;
+    }
+
+    // Skip segments eclipsed by the one already captured (e.g. an event that
+    // spilled past midnight vs. the following day's very first segment).
+    const last = upcoming[upcoming.length - 1];
+    if (segment.startAt < last.endsAt) continue;
+    upcoming.push({ event: segment.event, startAt: segment.startAt, endsAt: segment.endsAt });
+  }
+
+  return upcoming;
 }
 
 /**

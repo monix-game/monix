@@ -10,6 +10,12 @@ export interface CurrentFishingEvent {
   endsAt: number;
 }
 
+export interface UpcomingFishingEvent {
+  event: FishingEventInfo | null;
+  startAt: number;
+  endsAt: number;
+}
+
 export interface FishingEventTiming {
   type: 'random' | 'date_range';
   start_month?: number; // 0-11

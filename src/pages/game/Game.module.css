@@ -1594,3 +1594,164 @@
   border: 2px solid var(--bg);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
+
+.fishing-subview-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fishing-subview-tab {
+  background-color: var(--bg);
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.fishing-subview-tab:hover {
+  border-color: var(--primary-2);
+  color: var(--text);
+}
+
+.fishing-subview-tab:global(.active) {
+  background: var(--event-gradient);
+  border-color: var(--primary-2);
+  color: var(--text);
+}
+
+.aquarium-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resources-two-pane {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.market-panel {
+  background-color: var(--bg);
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.market-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.market-panel-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.market-panel-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.event-preview-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 320px;
+}
+
+.event-preview-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.event-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: var(--bg-2, var(--bg));
+  border-radius: var(--border-radius);
+}
+
+.event-preview-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.event-preview-item-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.event-preview-item-time {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.stats-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.stats-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--bg);
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+  padding: 14px;
+}
+
+.stats-item-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.stats-item-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .resources-two-pane {
+    grid-template-columns: 1fr;
+  }
+}

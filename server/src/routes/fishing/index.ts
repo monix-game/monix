@@ -11,6 +11,7 @@ import buyBait from './buy-bait';
 import equipBait from './equip-bait';
 import unequipBait from './unequip-bait';
 import fish from './fish';
+import eventsPreview from './events-preview';
 
 export const fishingRoutes = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -25,6 +26,7 @@ export const fishingRoutes = new Elysia()
   .use(buyBait)
   .use(equipBait)
   .use(unequipBait)
-  .use(fish);
+  .use(fish)
+  .use(eventsPreview);
 
 export default fishingRoutes;

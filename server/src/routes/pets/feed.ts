@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { getPetByUUID, getUserByUUID, updatePet, updateUser } from '../../db';
 import { petToDoc } from '../../../common/models/pet';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { canFeedPet, isPetAsleep } from '../../../common/pet';
 import { FEED_COSTS, FEED_EXP } from './helpers';
@@ -55,6 +56,8 @@ export const feedPet = new Elysia()
 
       // Deduct the money from the user
       fetchedUser.money = (fetchedUser.money || 0) - feedCost;
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.pets_fed = (fetchedUser.stats.pets_fed || 0) + 1;
       await updateUser(fetchedUser);
 
       // Update the pet's last fed time

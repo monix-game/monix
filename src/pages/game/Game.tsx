@@ -67,12 +67,15 @@ import {
   buyRod,
   equipBait,
   equipRod,
+  getEventPreview,
   goFishing,
   sellAllFish,
   sellFish,
   sellRod,
   unequipBait,
+  unlockEventPreview,
   upgradeAquarium,
+  type EventPreviewResult,
 } from '../../helpers/fishing';
 import { fishingBaits } from '../../../server/common/fishing/fishingBait';
 import { fishingRods } from '../../../server/common/fishing/fishingRods';
@@ -83,23 +86,9 @@ import {
   DEFAULT_GLOBAL_SETTINGS,
   type IGlobalSettings,
 } from '../../../server/common/models/globalSettings';
-import { createPoll, fetchPolls, type PollView, voteInPoll } from '../../helpers/polls';
 import { UPGRADES } from '../../../server/common/upgrades';
 import { useSocket } from '../../providers/socket';
 import { useChatNotifications } from '../../hooks/useChatNotifications';
-
-const toLocalInputDateTime = (timeMs: number) => {
-  const offsetMs = new Date(timeMs).getTimezoneOffset() * 60000;
-  return new Date(timeMs - offsetMs).toISOString().slice(0, 16);
-};
-
-const fromLocalInputDateTime = (value: string) => new Date(value).getTime();
-
-const createPollDraftOption = () => ({
-  id: `opt-${Math.random().toString(36).slice(2, 9)}`,
-  label: '',
-  emoji: '',
-});
 
 const getRodTierInfo = (price: number) => {
   if (price <= 10000) return { emoji: '🟢', title: 'Starter' };
@@ -122,25 +111,22 @@ export default function Game() {
   const [tab, setTab] = useState<
     | 'money'
     | 'resources'
-    | 'market'
     | 'fishing'
-    | 'aquarium'
     | 'pets'
     | 'relics'
     | 'council'
     | 'social'
-    | 'polls'
-    | 'games'
     | 'radio'
     | 'upgrades'
     | 'leaderboard'
-    | 'gems'
     | 'store'
     | 'cosmetics'
+    | 'stats'
     | 'settings'
     | 'jail'
     | 'appeals'
   >('money');
+  const [fishingSubview, setFishingSubview] = useState<'fishing' | 'aquarium'>('fishing');
   const [banned, setBanned] = useState<boolean>(false);
 
   const setTabTo = useCallback(
@@ -173,7 +159,6 @@ export default function Game() {
   const [tutorialStep, setTutorialStep] = useState<number>(0);
   const [tutorialProgress, setTutorialProgress] = useState({
     openedResourceModal: false,
-    openedMarketModal: false,
     caughtFish: false,
     visitedAquarium: false,
     visitedPets: false,
@@ -213,12 +198,6 @@ export default function Game() {
         task: 'Open a resource card.',
       },
       {
-        title: 'Trade in the Market',
-        body: 'Use the Market tab to buy or sell. Price changes can help you grow faster.',
-        tab: 'market',
-        task: 'Open the buy/sell modal.',
-      },
-      {
         title: 'Go Fishing',
         body: 'Catch fish to fill your aquarium. Modifiers can boost value, so check each catch.',
         tab: 'fishing',
@@ -226,9 +205,9 @@ export default function Game() {
       },
       {
         title: 'Review Your Aquarium',
-        body: 'The Aquarium tab stores your fish. Sell or upgrade capacity when you need space.',
-        tab: 'aquarium',
-        task: 'Visit the Aquarium tab.',
+        body: 'The aquarium stores your fish. Sell or upgrade capacity when you need space.',
+        tab: 'fishing',
+        task: 'Open the Aquarium view.',
       },
       {
         title: 'Meet Your Pets',
@@ -261,14 +240,12 @@ export default function Game() {
         return tab === 'money';
       case 2:
         return tab === 'resources' && tutorialProgress.openedResourceModal;
-      case 3:
-        return tab === 'market' && tutorialProgress.openedMarketModal;
-      case 4: {
+      case 3: {
         return tab === 'fishing' && tutorialProgress.caughtFish;
       }
+      case 4:
+        return tab === 'fishing' && tutorialProgress.visitedAquarium;
       case 5:
-        return tab === 'aquarium' && tutorialProgress.visitedAquarium;
-      case 6:
         return tab === 'pets' && tutorialProgress.visitedPets;
       default:
         return true;
@@ -278,7 +255,6 @@ export default function Game() {
     tutorialStep,
     tab,
     tutorialProgress.openedResourceModal,
-    tutorialProgress.openedMarketModal,
     tutorialProgress.caughtFish,
     tutorialProgress.visitedAquarium,
     tutorialProgress.visitedPets,
@@ -381,6 +357,7 @@ export default function Game() {
   const [resourceListHydrated, setResourceListHydrated] = useState(false);
   const [sortedResources, setSortedResources] = useState<ResourceInfo[]>([]);
   const [resourcePrices, setResourcePrices] = useState<{ [key: string]: number }>({});
+  const [resourceChanges, setResourceChanges] = useState<{ [key: string]: number }>({});
   const [resourceQuantities, setResourceQuantities] = useState<{ [key: string]: number }>({});
 
   // Social states
@@ -438,173 +415,6 @@ export default function Game() {
       clearAll();
     }
   }, [tab, clearAll]);
-
-  const [polls, setPolls] = useState<PollView[]>([]);
-  const [pollsLoading, setPollsLoading] = useState<boolean>(false);
-  const [pollsError, setPollsError] = useState<string | null>(null);
-  const [pollQuestion, setPollQuestion] = useState<string>('');
-  const [pollStartsAt, setPollStartsAt] = useState<string>(() => toLocalInputDateTime(Date.now()));
-  const [pollEndsAt, setPollEndsAt] = useState<string>(() =>
-    toLocalInputDateTime(Date.now() + 24 * 60 * 60 * 1000)
-  );
-  const [pollOptionsDraft, setPollOptionsDraft] = useState<
-    { id: string; label: string; emoji: string }[]
-  >(() => [createPollDraftOption(), createPollDraftOption()]);
-  const [pollCreateError, setPollCreateError] = useState<string | null>(null);
-  const [pollCreateSubmitting, setPollCreateSubmitting] = useState<boolean>(false);
-  const [pollVotePending, setPollVotePending] = useState<string | null>(null);
-  const [isPollCreateOpen, setIsPollCreateOpen] = useState<boolean>(false);
-  const activePolls = useMemo(
-    () => polls.filter(poll => poll.status !== 'ended').sort((a, b) => a.ends_at - b.ends_at),
-    [polls]
-  );
-  const completedPolls = useMemo(
-    () => polls.filter(poll => poll.status === 'ended').sort((a, b) => b.ends_at - a.ends_at),
-    [polls]
-  );
-  const canCreatePoll = userRole === 'admin' || userRole === 'owner';
-
-  const refreshPolls = useCallback(
-    async (showLoading = false) => {
-      if (showLoading) setPollsLoading(true);
-      setPollsError(null);
-      const nextPolls = await fetchPolls();
-      if (nextPolls !== null) {
-        setPolls(nextPolls);
-      } else {
-        setPollsError('Failed to load polls. Please try again soon.');
-      }
-      if (showLoading) setPollsLoading(false);
-    },
-    [setPolls, setPollsError, setPollsLoading]
-  );
-
-  useEffect(() => {
-    if (banned) return;
-
-    startTransition(() => {
-      void refreshPolls(true);
-    });
-    const interval = setInterval(() => {
-      startTransition(() => {
-        void refreshPolls(false);
-      });
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [banned, refreshPolls]);
-
-  useEffect(() => {
-    if (tab !== 'polls') return;
-
-    startTransition(() => {
-      void refreshPolls(false);
-    });
-  }, [tab, refreshPolls]);
-
-  const addPollOption = useCallback(() => {
-    setPollOptionsDraft(prev => {
-      if (prev.length >= 8) return prev;
-      return [...prev, createPollDraftOption()];
-    });
-  }, []);
-
-  const updatePollOption = useCallback((id: string, field: 'label' | 'emoji', value: string) => {
-    setPollOptionsDraft(prev =>
-      prev.map(option => (option.id === id ? { ...option, [field]: value } : option))
-    );
-  }, []);
-
-  const removePollOption = useCallback((id: string) => {
-    setPollOptionsDraft(prev => {
-      if (prev.length <= 2) return prev;
-      return prev.filter(option => option.id !== id);
-    });
-  }, []);
-
-  const resetPollForm = useCallback(() => {
-    const now = Date.now();
-    setPollQuestion('');
-    setPollStartsAt(toLocalInputDateTime(now));
-    setPollEndsAt(toLocalInputDateTime(now + 24 * 60 * 60 * 1000));
-    setPollOptionsDraft([createPollDraftOption(), createPollDraftOption()]);
-    setPollCreateError(null);
-  }, []);
-
-  const handleCreatePoll = useCallback(async () => {
-    if (pollCreateSubmitting) return;
-    setPollCreateError(null);
-
-    const question = pollQuestion.trim();
-    if (!question) {
-      setPollCreateError('Poll question is required.');
-      return;
-    }
-
-    const startsAt = fromLocalInputDateTime(pollStartsAt);
-    const endsAt = fromLocalInputDateTime(pollEndsAt);
-    if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt)) {
-      setPollCreateError('Please provide valid start and end times.');
-      return;
-    }
-
-    if (endsAt <= startsAt) {
-      setPollCreateError('Poll end time must be after the start time.');
-      return;
-    }
-
-    const options = pollOptionsDraft
-      .map(option => ({
-        label: option.label.trim(),
-        emoji: option.emoji.trim() || undefined,
-      }))
-      .filter(option => option.label.length > 0);
-
-    if (options.length < 2) {
-      setPollCreateError('Polls need at least two options.');
-      return;
-    }
-
-    setPollCreateSubmitting(true);
-    const created = await createPoll({
-      question,
-      options,
-      starts_at: startsAt,
-      ends_at: endsAt,
-    });
-
-    if (!created) {
-      setPollCreateError('Failed to create poll.');
-    } else {
-      resetPollForm();
-      setIsPollCreateOpen(false);
-      void refreshPolls(false);
-    }
-
-    setPollCreateSubmitting(false);
-  }, [
-    pollCreateSubmitting,
-    pollQuestion,
-    pollStartsAt,
-    pollEndsAt,
-    pollOptionsDraft,
-    refreshPolls,
-    resetPollForm,
-  ]);
-
-  const handleVote = useCallback(
-    async (pollId: string, optionId: string) => {
-      if (pollVotePending) return;
-      setPollVotePending(pollId);
-      setPollsError(null);
-      const result = await voteInPoll(pollId, optionId);
-      if (!result) {
-        setPollsError('Failed to cast vote. Please try again.');
-      }
-      void refreshPolls(false);
-      setPollVotePending(null);
-    },
-    [pollVotePending, refreshPolls]
-  );
 
   // Appeal states
   const [appealModalOpen, setAppealModalOpen] = useState<boolean>(false);
@@ -704,6 +514,8 @@ export default function Game() {
   const [isFishSellModalOpen, setIsFishSellModalOpen] = useState<boolean>(false);
   const [isFishSellAllModalOpen, setIsFishSellAllModalOpen] = useState<boolean>(false);
   const [aquariumFishToSell, setAquariumFishToSell] = useState<string | null>(null);
+  const [eventPreview, setEventPreview] = useState<EventPreviewResult | null>(null);
+  const [isEventPreviewModalOpen, setIsEventPreviewModalOpen] = useState<boolean>(false);
   const [aquariumSort, setAquariumSort] = useState<'value-desc' | 'value-asc'>('value-desc');
   const [aquariumModifierFilter, setAquariumModifierFilter] = useState<'all' | 'with' | 'without'>(
     'all'
@@ -877,7 +689,6 @@ export default function Game() {
     setIsTutorialOpen(true);
     setTutorialProgress({
       openedResourceModal: false,
-      openedMarketModal: false,
       caughtFish: false,
       visitedAquarium: false,
       visitedPets: false,
@@ -948,14 +759,7 @@ export default function Game() {
         }));
       }
 
-      if (tab === 'market' && marketModalOpen) {
-        setTutorialProgress(prev => ({
-          ...prev,
-          openedMarketModal: true,
-        }));
-      }
-
-      if (tab === 'aquarium') {
+      if (tab === 'fishing' && fishingSubview === 'aquarium') {
         setTutorialProgress(prev => ({
           ...prev,
           visitedAquarium: true,
@@ -969,7 +773,7 @@ export default function Game() {
         }));
       }
     });
-  }, [isTutorialOpen, tab, marketModalResource, marketModalOpen]);
+  }, [isTutorialOpen, tab, marketModalResource, fishingSubview]);
 
   const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
@@ -1040,6 +844,31 @@ export default function Game() {
   }, [resourceMarketDisabled, recomputeResources, subscribe]);
 
   useEffect(() => {
+    if (resourceMarketDisabled) return;
+
+    const unsubscribe = subscribe('resources:changes', data => {
+      setResourceChanges(data as { [key: string]: number });
+    });
+
+    return unsubscribe;
+  }, [resourceMarketDisabled, subscribe]);
+
+  useEffect(() => {
+    if (tab !== 'fishing' || fishingSubview !== 'aquarium') return;
+
+    let cancelled = false;
+    void getEventPreview().then(res => {
+      if (!cancelled && res) {
+        setEventPreview(res);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, fishingSubview]);
+
+  useEffect(() => {
     if (!resourceMarketDisabled) return;
     queueMicrotask(() => {
       setMarketModalOpen(false);
@@ -1071,8 +900,8 @@ export default function Game() {
   };
 
   const isFeatureTabDisabled = (key: typeof tab) => {
-    if (key === 'resources' || key === 'market') return resourceMarketDisabled;
-    if (key === 'fishing' || key === 'aquarium') return fishingDisabled;
+    if (key === 'resources') return resourceMarketDisabled;
+    if (key === 'fishing') return fishingDisabled;
     if (key === 'pets') return petsDisabled;
     if (key === 'social') return socialDisabled;
     return false;
@@ -1140,6 +969,7 @@ export default function Game() {
               setPaymentModalBaitId(null);
               setPaymentModalAquarium(false);
               setPaymentModalSellRodId(null);
+              setPaymentModalEventPreview(false);
               setPaymentModalCosmeticId(cosmetic.id);
               setIsPaymentModalOpen(true);
             }}
@@ -1187,6 +1017,7 @@ export default function Game() {
   const [paymentModalBaitQty, setPaymentModalBaitQty] = useState<number>(1);
   const [paymentModalAquarium, setPaymentModalAquarium] = useState<boolean>(false);
   const [paymentModalSellRodId, setPaymentModalSellRodId] = useState<string | null>(null);
+  const [paymentModalEventPreview, setPaymentModalEventPreview] = useState<boolean>(false);
 
   const isMoneyPayment =
     paymentModalSellRodId ||
@@ -1207,6 +1038,7 @@ export default function Game() {
       );
     if (paymentModalAquarium)
       return getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1);
+    if (paymentModalEventPreview) return 10;
     return cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0;
   })();
 
@@ -1220,6 +1052,7 @@ export default function Game() {
     if (paymentModalBaitId)
       return fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait';
     if (paymentModalAquarium) return 'Aquarium Upgrade';
+    if (paymentModalEventPreview) return 'Fishing Event Preview';
     return cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic';
   })();
 
@@ -1255,18 +1088,15 @@ export default function Game() {
                 : ([
                     { key: 'money', label: '💰 Money' },
                     { key: 'resources', label: '🪙 Resources' },
-                    { key: 'market', label: '🏪 Market' },
                     { key: 'fishing', label: '🎣 Fishing' },
-                    { key: 'aquarium', label: '🐠 Aquarium' },
                     { key: 'pets', label: '🐶 Pets' },
                     { key: 'social', label: '💬 Social' },
-                    { key: 'polls', label: '🗳️ Polls' },
-                    { key: 'games', label: '🎮 Games' },
                     { key: 'radio', label: '📻 Radio' },
                     { key: 'upgrades', label: '⚡ Upgrades' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'store', label: '🛒 Store' },
                     { key: 'cosmetics', label: '🎨 Cosmetics' },
+                    { key: 'stats', label: '📊 Stats' },
                     { key: 'settings', label: '⚙️ Settings' },
                   ] as const);
 
@@ -1393,30 +1223,42 @@ export default function Game() {
                     <b>Total Value:</b> {smartFormatNumber(resourcesTotal)}
                   </span>
                 </div>
-                <ResourceList
-                  setMarketModalResource={setMarketModalResource}
-                  setMarketModalOpen={setMarketModalOpen}
-                  resourceListHydrated={resourceListHydrated}
-                  sortedResources={sortedResources}
-                  resourcePrices={resourcePrices}
-                />
-              </div>
-            ))}
-          {tab === 'market' &&
-            (resourceMarketDisabled ? (
-              renderFeatureDisabled('Market')
-            ) : (
-              <div className="tab-content">
-                <NewsTicker />
-                <h2>Market</h2>
-                <Button onClick={() => setTabTo('resources')}>Choose Resource</Button>
-                <ResourceGraph
-                  resource={getResourceById(marketResourceDetails)!}
-                  onBuySellClick={() => {
-                    setMarketModalOpen(true);
-                    setMarketModalResource(getResourceById(marketResourceDetails)!);
-                  }}
-                />
+                <div className={styles['resources-two-pane']}>
+                  <ResourceList
+                    setMarketModalResource={setMarketModalResource}
+                    setMarketModalOpen={setMarketModalOpen}
+                    resourceListHydrated={resourceListHydrated}
+                    sortedResources={sortedResources}
+                    resourcePrices={resourcePrices}
+                    resourceChanges={resourceChanges}
+                  />
+                  <div className={styles['market-panel']}>
+                    <div className={styles['market-panel-header']}>
+                      <h2>
+                        <EmojiText>
+                          {getResourceById(marketResourceDetails)?.icon}
+                        </EmojiText>{' '}
+                        {getResourceById(marketResourceDetails)?.name}
+                      </h2>
+                      <span className={`${styles['market-panel-price']} mono`}>
+                        {smartFormatNumber(
+                          resourcePrices[marketResourceDetails] ||
+                            getResourceById(marketResourceDetails)?.basePrice ||
+                            0,
+                          false,
+                          true
+                        )}
+                      </span>
+                    </div>
+                    <ResourceGraph
+                      resource={getResourceById(marketResourceDetails)!}
+                      onBuySellClick={() => {
+                        setMarketModalOpen(true);
+                        setMarketModalResource(getResourceById(marketResourceDetails)!);
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             ))}
           {tab === 'fishing' &&
@@ -1424,7 +1266,28 @@ export default function Game() {
               renderFeatureDisabled('Fishing')
             ) : (
               <div className={`tab-content ${styles['fishing-tab']}`}>
-                <h2>Fishing</h2>
+                <div className={styles['fishing-subview-tabs']} role="tablist">
+                  <button
+                    type="button"
+                    className={`${styles['fishing-subview-tab']} ${
+                      fishingSubview === 'fishing' ? 'active' : ''
+                    }`}
+                    onClick={() => setFishingSubview('fishing')}
+                  >
+                    <EmojiText>🎣 Fishing</EmojiText>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles['fishing-subview-tab']} ${
+                      fishingSubview === 'aquarium' ? 'active' : ''
+                    }`}
+                    onClick={() => setFishingSubview('aquarium')}
+                  >
+                    <EmojiText>🐠 Aquarium</EmojiText>
+                  </button>
+                </div>
+                {fishingSubview === 'fishing' && (
+                <>
                 <div className={styles['fishing-container']}>
                   <div className={styles['fishing-hgrid']}>
                     <div className={styles['fishing-left']}>
@@ -1648,6 +1511,7 @@ export default function Game() {
                                               setPaymentModalBaitId(null);
                                               setPaymentModalAquarium(false);
                                               setPaymentModalRodId(null);
+                                              setPaymentModalEventPreview(false);
                                               setPaymentModalSellRodId(rodId);
                                               setIsPaymentModalOpen(true);
                                             }}
@@ -1795,6 +1659,7 @@ export default function Game() {
                                     setPaymentModalBaitId(null);
                                     setPaymentModalAquarium(false);
                                     setPaymentModalSellRodId(null);
+                                    setPaymentModalEventPreview(false);
                                     setPaymentModalRodId(rod.id);
                                     setIsPaymentModalOpen(true);
                                   }}
@@ -1901,6 +1766,7 @@ export default function Game() {
                                     setPaymentModalRodId(null);
                                     setPaymentModalAquarium(false);
                                     setPaymentModalSellRodId(null);
+                                    setPaymentModalEventPreview(false);
                                     setPaymentModalBaitId(bait.id);
                                     setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
                                     setIsPaymentModalOpen(true);
@@ -1916,17 +1782,14 @@ export default function Game() {
                     ))}
                   </div>
                 </Modal>
-              </div>
-            ))}
-          {tab === 'aquarium' &&
-            (fishingDisabled ? (
-              renderFeatureDisabled('Aquarium')
-            ) : (
-              <div className="tab-content">
-                <h2>Aquarium</h2>
-                <div className={styles['aquarium-banner']}>
-                  <span className={styles['aquarium-banner-subtitle']}>CURRENT FISHING EVENT</span>
-                  <h3 className={styles['aquarium-banner-title']}>
+                </>
+                )}
+                {fishingSubview === 'aquarium' && (
+                <>
+                <div className={styles['aquarium-tab']}>
+                  <div className={styles['aquarium-banner']}>
+                    <span className={styles['aquarium-banner-subtitle']}>CURRENT FISHING EVENT</span>
+                    <h3 className={styles['aquarium-banner-title']}>
                     {currentFishingEvent.event ? (
                       <>
                         <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
@@ -1992,6 +1855,7 @@ export default function Game() {
                         setPaymentModalRodId(null);
                         setPaymentModalBaitId(null);
                         setPaymentModalSellRodId(null);
+                        setPaymentModalEventPreview(false);
                         setPaymentModalAquarium(true);
                         setIsPaymentModalOpen(true);
                       }}
@@ -2005,6 +1869,29 @@ export default function Game() {
                       {smartFormatNumber(
                         getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
                       )}
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        const res = await getEventPreview();
+                        if (res?.unlocked) {
+                          setEventPreview(res);
+                          setIsEventPreviewModalOpen(true);
+                          return;
+                        }
+                        if (res) {
+                          setEventPreview(res);
+                          setPaymentModalCosmeticId(null);
+                          setPaymentModalUpgradeId(null);
+                          setPaymentModalRodId(null);
+                          setPaymentModalBaitId(null);
+                          setPaymentModalSellRodId(null);
+                          setPaymentModalAquarium(false);
+                          setPaymentModalEventPreview(true);
+                          setIsPaymentModalOpen(true);
+                        }
+                      }}
+                    >
+                      Upcoming Events
                     </Button>
                     <Button
                       onClick={() => setIsFishSellAllModalOpen(true)}
@@ -2161,7 +2048,43 @@ export default function Game() {
                     </div>
                   </div>
                 </Modal>
+
+                <Modal
+                  isOpen={isEventPreviewModalOpen}
+                  onClose={() => setIsEventPreviewModalOpen(false)}
+                >
+                  <div className={styles['event-preview-modal']}>
+                    <h2>Upcoming Fishing Events</h2>
+                    <div className={styles['event-preview-list']}>
+                      {eventPreview?.events?.map((event, idx) => (
+                        <div
+                          key={`${event.event?.id ?? 'unknown'}-${event.startAt}-${idx}`}
+                          className={styles['event-preview-item']}
+                        >
+                          <EmojiText>{event.event?.icon}</EmojiText>
+                          <div className={styles['event-preview-item-info']}>
+                            <span className={styles['event-preview-item-name']}>
+                              {event.event?.name ?? 'No event'}
+                            </span>
+                            <span className={styles['event-preview-item-time']}>
+                              {new Date(event.startAt).toLocaleString(undefined, {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Modal>
               </div>
+              </>
+              )}
+            </div>
             ))}
           {tab === 'pets' &&
             (petsDisabled ? (
@@ -2204,345 +2127,6 @@ export default function Game() {
                 />
               </div>
             ))}
-          {tab === 'polls' && (
-            <div className={`tab-content ${styles['polls-tab']}`}>
-              <div className={styles['polls-header']}>
-                <h2>Polls</h2>
-                <div className={styles['polls-header-actions']}>
-                  {canCreatePoll && (
-                    <Button onClick={() => setIsPollCreateOpen(true)}>Create Poll</Button>
-                  )}
-                  <Button
-                    secondary
-                    onClick={() => void refreshPolls(true)}
-                    disabled={pollsLoading}
-                    isLoading={pollsLoading}
-                  >
-                    Refresh
-                  </Button>
-                </div>
-              </div>
-
-              {pollsError && <div className={styles['polls-error']}>{pollsError}</div>}
-
-              {pollsLoading && polls.length === 0 ? (
-                <p>Loading polls...</p>
-              ) : (
-                <div className={styles['polls-sections']}>
-                  <div className={styles['polls-section']}>
-                    <h3>Active Polls</h3>
-                    {activePolls.length === 0 && (
-                      <p className={styles['polls-empty']}>No active polls right now.</p>
-                    )}
-                    {activePolls.map(poll => {
-                      const totalVotes =
-                        poll.total_votes ??
-                        poll.results?.reduce((total, result) => total + result.count, 0) ??
-                        0;
-                      const showResults = Boolean(poll.results);
-                      const myVoteLabel = poll.options.find(
-                        option => option.id === poll.my_vote
-                      )?.label;
-                      const remainingStart = Math.max(
-                        0,
-                        Math.floor((poll.starts_at - eventNow) / 1000)
-                      );
-                      const remainingEnd = Math.max(
-                        0,
-                        Math.floor((poll.ends_at - eventNow) / 1000)
-                      );
-                      const timeLabel =
-                        poll.status === 'upcoming'
-                          ? `Starts in ${formatRemainingTime(remainingStart) || '0s'}`
-                          : `Ends in ${formatRemainingTime(remainingEnd) || '0s'}`;
-
-                      return (
-                        <div key={poll.uuid} className={styles['poll-card']}>
-                          <div className={styles['poll-card-header']}>
-                            <span className={styles['poll-question']}>{poll.question}</span>
-                            <span className={styles['poll-status']}>{timeLabel}</span>
-                          </div>
-                          <div className={styles['poll-meta']}>
-                            <span>Asked by {poll.created_by_username}</span>
-                            {poll.has_voted && myVoteLabel && (
-                              <span className={styles['poll-voted']}>
-                                You voted for {myVoteLabel}
-                              </span>
-                            )}
-                          </div>
-
-                          {poll.status === 'upcoming' && (
-                            <p className={styles['polls-empty']}>
-                              Voting opens when the poll starts.
-                            </p>
-                          )}
-
-                          {poll.status === 'active' && !poll.has_voted && (
-                            <div className={styles['poll-options']}>
-                              {poll.options.map(option => (
-                                <button
-                                  key={option.id}
-                                  type="button"
-                                  className={styles['poll-option-button']}
-                                  onClick={() => void handleVote(poll.uuid, option.id)}
-                                  disabled={pollVotePending === poll.uuid}
-                                >
-                                  <span className={styles['poll-option-label']}>
-                                    {option.emoji && (
-                                      <span className={styles['poll-option-emoji']}>
-                                        <EmojiText>{option.emoji}</EmojiText>
-                                      </span>
-                                    )}
-                                    {option.label}
-                                  </span>
-                                  <span className={styles['poll-option-action']}>Vote</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {showResults ? (
-                            <div className={styles['poll-results']}>
-                              {poll.options.map(option => {
-                                const count =
-                                  poll.results?.find(result => result.option_id === option.id)
-                                    ?.count || 0;
-                                const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-                                return (
-                                  <div key={option.id} className={styles['poll-result-row']}>
-                                    <div className={styles['poll-result-meta']}>
-                                      <span className={styles['poll-result-label']}>
-                                        {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
-                                        {option.label}
-                                      </span>
-                                      <span className={styles['poll-result-count']}>
-                                        {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}
-                                        %)
-                                      </span>
-                                    </div>
-                                    <div className={styles['poll-result-track']}>
-                                      <div
-                                        className={styles['poll-result-bar']}
-                                        style={{ width: `${percent}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              <div className={styles['poll-result-total']}>
-                                Total votes: {totalVotes}
-                              </div>
-                            </div>
-                          ) : (
-                            poll.status === 'active' && (
-                              <div className={styles['poll-results-hidden']}>
-                                Vote to reveal the results.
-                              </div>
-                            )
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className={styles['polls-section']}>
-                    <h3>Completed Polls</h3>
-                    {completedPolls.length === 0 && (
-                      <p className={styles['polls-empty']}>No completed polls yet.</p>
-                    )}
-                    {completedPolls.map(poll => {
-                      const totalVotes =
-                        poll.total_votes ??
-                        poll.results?.reduce((total, result) => total + result.count, 0) ??
-                        0;
-                      const endedLabel = new Date(poll.ends_at).toLocaleString();
-                      return (
-                        <div key={poll.uuid} className={styles['poll-card']}>
-                          <div className={styles['poll-card-header']}>
-                            <span className={styles['poll-question']}>{poll.question}</span>
-                            <span className={styles['poll-status']}>Ended {endedLabel}</span>
-                          </div>
-                          <div className={styles['poll-meta']}>
-                            <span>Asked by {poll.created_by_username}</span>
-                          </div>
-                          <div className={styles['poll-results']}>
-                            {poll.options.map(option => {
-                              const count =
-                                poll.results?.find(result => result.option_id === option.id)
-                                  ?.count || 0;
-                              const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-                              return (
-                                <div key={option.id} className={styles['poll-result-row']}>
-                                  <div className={styles['poll-result-meta']}>
-                                    <span className={styles['poll-result-label']}>
-                                      {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
-                                      {option.label}
-                                    </span>
-                                    <span className={styles['poll-result-count']}>
-                                      {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}%)
-                                    </span>
-                                  </div>
-                                  <div className={styles['poll-result-track']}>
-                                    <div
-                                      className={styles['poll-result-bar']}
-                                      style={{ width: `${percent}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            <div className={styles['poll-result-total']}>
-                              Total votes: {totalVotes}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {canCreatePoll && (
-                <Modal
-                  isOpen={isPollCreateOpen}
-                  onClose={() => setIsPollCreateOpen(false)}
-                  width={700}
-                >
-                  <div className={styles['poll-create']}>
-                    <div className={styles['poll-create-header']}>
-                      <h3>Create Poll</h3>
-                      <Button secondary onClick={resetPollForm} disabled={pollCreateSubmitting}>
-                        Reset
-                      </Button>
-                    </div>
-                    <label className={styles['poll-form-field']}>
-                      <span>Question</span>
-                      <input
-                        className={styles['poll-input']}
-                        type="text"
-                        value={pollQuestion}
-                        onChange={event => setPollQuestion(event.target.value)}
-                        placeholder="Ask the community a question"
-                        maxLength={140}
-                      />
-                    </label>
-                    <div className={styles['poll-form-grid']}>
-                      <label className={styles['poll-form-field']}>
-                        <span>Starts At</span>
-                        <input
-                          className={styles['poll-input']}
-                          type="datetime-local"
-                          value={pollStartsAt}
-                          onChange={event => setPollStartsAt(event.target.value)}
-                        />
-                      </label>
-                      <label className={styles['poll-form-field']}>
-                        <span>Ends At</span>
-                        <input
-                          className={styles['poll-input']}
-                          type="datetime-local"
-                          value={pollEndsAt}
-                          onChange={event => setPollEndsAt(event.target.value)}
-                        />
-                      </label>
-                    </div>
-                    <div className={styles['poll-options-editor']}>
-                      <div className={styles['poll-options-header']}>
-                        <span>Options</span>
-                        <Button
-                          secondary
-                          onClick={addPollOption}
-                          disabled={pollOptionsDraft.length >= 8}
-                        >
-                          Add Option
-                        </Button>
-                      </div>
-                      {pollOptionsDraft.map(option => (
-                        <div key={option.id} className={styles['poll-option-row']}>
-                          <input
-                            className={`${styles['poll-input']} ${styles['poll-emoji-input']}`}
-                            type="text"
-                            value={option.emoji}
-                            onChange={event =>
-                              updatePollOption(option.id, 'emoji', event.target.value)
-                            }
-                            placeholder="Emoji"
-                            maxLength={8}
-                          />
-                          <input
-                            className={styles['poll-input']}
-                            type="text"
-                            value={option.label}
-                            onChange={event =>
-                              updatePollOption(option.id, 'label', event.target.value)
-                            }
-                            placeholder="Option label"
-                            maxLength={60}
-                          />
-                          <Button
-                            onClick={() => removePollOption(option.id)}
-                            disabled={pollOptionsDraft.length <= 2}
-                            color="red"
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    {pollCreateError && (
-                      <div className={styles['polls-error']}>{pollCreateError}</div>
-                    )}
-                    <div className={styles['poll-create-actions']}>
-                      <Button
-                        secondary
-                        onClick={() => setIsPollCreateOpen(false)}
-                        disabled={pollCreateSubmitting}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() => void handleCreatePoll()}
-                        disabled={pollCreateSubmitting}
-                      >
-                        {pollCreateSubmitting ? 'Creating...' : 'Create Poll'}
-                      </Button>
-                    </div>
-                  </div>
-                </Modal>
-              )}
-            </div>
-          )}
-          {tab === 'games' && (
-            <div className="tab-content">
-              <h2>
-                <EmojiText>🎮 Game Hub</EmojiText>
-              </h2>
-              <p>Play an assortment of fun, original games here on Monix.</p>
-              <div className={styles['games-container']}>
-                <div className={styles['game-card']}>
-                  <h3>
-                    <EmojiText>🔴 Que</EmojiText>
-                  </h3>
-                  <p>Play a game of Que, the fast-paced strategy board game.</p>
-                  <Button className={styles['game-button']}>Play Que</Button>
-                </div>
-                <div className={styles['game-card']}>
-                  <h3>
-                    <EmojiText>🔠 WordGrid</EmojiText>
-                  </h3>
-                  <p>Beat the daily puzzle in this exciting game of vocabulary and word skills.</p>
-                  <Button
-                    className={styles['game-button']}
-                    onClick={() => {
-                      globalThis.open('https://wordgrid.proplayer919.dev', '_blank');
-                    }}
-                  >
-                    Play WordGrid
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
           {tab === 'radio' && (
             <div className="tab-content">
               <h2>Monix Radio</h2>
@@ -2644,6 +2228,7 @@ export default function Game() {
                           setPaymentModalBaitId(null);
                           setPaymentModalAquarium(false);
                           setPaymentModalSellRodId(null);
+                          setPaymentModalEventPreview(false);
                           setPaymentModalUpgradeId(upgrade.id);
                           setIsPaymentModalOpen(true);
                         }}
@@ -2862,6 +2447,52 @@ export default function Game() {
               <Settings user={user!} onRestartTutorial={startTutorial} />
             </div>
           )}
+          {tab === 'stats' && (
+            <div className={`tab-content ${styles['stats-tab']}`}>
+              <h2>Your Stats</h2>
+              {(() => {
+                const stats = user?.stats;
+                const fishCaughtByType = user?.fishing?.fish_caught;
+                const totalFishCaught = fishCaughtByType
+                  ? Object.values(fishCaughtByType).reduce((sum, count) => sum + (count || 0), 0)
+                  : stats?.fish_caught ?? 0;
+                const playtimeSeconds = Math.floor((stats?.playtime_ms ?? 0) / 1000);
+                const playtimeDays = Math.floor(playtimeSeconds / 86400);
+                const playtimeHours = Math.floor((playtimeSeconds % 86400) / 3600);
+                const playtimeMinutes = Math.floor((playtimeSeconds % 3600) / 60);
+                const playtimeLabel =
+                  playtimeDays > 0
+                    ? `${playtimeDays}d ${playtimeHours}h ${playtimeMinutes}m`
+                    : playtimeHours > 0
+                      ? `${playtimeHours}h ${playtimeMinutes}m`
+                      : `${playtimeMinutes}m`;
+                const rows: { label: string; value: string | number }[] = [
+                  { label: 'Playtime', value: playtimeLabel },
+                  { label: 'Messages Sent', value: stats?.messages_sent ?? 0 },
+                  { label: 'Resources Bought', value: `${stats?.resource_buys ?? 0} (${stats?.resources_bought ?? 0} total)` },
+                  { label: 'Resources Sold', value: `${stats?.resource_sells ?? 0} (${stats?.resources_sold ?? 0} total)` },
+                  { label: 'Fish Caught', value: `${stats?.fish_caught ?? 0} (${totalFishCaught} total)` },
+                  { label: 'Fish Sold', value: stats?.fish_sold ?? 0 },
+                  { label: 'Bait Used', value: stats?.bait_used ?? 0 },
+                  { label: 'Pets Adopted', value: stats?.pets_adopted ?? 0 },
+                  { label: 'Pets Fed', value: stats?.pets_fed ?? 0 },
+                  { label: 'Pets Played With', value: stats?.pets_played ?? 0 },
+                  { label: 'Aquarium Upgrades', value: stats?.aquarium_upgrades ?? 0 },
+                  { label: 'Daily Rewards Claimed', value: stats?.daily_rewards_claimed ?? 0 },
+                ];
+                return (
+                  <div className={styles['stats-grid']}>
+                    {rows.map(row => (
+                      <div key={row.label} className={styles['stats-item']}>
+                        <span className={styles['stats-item-label']}>{row.label}</span>
+                        <span className={`${styles['stats-item-value']} mono`}>{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
           {tab === 'jail' && (
             <div className={styles['jail-tab']}>
               <div className={styles['jail-card']}>
@@ -2934,13 +2565,13 @@ export default function Game() {
             resourcePrice={resourcePrices[marketModalResource.id] || 0}
             money={user ? user.money || 0 : 0}
             isOpen={marketModalOpen}
-            disableSeeMore={tab === 'market'}
+            disableSeeMore={false}
             onClose={() => {
               setMarketModalOpen(false);
               setMarketModalResource(null);
             }}
             onSeeMore={() => {
-              setTabTo('market');
+              setTabTo('resources');
               setMarketResourceDetails(marketModalResource.id);
               setMarketModalOpen(false);
             }}
@@ -3108,6 +2739,20 @@ export default function Game() {
             await buyBait(paymentModalBaitId, paymentModalBaitQty);
           } else if (paymentModalAquarium) {
             await upgradeAquarium();
+          } else if (paymentModalEventPreview) {
+            const res = await unlockEventPreview();
+            await updateEverything();
+            setIsLoadingPaymentModal(false);
+            setPaymentModalEventPreview(false);
+            setIsPaymentModalOpen(false);
+            if (res) {
+              setEventPreview(res);
+              if (res.gems !== undefined) {
+                setUser(prev => (prev ? { ...prev, gems: res.gems ?? 0 } : prev));
+              }
+              setIsEventPreviewModalOpen(true);
+            }
+            return;
           } else {
             await buyCosmetic(paymentModalCosmeticId!);
           }

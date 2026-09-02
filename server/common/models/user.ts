@@ -19,6 +19,40 @@ export interface IRecoveryCode {
   used: boolean;
 }
 
+export interface IUserStats {
+  playtime_ms: number;
+  messages_sent: number;
+  resource_buys: number;
+  resource_sells: number;
+  resources_bought: number;
+  resources_sold: number;
+  fish_caught: number;
+  fish_sold: number;
+  bait_used: number;
+  pets_adopted: number;
+  pets_fed: number;
+  pets_played: number;
+  aquarium_upgrades: number;
+  daily_rewards_claimed: number;
+}
+
+export const DEFAULT_USER_STATS: IUserStats = {
+  playtime_ms: 0,
+  messages_sent: 0,
+  resource_buys: 0,
+  resource_sells: 0,
+  resources_bought: 0,
+  resources_sold: 0,
+  fish_caught: 0,
+  fish_sold: 0,
+  bait_used: 0,
+  pets_adopted: 0,
+  pets_fed: 0,
+  pets_played: 0,
+  aquarium_upgrades: 0,
+  daily_rewards_claimed: 0,
+};
+
 export interface IUser {
   uuid: string;
   username: string;
@@ -52,6 +86,7 @@ export interface IUser {
     equipped_bait?: string;
     bait_owned?: { [key: string]: number };
     fish_caught?: { [key: string]: number };
+    event_preview_unlocked?: boolean;
     aquarium: {
       capacity: number;
       level?: number;
@@ -59,6 +94,7 @@ export interface IUser {
     };
     last_fished_at?: number;
   };
+  stats?: IUserStats;
   punishments?: IPunishment[];
   ip_history?: {
     ip: string;
@@ -94,6 +130,7 @@ export function userToDoc(u: IUser): IUser {
     cosmetics_unlocked: u.cosmetics_unlocked || [],
     equipped_cosmetics: u.equipped_cosmetics || {},
     fishing: u.fishing,
+    stats: u.stats,
     punishments: u.punishments,
     ip_history: u.ip_history || [],
     upgrades: u.upgrades || {},
@@ -167,6 +204,7 @@ export function userFromDoc(doc: any): IUser {
       rods_owned: ['damaged-rod'],
       aquarium: { capacity: 10, level: 1, fish: [] },
     },
+    stats: doc.stats || DEFAULT_USER_STATS,
     punishments: doc.punishments || [],
     ip_history: doc.ip_history || [],
     upgrades: doc.upgrades || {},

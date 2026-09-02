@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 import { getUserByUUID, updateUser } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { getAquariumUpgradeCost } from '../../../common/fishing/fishing';
 
 export const upgradeAquarium = new Elysia()
@@ -35,6 +36,9 @@ export const upgradeAquarium = new Elysia()
     fetchedUser.money -= upgradeCost;
     fetchedUser.fishing.aquarium.capacity += 10;
     fetchedUser.fishing.aquarium.level = (fetchedUser.fishing.aquarium.level || 1) + 1;
+
+    fetchedUser.stats ??= DEFAULT_USER_STATS;
+    fetchedUser.stats.aquarium_upgrades = (fetchedUser.stats.aquarium_upgrades || 0) + 1;
 
     await updateUser(fetchedUser);
 

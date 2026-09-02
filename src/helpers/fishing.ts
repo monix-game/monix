@@ -1,6 +1,37 @@
 import type { IFish } from '../../server/common/models/fish';
 import type { FishingResult } from '../../server/common/fishing/fishing';
+import type { UpcomingFishingEvent } from '../../server/common/fishing/fishingEvents';
 import { api } from './api';
+
+export interface EventPreviewResult {
+  unlocked: boolean;
+  events: UpcomingFishingEvent[] | null;
+  gems?: number;
+}
+
+export async function getEventPreview(): Promise<EventPreviewResult | null> {
+  try {
+    const resp = await api.get<EventPreviewResult>('/fishing/events-preview');
+    if (resp?.success && resp.data) {
+      return resp.data;
+    }
+  } catch (error) {
+    console.error('Error fetching fishing event preview:', error);
+  }
+  return null;
+}
+
+export async function unlockEventPreview(): Promise<EventPreviewResult | null> {
+  try {
+    const resp = await api.post<EventPreviewResult>('/fishing/events-preview/unlock');
+    if (resp?.success && resp.data) {
+      return resp.data;
+    }
+  } catch (error) {
+    console.error('Error unlocking fishing event preview:', error);
+  }
+  return null;
+}
 
 export async function getAquarium(): Promise<{ capacity: number; fish: IFish[] } | null> {
   try {

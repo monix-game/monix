@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { getUserByUUID, updateUser } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { generatePrice } from '../../helpers/market';
 
 export const sellResource = new Elysia()
@@ -40,6 +41,10 @@ export const sellResource = new Elysia()
       // Deduct resources and add balance
       fetchedUser.resources[resourceId] = currentQuantity - quantityToSell;
       fetchedUser.money = (fetchedUser.money || 0) + Number(totalValue);
+
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.resource_sells = (fetchedUser.stats.resource_sells || 0) + 1;
+      fetchedUser.stats.resources_sold = (fetchedUser.stats.resources_sold || 0) + quantityToSell;
 
       await updateUser(fetchedUser);
 
