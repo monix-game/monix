@@ -3,7 +3,7 @@
   width: fit-content;
   min-width: 650px;
   height: 300px;
-  border: 2px solid var(--primary-1);
+  border: 2px solid var(--primary-2);
   border-radius: var(--border-radius);
   padding: 16px;
   box-sizing: border-box;
@@ -50,7 +50,7 @@
 .graph-info-lines > span {
   display: block;
   width: fit-content;
-  border: 2px solid var(--primary-1);
+  border: 2px solid var(--primary-2);
   padding: 4px 8px;
   border-radius: var(--border-radius);
   background-color: var(--bg);
