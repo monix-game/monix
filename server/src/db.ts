@@ -194,7 +194,11 @@ export async function createMessage(message: IMessage): Promise<void> {
 
 export async function getMessagesByRoomUUID(room_uuid: string): Promise<IMessage[]> {
   const database = ensureDB();
-  const docs = await database.collection('messages').find({ room_uuid }).toArray();
+  const docs = await database
+    .collection('messages')
+    .find({ room_uuid })
+    .sort({ time_sent: 1 })
+    .toArray();
   return docs.map(messageFromDoc);
 }
 
