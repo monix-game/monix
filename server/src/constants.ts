@@ -1,5 +1,6 @@
 import Filter from '../common/filter/filter';
 import Stripe from 'stripe';
+import webPush from 'web-push';
 import { DiscordClient } from './helpers/discord';
 import path from 'node:path';
 
@@ -41,3 +42,13 @@ export const DOMAIN_NAME = process.env.DOMAIN_NAME || '';
 export const ACME_EMAIL = process.env.ACME_EMAIL || '';
 
 export const profanityFilter = new Filter();
+
+export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+export const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:monix@proplayer919.dev';
+export const VAPID_CONFIGURED = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+
+if (VAPID_CONFIGURED) {
+  webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+export { webPush };

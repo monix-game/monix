@@ -22,6 +22,7 @@ import {
   Checkbox,
   Select,
   PaymentModal,
+  NotificationToasts,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
@@ -85,6 +86,7 @@ import {
 import { createPoll, fetchPolls, type PollView, voteInPoll } from '../../helpers/polls';
 import { UPGRADES } from '../../../server/common/upgrades';
 import { useSocket } from '../../providers/socket';
+import { useChatNotifications } from '../../hooks/useChatNotifications';
 
 const toLocalInputDateTime = (timeMs: number) => {
   const offsetMs = new Date(timeMs).getTimezoneOffset() * 60000;
@@ -384,6 +386,39 @@ export default function Game() {
   // Social states
   const [socialRoom, setSocialRoom] = useState<string>('general');
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
+
+  const notificationsEnabled = (user?.settings?.notifications_enabled ?? false) && !socialDisabled;
+
+  const isRoomActive = useCallback(
+    (roomUuid: string) => tab === 'social' && socialRoom === roomUuid,
+    [tab, socialRoom]
+  );
+  const {
+    totalUnread,
+    toasts,
+    dismissToast,
+    clearRoom,
+    clearAll,
+  } = useChatNotifications({
+    userUuid: user?.uuid ?? null,
+    enabled: notificationsEnabled,
+    isRoomActive,
+  });
+
+  // Mark a room as read when it becomes the active social room.
+  useEffect(() => {
+    if (tab === 'social') {
+      clearRoom(socialRoom);
+    }
+  }, [tab, socialRoom, clearRoom]);
+
+  // Opening the social tab marks all rooms read.
+  useEffect(() => {
+    if (tab === 'social') {
+      clearAll();
+    }
+  }, [tab, clearAll]);
+
   const [polls, setPolls] = useState<PollView[]>([]);
   const [pollsLoading, setPollsLoading] = useState<boolean>(false);
   const [pollsError, setPollsError] = useState<string | null>(null);
@@ -1137,6 +1172,13 @@ export default function Game() {
     <>
       <div className="app-container">
         {debugOverlayEnabled && <DebugOverlay position={debugOverlayPosition} />}
+        <NotificationToasts
+          toasts={toasts}
+          onDismiss={dismissToast}
+          onClick={() => {
+            if (!socialDisabled) setTabTo('social');
+          }}
+        />
         <header className="app-header">
           <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
           <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />
@@ -1189,6 +1231,9 @@ export default function Game() {
                   }}
                 >
                   <EmojiText>{t.label}</EmojiText>
+                  {t.key === 'social' && totalUnread > 0 && (
+                    <span className={styles['social-notif-dot']} />
+                  )}
                 </span>
               );
 

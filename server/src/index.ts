@@ -24,6 +24,7 @@ import fishingRoutes from './routes/fishing';
 import petsRoutes from './routes/pets';
 import socialRoutes from './routes/social';
 import staffRoutes from './routes/staff';
+import pushRoutes from './routes/push';
 
 const log = createLogger('server');
 
@@ -57,6 +58,7 @@ const app = new Elysia()
   .group('/api/pets', app => app.use(petsRoutes))
   .group('/api/social', app => app.use(socialRoutes))
   .group('/api/staff', app => app.use(staffRoutes))
+  .group('/api/push', app => app.use(pushRoutes))
   .compile();
 
 function readBody(req: IncomingMessage): Promise<Buffer> {

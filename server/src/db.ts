@@ -14,6 +14,10 @@ import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
 import { LogEntry, logEntryFromDoc, logEntryToDoc } from '../common/models/logEntry';
 import { type IPoll, pollFromDoc, pollToDoc } from '../common/models/poll';
+import {
+  IPushSubscription,
+  pushSubscriptionFromDoc,
+} from '../common/models/pushSubscription';
 import { createLogger } from './logging';
 
 const log = createLogger('db');
@@ -50,6 +54,8 @@ export async function connectDB(uri: string) {
   await db.collection('logs').createIndex({ timestamp: -1 });
   await db.collection('logs').createIndex({ uuid: 1 }, { unique: true });
   await db.collection('polls').createIndex({ uuid: 1 }, { unique: true });
+  await db.collection('push_subscriptions').createIndex({ user_uuid: 1 });
+  await db.collection('push_subscriptions').createIndex({ endpoint: 1 }, { unique: true });
 
   // Ensure default rooms exist
   const defaultRooms: IRoom[] = [
@@ -413,4 +419,33 @@ export async function getAllPolls(): Promise<IPoll[]> {
   const database = ensureDB();
   const docs = await database.collection('polls').find({}).toArray();
   return docs.map(pollFromDoc);
+}
+
+export async function upsertPushSubscription(sub: IPushSubscription): Promise<void> {
+  const database = ensureDB();
+  await database
+    .collection('push_subscriptions')
+    .updateOne({ endpoint: sub.endpoint }, { $set: sub }, { upsert: true });
+}
+
+export async function deletePushSubscriptionByEndpoint(endpoint: string): Promise<void> {
+  const database = ensureDB();
+  await database.collection('push_subscriptions').deleteOne({ endpoint });
+}
+
+export async function getPushSubscriptionsByUserUUID(
+  user_uuid: string
+): Promise<IPushSubscription[]> {
+  const database = ensureDB();
+  const docs = await database
+    .collection('push_subscriptions')
+    .find({ user_uuid })
+    .toArray();
+  return docs.map(pushSubscriptionFromDoc);
+}
+
+export async function getAllPushSubscriptions(): Promise<IPushSubscription[]> {
+  const database = ensureDB();
+  const docs = await database.collection('push_subscriptions').find({}).toArray();
+  return docs.map(pushSubscriptionFromDoc);
 }

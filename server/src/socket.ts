@@ -25,8 +25,11 @@ import {
   buildUserSnapshot,
 } from './helpers/snapshots';
 import { sendChatMessage } from './helpers/chat';
+import { notifyNewChatMessage } from './helpers/push';
+import { addUserConnection, removeUserConnection } from './helpers/presence';
 import { applyActivityTracking } from './middleware';
 import type { IUser } from '../common/models/user';
+import type { IMessage } from '../common/models/message';
 import { createLogger } from './logging';
 import { profanityFilter } from './constants';
 import { hasRole } from '../common/roles';
@@ -118,6 +121,23 @@ const dirtyChatChannels = new Set<string>();
  */
 export function markChatChannelDirty(roomUuid: string) {
   dirtyChatChannels.add(roomUuid);
+}
+
+/**
+ * Emit a lightweight "new chat message" event to online clients on the global
+ * `chat:new-message` channel. Online clients use this to show the unread dot
+ * on the Social tab and in-app toasts without polling every room.
+ */
+export function broadcastNewChatMessage(roomName: string, message: IMessage) {
+  broadcast('chat:new-message', {
+    room_uuid: message.room_uuid,
+    room_name: roomName,
+    sender_uuid: message.sender_uuid,
+    sender_username: message.sender_username,
+    sender_avatar_url: message.sender_avatar_url,
+    content: message.content,
+    time_sent: message.time_sent,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -389,6 +409,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
                   await updateUser(user);
                 }
                 target.socketUser = user ?? undefined;
+                if (user) addUserConnection(user.uuid);
               }
             }
           }
@@ -452,6 +473,11 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
             // Push an up-to-date chat snapshot to subscribers so no HTTP is needed.
             const messages = await chatSnapshot(room_uuid);
             if (messages) broadcast(`chat:${room_uuid}`, messages);
+
+            if (result.message && room) {
+              broadcastNewChatMessage(room.name, result.message);
+              void notifyNewChatMessage(result.message, room);
+            }
           }
           break;
         }
@@ -699,6 +725,10 @@ export function attachSocketServer(server: Server | HttpsServer) {
     });
     rawWs.on('close', () => {
       log.debug('WebSocket client disconnected');
+      const closingUser = getAuthData(ws).socketUser;
+      if (closingUser?.uuid) {
+        removeUserConnection(closingUser.uuid);
+      }
       for (const [channel, set] of subscribers) {
         if (set.has(ws)) {
           set.delete(ws);

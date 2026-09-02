@@ -3,6 +3,7 @@ import styles from './Settings.module.css';
 import type { IUser } from '../../../server/common/models/user';
 import { SettingsOption } from './settingsoption/SettingsOption';
 import {
+  IconBell,
   IconBrush,
   IconBug,
   IconEyeClosed,
@@ -51,6 +52,10 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Input } from '../input/Input';
 import { COMMIT, COMMIT_NUMBER_THIS_MONTH, BUILD_TIMESTAMP } from '../../version';
 import { useMusic } from '../../providers/music';
+import {
+  enablePushNotifications,
+  disablePushNotifications,
+} from '../../helpers/notifications';
 
 interface SettingsProps {
   user: IUser;
@@ -105,6 +110,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
 
   // Server settings
   const [privacyMode, setPrivacyMode] = React.useState<boolean>(false);
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState<boolean>(false);
   const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
 
   const { setVolume } = useMusic();
@@ -129,6 +135,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       setDebugOverlayPosition(settings.debugOverlayPosition);
 
       setPrivacyMode(user.settings.privacy_mode);
+      setNotificationsEnabled(user.settings.notifications_enabled);
     };
 
     loadStates();
@@ -317,6 +324,28 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
         )}
 
         <h2 className={styles['settings-header']}>Notifications</h2>
+        <SettingsOption
+          type="checkbox"
+          icon={<IconBell />}
+          label="Chat Notifications"
+          description="Notify you when new messages are sent in chat. Turned off by default."
+          value={notificationsEnabled}
+          onChange={(newValue: string | boolean | number) => {
+            const enable = Boolean(newValue);
+            setNotificationsEnabled(enable);
+            void updateServerSetting('notifications_enabled', enable).then(async success => {
+              if (!success) {
+                setNotificationsEnabled(!enable);
+                return;
+              }
+              if (enable) {
+                await enablePushNotifications();
+              } else {
+                await disablePushNotifications();
+              }
+            });
+          }}
+        />
         <h2 className={styles['settings-header']}>Privacy</h2>
         <SettingsOption
           type="checkbox"

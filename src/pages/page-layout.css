@@ -65,6 +65,7 @@ html[data-theme='dark'] .app-logo-light {
   transition: all 0.3s ease;
   font-size: 0.95rem;
   user-select: none;
+  position: relative;
 }
 
 .nav-tabs .tab.active {

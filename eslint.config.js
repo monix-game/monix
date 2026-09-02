@@ -12,6 +12,7 @@ export default defineConfig([
   {
     // frontend / app files
     files: ['**/*.{ts,tsx,js,jsx}'],
+    ignores: ['public/**/*'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommendedTypeChecked,
