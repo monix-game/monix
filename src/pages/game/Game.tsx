@@ -68,6 +68,7 @@ import {
   goFishing,
   sellAllFish,
   sellFish,
+  sellRod,
   unequipBait,
   upgradeAquarium,
 } from '../../helpers/fishing';
@@ -425,9 +426,13 @@ export default function Game() {
   useEffect(() => {
     if (banned) return;
 
-    startTransition(() => { void refreshPolls(true); });
+    startTransition(() => {
+      void refreshPolls(true);
+    });
     const interval = setInterval(() => {
-      startTransition(() => { void refreshPolls(false); });
+      startTransition(() => {
+        void refreshPolls(false);
+      });
     }, 15000);
     return () => clearInterval(interval);
   }, [banned, refreshPolls]);
@@ -435,7 +440,9 @@ export default function Game() {
   useEffect(() => {
     if (tab !== 'polls') return;
 
-    startTransition(() => { void refreshPolls(false); });
+    startTransition(() => {
+      void refreshPolls(false);
+    });
   }, [tab, refreshPolls]);
 
   const addPollOption = useCallback(() => {
@@ -841,7 +848,9 @@ export default function Game() {
 
   useEffect(() => {
     if (!connected) return;
-    startTransition(() => { void updateEverything().then(() => setGameHydrated(true)); });
+    startTransition(() => {
+      void updateEverything().then(() => setGameHydrated(true));
+    });
 
     // Set radio volume based on settings
     const settings = loadSettings();
@@ -917,39 +926,42 @@ export default function Game() {
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
 
-  const recomputeResources = useCallback(async (prices: { [key: string]: number }) => {
-    if (banned || resourceMarketDisabled) return;
-    const resourcesCopy = [...resources];
+  const recomputeResources = useCallback(
+    async (prices: { [key: string]: number }) => {
+      if (banned || resourceMarketDisabled) return;
+      const resourcesCopy = [...resources];
 
-    const quantitiesMap: { [key: string]: number } = {};
-    for (const resource of resourcesCopy) {
-      const qty = await getResourceQuantity(resource.id);
-      quantitiesMap[resource.id] = qty || 0;
-    }
-    setResourceQuantities(quantitiesMap);
+      const quantitiesMap: { [key: string]: number } = {};
+      for (const resource of resourcesCopy) {
+        const qty = await getResourceQuantity(resource.id);
+        quantitiesMap[resource.id] = qty || 0;
+      }
+      setResourceQuantities(quantitiesMap);
 
-    const resourcesWithValues = resourcesCopy.map(resource => ({
-      resource,
-      value: prices[resource.id] * (quantitiesMap[resource.id] || 0),
-    }));
+      const resourcesWithValues = resourcesCopy.map(resource => ({
+        resource,
+        value: prices[resource.id] * (quantitiesMap[resource.id] || 0),
+      }));
 
-    resourcesWithValues.sort((a, b) => b.value - a.value);
-    setSortedResources(resourcesWithValues.map(item => item.resource));
+      resourcesWithValues.sort((a, b) => b.value - a.value);
+      setSortedResources(resourcesWithValues.map(item => item.resource));
 
-    const pricesMap: { [key: string]: number } = {};
-    resourcesWithValues.forEach(item => {
-      pricesMap[item.resource.id] = prices[item.resource.id];
-    });
-    setResourcePrices(pricesMap);
+      const pricesMap: { [key: string]: number } = {};
+      resourcesWithValues.forEach(item => {
+        pricesMap[item.resource.id] = prices[item.resource.id];
+      });
+      setResourcePrices(pricesMap);
 
-    const totalValue = resourcesWithValues.reduce((sum, item) => sum + item.value, 0);
-    setResourcesTotal(totalValue);
-    const aquariumValue = (user?.fishing?.aquarium?.fish ?? []).reduce(
-      (total, fish) => total + getFishValue(fish),
-      0
-    );
-    setTotalNetWorth((user?.money || 0) + totalValue + aquariumValue);
-  }, [banned, resourceMarketDisabled, user]);
+      const totalValue = resourcesWithValues.reduce((sum, item) => sum + item.value, 0);
+      setResourcesTotal(totalValue);
+      const aquariumValue = (user?.fishing?.aquarium?.fish ?? []).reduce(
+        (total, fish) => total + getFishValue(fish),
+        0
+      );
+      setTotalNetWorth((user?.money || 0) + totalValue + aquariumValue);
+    },
+    [banned, resourceMarketDisabled, user]
+  );
 
   useEffect(() => {
     if (resourceMarketDisabled) {
@@ -1060,8 +1072,7 @@ export default function Game() {
         <div className="spacer"></div>
         <div className={styles['cosmetic-buy-row']}>
           <span className={styles['cosmetic-price']} title={`${cosmetic.price || 0} Gems`}>
-            <EmojiText>💎</EmojiText>{' '}
-            {smartFormatNumber(cosmetic.price || 0, false, false, false)}
+            <EmojiText>💎</EmojiText> {smartFormatNumber(cosmetic.price || 0, false, false, false)}
           </span>
           <Button
             className={styles['cosmetic-action']}
@@ -1072,6 +1083,7 @@ export default function Game() {
               setPaymentModalRodId(null);
               setPaymentModalBaitId(null);
               setPaymentModalAquarium(false);
+              setPaymentModalSellRodId(null);
               setPaymentModalCosmeticId(cosmetic.id);
               setIsPaymentModalOpen(true);
             }}
@@ -1086,10 +1098,7 @@ export default function Game() {
   const renderCosmeticOwnedCard = (cosmetic: Cosmetic) => {
     const equipped = user?.equipped_cosmetics?.[cosmetic.type] === cosmetic.id;
     return (
-      <div
-        key={cosmetic.id}
-        className={`${styles['cosmetic-card']} ${equipped ? 'equipped' : ''}`}
-      >
+      <div key={cosmetic.id} className={`${styles['cosmetic-card']} ${equipped ? 'equipped' : ''}`}>
         <h2 className={styles['cosmetic-name']}>{cosmetic.name}</h2>
         <span className={styles['cosmetic-rarity']}>
           <EmojiText>{rarityEmojis[cosmetic.rarity]}</EmojiText> {titleCase(cosmetic.rarity)}
@@ -1121,6 +1130,7 @@ export default function Game() {
   const [paymentModalBaitId, setPaymentModalBaitId] = useState<string | null>(null);
   const [paymentModalBaitQty, setPaymentModalBaitQty] = useState<number>(1);
   const [paymentModalAquarium, setPaymentModalAquarium] = useState<boolean>(false);
+  const [paymentModalSellRodId, setPaymentModalSellRodId] = useState<string | null>(null);
 
   return (
     <>
@@ -1196,11 +1206,7 @@ export default function Game() {
           <div className="spacer" />
           <div className="user-info">
             <div className="username-info">
-              <Avatar
-                src={user?.avatar_data_uri}
-                size={24}
-                className="user-avatar"
-              />
+              <Avatar src={user?.avatar_data_uri} size={24} className="user-avatar" />
               <Nameplate
                 text={user ? user.username : 'User'}
                 styleKey={effectiveNameplateStyle}
@@ -1513,17 +1519,36 @@ export default function Game() {
                                         x{rodInfo.multiplier} Multiplier
                                       </span>
                                       <div className="spacer"></div>
-                                      {!isEquipped && (
-                                        <Button
-                                          onClickAsync={async () => {
-                                            await equipRod(rodId);
-                                            await updateEverything();
-                                          }}
-                                        >
-                                          Equip
-                                        </Button>
-                                      )}
-                                      {isEquipped && <Button disabled>Equipped</Button>}
+                                      <div className={styles['fishing-item-actions']}>
+                                        {!isEquipped && (
+                                          <Button
+                                            onClickAsync={async () => {
+                                              await equipRod(rodId);
+                                              await updateEverything();
+                                            }}
+                                          >
+                                            Equip
+                                          </Button>
+                                        )}
+                                        {isEquipped && <Button disabled>Equipped</Button>}
+                                        {rodInfo.buyable && rodInfo.price > 0 && (
+                                          <Button
+                                            color="red"
+                                            secondary
+                                            onClick={() => {
+                                              setPaymentModalCosmeticId(null);
+                                              setPaymentModalUpgradeId(null);
+                                              setPaymentModalBaitId(null);
+                                              setPaymentModalAquarium(false);
+                                              setPaymentModalRodId(null);
+                                              setPaymentModalSellRodId(rodId);
+                                              setIsPaymentModalOpen(true);
+                                            }}
+                                          >
+                                            Sell
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 });
@@ -1580,8 +1605,7 @@ export default function Game() {
                                           if (!typeInfo) return null;
                                           return (
                                             <span key={typeId} className={styles['bait-pill']}>
-                                              <EmojiText>{typeInfo.icon}</EmojiText>{' '}
-                                              {typeInfo.name}
+                                              <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
                                             </span>
                                           );
                                         })}
@@ -1663,6 +1687,7 @@ export default function Game() {
                                     setPaymentModalUpgradeId(null);
                                     setPaymentModalBaitId(null);
                                     setPaymentModalAquarium(false);
+                                    setPaymentModalSellRodId(null);
                                     setPaymentModalRodId(rod.id);
                                     setIsPaymentModalOpen(true);
                                   }}
@@ -1768,6 +1793,7 @@ export default function Game() {
                                     setPaymentModalUpgradeId(null);
                                     setPaymentModalRodId(null);
                                     setPaymentModalAquarium(false);
+                                    setPaymentModalSellRodId(null);
                                     setPaymentModalBaitId(bait.id);
                                     setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
                                     setIsPaymentModalOpen(true);
@@ -1792,9 +1818,7 @@ export default function Game() {
               <div className="tab-content">
                 <h2>Aquarium</h2>
                 <div className={styles['aquarium-banner']}>
-                  <span className={styles['aquarium-banner-subtitle']}>
-                    CURRENT FISHING EVENT
-                  </span>
+                  <span className={styles['aquarium-banner-subtitle']}>CURRENT FISHING EVENT</span>
                   <h3 className={styles['aquarium-banner-title']}>
                     {currentFishingEvent.event ? (
                       <>
@@ -1832,9 +1856,10 @@ export default function Game() {
                     if (fishLength !== capacity) {
                       return (
                         <>
-                          You are using <span className={styles['aquarium-data']}>{fishLength}</span>{' '}
-                          out of <span className={styles['aquarium-data']}>{capacity}</span>{' '}
-                          capacity in your aquarium.
+                          You are using{' '}
+                          <span className={styles['aquarium-data']}>{fishLength}</span> out of{' '}
+                          <span className={styles['aquarium-data']}>{capacity}</span> capacity in
+                          your aquarium.
                         </>
                       );
                     }
@@ -1859,6 +1884,7 @@ export default function Game() {
                         setPaymentModalUpgradeId(null);
                         setPaymentModalRodId(null);
                         setPaymentModalBaitId(null);
+                        setPaymentModalSellRodId(null);
                         setPaymentModalAquarium(true);
                         setIsPaymentModalOpen(true);
                       }}
@@ -2429,7 +2455,9 @@ export default function Game() {
                   {currentTrack && (
                     <>
                       <span className={styles['song-subtitle']}>Now Playing</span>
-                      <span className={styles['song-name']}>{currentTrack?.title || 'Nothing'}</span>
+                      <span className={styles['song-name']}>
+                        {currentTrack?.title || 'Nothing'}
+                      </span>
                       <span className={styles['song-artist']}>
                         by <span>{currentTrack?.artist || 'Nobody'}</span>
                       </span>
@@ -2507,6 +2535,7 @@ export default function Game() {
                           setPaymentModalRodId(null);
                           setPaymentModalBaitId(null);
                           setPaymentModalAquarium(false);
+                          setPaymentModalSellRodId(null);
                           setPaymentModalUpgradeId(upgrade.id);
                           setIsPaymentModalOpen(true);
                         }}
@@ -2950,37 +2979,53 @@ export default function Game() {
         isOpen={isPaymentModalOpen}
         isLoading={isLoadingPaymentModal}
         type={
-          paymentModalUpgradeId || paymentModalRodId || paymentModalBaitId || paymentModalAquarium
+          paymentModalSellRodId ||
+          paymentModalUpgradeId ||
+          paymentModalRodId ||
+          paymentModalBaitId ||
+          paymentModalAquarium
             ? 'money'
             : 'gems'
         }
+        mode={paymentModalSellRodId ? 'sell' : 'buy'}
         amount={
-          paymentModalUpgradeId
-            ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.price_per_half_hour || 0
-            : paymentModalRodId
-              ? fishingRods.find(r => r.id === paymentModalRodId)?.price || 0
-              : paymentModalBaitId
-                ? (fishingBaits.find(b => b.id === paymentModalBaitId)?.price || 0) *
-                  paymentModalBaitQty
-                : paymentModalAquarium
-                  ? getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
-                  : cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0
+          paymentModalSellRodId
+            ? Math.floor((fishingRods.find(r => r.id === paymentModalSellRodId)?.price || 0) * 0.5)
+            : paymentModalUpgradeId
+              ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.price_per_half_hour || 0
+              : paymentModalRodId
+                ? fishingRods.find(r => r.id === paymentModalRodId)?.price || 0
+                : paymentModalBaitId
+                  ? (fishingBaits.find(b => b.id === paymentModalBaitId)?.price || 0) *
+                    paymentModalBaitQty
+                  : paymentModalAquarium
+                    ? getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                    : cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0
         }
         balance={
-          paymentModalUpgradeId || paymentModalRodId || paymentModalBaitId || paymentModalAquarium
-            ? user?.money ?? 0
-            : user?.gems ?? 0
+          paymentModalSellRodId ||
+          paymentModalUpgradeId ||
+          paymentModalRodId ||
+          paymentModalBaitId ||
+          paymentModalAquarium
+            ? (user?.money ?? 0)
+            : (user?.gems ?? 0)
         }
         productName={
-          paymentModalUpgradeId
-            ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.name || 'Unknown Upgrade'
-            : paymentModalRodId
-              ? fishingRods.find(r => r.id === paymentModalRodId)?.name || 'Unknown Rod'
-              : paymentModalBaitId
-                ? fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait'
-                : paymentModalAquarium
-                  ? 'Aquarium Upgrade'
-                  : cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic'
+          paymentModalSellRodId
+            ? `${
+                fishingRods.find(r => r.id === paymentModalSellRodId)?.name || 'Unknown Rod'
+              } (Sale)`
+            : paymentModalUpgradeId
+              ? UPGRADES.find(u => u.id === paymentModalUpgradeId)?.name || 'Unknown Upgrade'
+              : paymentModalRodId
+                ? fishingRods.find(r => r.id === paymentModalRodId)?.name || 'Unknown Rod'
+                : paymentModalBaitId
+                  ? fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait'
+                  : paymentModalAquarium
+                    ? 'Aquarium Upgrade'
+                    : cosmetics.find(c => c.id === paymentModalCosmeticId)?.name ||
+                      'Unknown Cosmetic'
         }
         onClose={() => setIsPaymentModalOpen(false)}
         onPurchase={async () => {
@@ -2989,7 +3034,9 @@ export default function Game() {
           // Artificial delay, since the purchase is usually instant
           await new Promise(resolve => setTimeout(resolve, 750));
 
-          if (paymentModalUpgradeId) {
+          if (paymentModalSellRodId) {
+            await sellRod(paymentModalSellRodId);
+          } else if (paymentModalUpgradeId) {
             await buyUpgrade(paymentModalUpgradeId);
           } else if (paymentModalRodId) {
             await buyRod(paymentModalRodId);

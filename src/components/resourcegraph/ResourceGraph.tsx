@@ -54,6 +54,23 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
   const shownPrice =
     currentPrice !== null ? currentPrice : data.length > 0 ? data.at(-1) || 0 : null;
 
+  // Percentage change from the first to the last point in the currently shown window.
+  const priceChangePct = (() => {
+    if (data.length < 2) return null;
+    const first = data[0];
+    const last = data.at(-1) ?? first;
+    if (!first) return null;
+    return ((last - first) / first) * 100;
+  })();
+  const changeClass =
+    priceChangePct === null
+      ? ''
+      : priceChangePct > 0
+        ? styles['graph-price-up']
+        : priceChangePct < 0
+          ? styles['graph-price-down']
+          : styles['graph-price-flat'];
+
   return (
     <div className={styles['graph-container']}>
       {hydrated && (
@@ -75,6 +92,15 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
                 </span>
                 <span>
                   Current Price:{' '}
+                  {priceChangePct !== null && (
+                    <span
+                      className={`${styles['graph-price-change']} ${changeClass}`}
+                      title="Price change over the displayed period"
+                    >
+                      {priceChangePct > 0 ? '▲' : priceChangePct < 0 ? '▼' : '—'}{' '}
+                      {Math.abs(priceChangePct).toFixed(1)}%
+                    </span>
+                  )}{' '}
                   <span className="mono">
                     {shownPrice !== null ? smartFormatNumber(shownPrice) : 'N/A'}
                   </span>{' '}

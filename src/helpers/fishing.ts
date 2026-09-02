@@ -91,6 +91,20 @@ export async function equipRod(rodId: string): Promise<boolean> {
   return false;
 }
 
+export async function sellRod(rodId: string): Promise<boolean> {
+  try {
+    const resp = await api.post('/fishing/sell/rod', { rod_id: rodId });
+    if (resp?.success) {
+      return true;
+    }
+  } catch (error) {
+    console.error('Error selling rod:', error);
+    throw error;
+  }
+
+  return false;
+}
+
 export async function buyBait(baitId: string, quantity: number): Promise<boolean> {
   try {
     const resp = await api.post('/fishing/buy/bait', { bait_id: baitId, quantity });

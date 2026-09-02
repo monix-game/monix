@@ -47,13 +47,34 @@
   flex-grow: 1;
 }
 
-.graph-info-lines>span {
+.graph-info-lines > span {
   display: block;
   width: fit-content;
   border: 2px solid var(--primary-2);
   padding: 4px 8px;
   border-radius: var(--border-radius);
   background-color: var(--bg);
+}
+
+.graph-price-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.graph-price-up {
+  color: var(--green-1);
+}
+
+.graph-price-down {
+  color: var(--red-1);
+}
+
+.graph-price-flat {
+  color: var(--text-muted);
 }
 
 @media (max-width: 600px) {

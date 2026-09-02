@@ -14,6 +14,7 @@ interface PaymentModalProps {
   onClose: () => void;
   onPurchase: () => Promise<void>;
   isLoading?: boolean;
+  mode?: 'buy' | 'sell';
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -25,12 +26,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   onPurchase,
   isLoading = false,
+  mode = 'buy',
 }) => {
+  const isSell = mode === 'sell';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className={styles['payment-modal']}>
         <span className={styles['review-subtitle']}>Review</span>
-        <h3>Purchase Details</h3>
+        <h3>{isSell ? 'Sale Details' : 'Purchase Details'}</h3>
         <div className={styles['payment-section']}>
           <div className={styles['payment-section-left']}>{productName}</div>
           <div className={styles['payment-section-right']}>
@@ -44,30 +48,37 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             )}
           </div>
         </div>
-        <h3>Pay With</h3>
+        <h3>{isSell ? 'You Will Receive' : 'Pay With'}</h3>
         <div className={styles['payment-section']}>
           <div className={styles['payment-section-left']}>
-            {type === 'gems' ? 'Gems Balance' : 'Virtual Money Balance'}
+            {isSell ? 'New Balance' : type === 'gems' ? 'Gems Balance' : 'Virtual Money Balance'}
           </div>
           <div className={styles['payment-section-right']}>
             {type === 'gems' ? (
               <div className={styles['payment-gems-amount']}>
                 <IconDiamond size={20} />
-                {smartFormatNumber(balance, false, true, false)}
+                {smartFormatNumber(isSell ? balance + amount : balance, false, true, false)}
               </div>
             ) : (
-              smartFormatNumber(balance, true, false, false)
+              smartFormatNumber(isSell ? balance + amount : balance, true, false, false)
             )}
           </div>
         </div>
-        <span className={styles['payment-disclaimer']}>
-          Pressing the purchase button means you're claiming a limited license to use this product/item in
-          Monix.{' '}
-          <span className={styles['payment-disclaimer-secondary']}>
-            Purchases are non-refundable. Once purchased, items will be delivered to your account
-            within 24 hours.
+        {isSell ? (
+          <span className={styles['payment-disclaimer']}>
+            Selling this item is final. The item will be removed from your account and the sale
+            amount will be added to your balance immediately.
           </span>
-        </span>
+        ) : (
+          <span className={styles['payment-disclaimer']}>
+            Pressing the purchase button means you're claiming a limited license to use this
+            product/item in Monix.{' '}
+            <span className={styles['payment-disclaimer-secondary']}>
+              Purchases are non-refundable. Once purchased, items will be delivered to your account
+              within 24 hours.
+            </span>
+          </span>
+        )}
         <div className={styles['payment-actions']}>
           <div className={styles['payment-secure']}>
             <IconLock />
@@ -76,9 +87,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <Button
             onClickAsync={onPurchase}
             isLoading={isLoading}
-            disabled={!hasGems(balance, amount)}
+            disabled={!isSell && !hasGems(balance, amount)}
           >
-            {type === 'gems' ? 'Claim with Gems' : 'Buy Now'}
+            {isSell ? 'Sell Now' : type === 'gems' ? 'Claim with Gems' : 'Buy Now'}
           </Button>
         </div>
       </div>

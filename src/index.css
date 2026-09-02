@@ -23,6 +23,8 @@
   --purple-2: #b94ae3;
   --red-1: #ff5252;
   --red-2: #ff3838;
+  --green-1: #1f9d3a;
+  --green-2: #177a2c;
 
   --danger: var(--red-1);
 
@@ -50,6 +52,8 @@ html[data-theme='dark'] {
   --purple-2: #8a00bd;
   --red-1: #ad1700;
   --red-2: #d61c00;
+  --green-1: #4ade80;
+  --green-2: #22c55e;
 
   --danger: var(--red-2);
 
