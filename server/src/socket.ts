@@ -14,6 +14,7 @@ import {
 import {
   buildFishLeaderboard,
   buildMoneyLeaderboard,
+  buildNewsFeed,
   buildPets,
   buildResourceHistory,
   buildResourcePrices,
@@ -190,6 +191,14 @@ function startPricesPublisher() {
   }, 5000);
 }
 
+function startNewsPublisher() {
+  return setInterval(() => {
+    if (isChannelActive('market:news')) {
+      broadcast('market:news', buildNewsFeed());
+    }
+  }, 5000);
+}
+
 function startUserPublisher() {
   return setInterval(() => {
     const set = subscribers.get('user:me');
@@ -313,6 +322,8 @@ async function sendInitialSnapshot(channel: string, ws: WSSocket) {
     data = await buildPets(channel.slice('pets:'.length));
   } else if (channel === 'resources:prices') {
     data = buildResourcePrices();
+  } else if (channel === 'market:news') {
+    data = buildNewsFeed();
   } else if (channel.startsWith('resources:')) {
     data = buildResourceHistory(channel.slice('resources:'.length), 1);
   } else if (channel === 'settings') {
@@ -691,6 +702,7 @@ export function setupSocketPublishers() {
   startResourcesPublisher();
   startSettingsPublisher();
   startPricesPublisher();
+  startNewsPublisher();
   startUserPublisher();
   startRoomsPublisher();
   log.info('All socket publishers started');

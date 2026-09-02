@@ -1,5 +1,3 @@
-import { getResourceById } from '../resources';
-
 export interface MarketHeadline {
   id: string;
   text: string;

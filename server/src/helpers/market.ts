@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { resources } from '../../common/resources';
+import { getPriceMultiplier } from '../../common/market/news';
 
 const TAU = Math.PI * 2;
 
@@ -92,7 +93,7 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   const maxDeviation = 0.25 + 0.25 * Math.exp(-baseFloor / 150); // 25% to ~50%
   deviation = clamp(deviation, -maxDeviation, maxDeviation);
 
-  let price = resourceBase * (1 + deviation);
+  let price = resourceBase * (1 + deviation) * getPriceMultiplier(resourceId, time);
   price = Math.max(price, 0.01); // Minimum price of 0.01
 
   priceByBucket.set(resourceId, { bucket, price });

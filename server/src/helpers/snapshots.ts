@@ -9,6 +9,7 @@ import {
   updateUser,
 } from '../db';
 import { generatePrice } from './market';
+import { buildMarketNewsFeed } from '../../common/market/news';
 import { messageToDoc } from '../../common/models/message';
 import { petToDoc } from '../../common/models/pet';
 import { roomToDoc } from '../../common/models/room';
@@ -228,6 +229,11 @@ export function buildResourcePrices(): { [resourceId: string]: number } {
     data[r.id] = generatePrice(r.id, time);
   }
   return data;
+}
+
+/** Current market news feed (dedup with /market/news). */
+export function buildNewsFeed() {
+  return buildMarketNewsFeed(Math.floor(Date.now() / 1000));
 }
 
 /** Rooms visible to a given viewer (dedup with /social/rooms). */

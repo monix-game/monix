@@ -18,6 +18,7 @@ import {
   Modal,
   Nameplate,
   Avatar,
+  NewsTicker,
   Checkbox,
   Select,
   PaymentModal,
@@ -1281,6 +1282,7 @@ export default function Game() {
               renderFeatureDisabled('Resources')
             ) : (
               <div className="tab-content">
+                <NewsTicker />
                 <div className={styles['resource-list-header']}>
                   <h2>Resources</h2>
                   <span>
@@ -1301,6 +1303,7 @@ export default function Game() {
               renderFeatureDisabled('Market')
             ) : (
               <div className="tab-content">
+                <NewsTicker />
                 <h2>Market</h2>
                 <Button onClick={() => setTabTo('resources')}>Choose Resource</Button>
                 <ResourceGraph

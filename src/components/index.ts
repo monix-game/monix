@@ -23,3 +23,4 @@ export { Nameplate } from './nameplate/Nameplate';
 export { Avatar } from './avatar/Avatar';
 export { DebugOverlay } from './debugoverlay/DebugOverlay';
 export { PaymentModal } from './paymentmodal/PaymentModal';
+export { NewsTicker } from './newsticker/NewsTicker';
