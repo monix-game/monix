@@ -31,6 +31,8 @@
   --graph-fill: rgba(74, 185, 227, 0.12);
   --graph-grid-stroke: rgba(0, 0, 0, 0.1);
 
+  --event-gradient: linear-gradient(90deg, var(--primary-1), var(--primary-2));
+
   --border-radius: 5px;
 
   --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -58,6 +60,8 @@ html[data-theme='dark'] {
   --danger: var(--red-2);
 
   --graph-grid-stroke: rgba(255, 255, 255, 0.1);
+
+  --event-gradient: linear-gradient(90deg, var(--primary-3), var(--primary-2));
 }
 
 * {

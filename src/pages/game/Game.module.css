@@ -222,7 +222,7 @@
 
 .aquarium-banner {
   width: 30%;
-  background: linear-gradient(90deg, var(--primary-3), var(--primary-2));
+  background: var(--event-gradient);
   border-radius: var(--border-radius);
   border: 2px solid var(--primary-2);
   padding: 20px;
