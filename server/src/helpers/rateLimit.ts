@@ -21,6 +21,8 @@ function storeKeyFor(options: RateLimitOptions): StoreKey {
   return { windowMs: options.windowMs, max: options.max, keyGenerator: options.keyGenerator.name };
 }
 
+const MAX_STORE_ENTRIES = 25_000;
+
 function hitLimit(
   options: RateLimitOptions,
   key: string,
@@ -31,6 +33,14 @@ function hitLimit(
   if (!store) {
     store = new Map<string, RateLimitEntry>();
     stores.set(storeKey, store);
+  }
+
+  // Opportunistic pruning so unbounded unique keys (per-IP fingerprints) can't
+  // grow the maps forever under a burst of distinct clients.
+  if (store.size >= MAX_STORE_ENTRIES) {
+    for (const [storedKey, entry] of store) {
+      if (entry.resetAt <= now) store.delete(storedKey);
+    }
   }
 
   const entry = store.get(key);

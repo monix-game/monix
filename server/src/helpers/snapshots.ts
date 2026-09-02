@@ -3,9 +3,9 @@ import {
   getAllUsers,
   getGlobalSettings,
   getMessagesByRoomUUID,
-  getPetsByOwnerUUID,
   getRoomByUUID,
   getUserByUUID,
+  getUsersByUUID,
   updateUser,
 } from '../db';
 import { generatePrice } from './market';
@@ -41,6 +41,27 @@ export type LeaderboardEntry = {
 type LeaderboardSet = { normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] };
 
 const SIX_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Tiny TTL memoizer used to deduplicate overlapping calls to expensive
+ * snapshot builders (e.g. the leaderboard publisher tick + on-subscribe
+ * initial snapshots + HTTP leaderboard routes all firing within the same
+ * window would otherwise each re-scan the whole users collection).
+ */
+function ttlCache<T>(fn: () => Promise<T>, ttlMs: number): () => Promise<T> {
+  let value: T | undefined;
+  let expiresAt = 0;
+  return async () => {
+    const now = Date.now();
+    if (value !== undefined && now < expiresAt) return value;
+    value = await fn();
+    expiresAt = now + ttlMs;
+    return value;
+  };
+}
+
+export const buildMoneyLeaderboardCached = ttlCache(buildMoneyLeaderboard, 10_000);
+export const buildFishLeaderboardCached = ttlCache(buildFishLeaderboard, 10_000);
 
 function isNotStaff(user: { role: string }, hideStaff: boolean): boolean {
   return !hideStaff || (user.role !== 'owner' && user.role !== 'admin' && user.role !== 'mod');
@@ -168,38 +189,42 @@ export async function buildRoomMessages(
     return true;
   });
 
+  // Hydrate sender cosmetics/upgrades from a single batched query instead of
+  // one DB round-trip per unique sender (a busy room with 50 senders used to
+  // cost 50 reads per snapshot; every message send triggers a snapshot).
+  const senderUuids = Array.from(new Set(filteredMessages.map(m => m.sender_uuid).filter(Boolean)));
+  const senders = senderUuids.length > 0 ? await getUsersByUUID(senderUuids) : [];
+  const senderById = new Map(senders.map(s => [s.uuid, s]));
   const senderUpgradeCache = new Map<string, boolean>();
   const senderCosmeticCache = new Map<string, { nameplate?: string; user_tag?: string }>();
   const now = Date.now();
-  const hydratedMessages = await Promise.all(
-    filteredMessages.map(async message => {
-      if (!senderUpgradeCache.has(message.sender_uuid)) {
-        const sender = await getUserByUUID(message.sender_uuid);
-        senderUpgradeCache.set(
-          message.sender_uuid,
-          isUpgradeActive(sender?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, now)
-        );
-        senderCosmeticCache.set(message.sender_uuid, {
-          nameplate: sender?.equipped_cosmetics?.nameplate,
-          user_tag: sender?.equipped_cosmetics?.tag,
-        });
-      }
-      const cosmetics = senderCosmeticCache.get(message.sender_uuid) || {};
-      return {
-        ...message,
-        sender_magic_jellybean_active: senderUpgradeCache.get(message.sender_uuid) || false,
-        nameplate: message.nameplate ?? cosmetics.nameplate,
-        user_tag: message.user_tag ?? cosmetics.user_tag,
-      };
-    })
-  );
+  const hydratedMessages = filteredMessages.map(message => {
+    const sender = senderById.get(message.sender_uuid);
+    if (!senderUpgradeCache.has(message.sender_uuid)) {
+      senderUpgradeCache.set(
+        message.sender_uuid,
+        isUpgradeActive(sender?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, now)
+      );
+      senderCosmeticCache.set(message.sender_uuid, {
+        nameplate: sender?.equipped_cosmetics?.nameplate,
+        user_tag: sender?.equipped_cosmetics?.tag,
+      });
+    }
+    const cosmetics = senderCosmeticCache.get(message.sender_uuid) || {};
+    return {
+      ...message,
+      sender_magic_jellybean_active: senderUpgradeCache.get(message.sender_uuid) || false,
+      nameplate: message.nameplate ?? cosmetics.nameplate,
+      user_tag: message.user_tag ?? cosmetics.user_tag,
+    };
+  });
 
   return { messages: hydratedMessages.map(m => messageToDoc(m)) };
 }
 
 export async function buildPets(userUuid: string) {
-  await updatePlayersPets(userUuid);
-  return (await getPetsByOwnerUUID(userUuid)).map(petToDoc).sort((a, b) => a.time_created - b.time_created);
+  const pets = await updatePlayersPets(userUuid);
+  return pets.map(petToDoc).sort((a, b) => a.time_created - b.time_created);
 }
 
 export function buildResourceHistory(

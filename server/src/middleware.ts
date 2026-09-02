@@ -17,6 +17,45 @@ type AuthResult = {
   session: ISession | null;
 };
 
+// How often `last_seen` is flushed to the database per user. Every
+// authenticated request used to write the full user document, which turns a
+// single flat read into an expensive write (and a write conflict hot-spot when
+// many users act at once). Persisting once per minute keeps leaderboards and
+// "last seen" displays accurate while cutting write load dramatically.
+const ACTIVITY_WRITE_INTERVAL_MS = 60_000;
+
+/**
+ * Tracks user activity (last_seen + IP history) for a request/connection.
+ * Returns true when the user document needs to be persisted. Writes are
+ * throttled to once per `ACTIVITY_WRITE_INTERVAL_MS`, except when a new IP is
+ * observed (rare, so it's persisted immediately to avoid losing it).
+ */
+export function applyActivityTracking(user: IUser, ip?: string): boolean {
+  const now = Date.now();
+  let dirty = false;
+
+  if (ip) {
+    user.ip_history = user.ip_history || [];
+    // Only add if it's not the same as the last recorded IP to avoid duplicates
+    const last = user.ip_history[user.ip_history.length - 1];
+    if (!last || last.ip !== ip) {
+      user.ip_history.push({ ip, timestamp: now });
+      // Keep only the last 10 IPs to prevent unbounded growth
+      if (user.ip_history.length > 10) {
+        user.ip_history.shift();
+      }
+      dirty = true;
+    }
+  }
+
+  if (!dirty && user.last_seen && now - user.last_seen < ACTIVITY_WRITE_INTERVAL_MS) {
+    return false;
+  }
+
+  user.last_seen = now;
+  return true;
+}
+
 async function authenticateRequest(headers: HeaderMap): Promise<AuthResult> {
   const authHeader = headers['authorization'];
   if (!authHeader?.startsWith('Bearer ')) {
@@ -40,23 +79,10 @@ async function authenticateRequest(headers: HeaderMap): Promise<AuthResult> {
     return { user: null, session: null };
   }
 
-  user.last_seen = Date.now();
-
-  // Add IP to user's IP history
   const ip = getRequestIp(headers);
-  if (ip) {
-    user.ip_history = user.ip_history || [];
-    // Only add to history if it's not the same as the last recorded IP to avoid duplicates
-    if (user.ip_history.length === 0 || user.ip_history[user.ip_history.length - 1].ip !== ip) {
-      user.ip_history.push({ ip, timestamp: Date.now() });
-      // Keep only the last 10 IPs to prevent unbounded growth
-      if (user.ip_history.length > 10) {
-        user.ip_history.shift();
-      }
-    }
+  if (applyActivityTracking(user, ip)) {
+    await updateUser(user);
   }
-
-  await updateUser(user);
 
   return { user, session };
 }

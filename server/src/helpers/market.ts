@@ -14,11 +14,15 @@ const resourceById = new Map(resources.map(r => [r.id, r]));
 const randCache = new Map<string, number>();
 const RAND_CACHE_MAX = 100_000;
 
-// Cache of computed prices per resourceId and 5-second bucket. Prices only ever
-// change between buckets, so within a single bucket every caller (history,
-// prices, initial snapshot) reuses the already-computed value instead of
-// recomputing ~7 SHA-256 hashes each.
-const priceByBucket = new Map<string, { bucket: number; price: number }>();
+// Cache of computed prices per (resourceId, 5-second bucket). Prices only ever
+// change between buckets, and history is generated in 720-bucket windows, so
+// without this every 5s tick (and every graph/history build) recomputed the
+// same ~700 hashes per resource from scratch. Keyed by bucket so history
+// windows overlap mostly with cache hits instead of invalidating on each tick.
+// Bounded: when it grows past a threshold it is simply cleared, since re-seeding
+// a fresh bucket window on the next tick is far cheaper than unbounded growth.
+const priceByBucket = new Map<string, { price: number }>();
+const PRICE_CACHE_MAX = 30_000;
 
 /**
  * Generates a pseudo-random fraction based on a seed string.
@@ -68,34 +72,69 @@ export function generatePrice(resourceId: string, timestamp: number): number {
   const interval = 5; // seconds
   const bucket = Math.floor(timestamp / interval);
 
-  const cached = priceByBucket.get(resourceId);
-  if (cached && cached.bucket === bucket) return cached.price;
+  const cacheKey = `${resourceId}:${bucket}`;
+  const cached = priceByBucket.get(cacheKey);
+  if (cached) return cached.price;
+
+  if (priceByBucket.size >= PRICE_CACHE_MAX) priceByBucket.clear();
 
   const resourceBase = Math.max(resource.basePrice, 0.01);
 
   const time = bucket * interval;
   const baseFloor = Math.max(resourceBase, 1);
 
-  const trendPeriodSeconds = 15 * 60; // 15 minutes
+  // Main trend wave plus a shorter harmonic so a trough never drags on too
+  // long: 8-16 minute period, 14-32% amplitude with a 45% second harmonic.
+  const trendPeriodSeconds = (8 + pseudoRandomFraction(`${resourceId}-trend-period`) * 8) * 60;
   const trendPhase = pseudoRandomFraction(`${resourceId}-trend-phase`) * TAU;
-  const trendStrength = 0.1 + pseudoRandomFraction(`${resourceId}-trend-strength`) * 0.25; // 10% to 35%
-  const trend = Math.sin((time / trendPeriodSeconds) * TAU + trendPhase) * trendStrength;
+  const trendStrength = 0.14 + pseudoRandomFraction(`${resourceId}-trend-strength`) * 0.18;
+  const trend =
+    Math.sin((time / trendPeriodSeconds) * TAU + trendPhase) * trendStrength +
+    Math.sin((time / (trendPeriodSeconds * 2.37)) * TAU + trendPhase * 1.31) *
+      (trendStrength * 0.45);
 
-  const driftBucket = Math.floor(time / (12 * 60 * 60));
-  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.15; // up to ±15%
+  // Slow drift on a short window (4h buckets). Syncs between buckets, so an
+  // unfavourable swing corrects itself across a session instead of pinning
+  // the price down for days.
+  const driftBucket = Math.floor(time / (4 * 60 * 60));
+  const drift = smoothedNoise(`${resourceId}-drift`, driftBucket) * 0.12;
 
-  const microBucket = Math.floor(time / interval);
-  const microStrength = 0.025 + 0.055 * Math.exp(-baseFloor / 200); // 2.5% to ~5.5%
-  const micro = smoothedNoise(`${resourceId}-micro`, microBucket) * microStrength;
+  // Triangular cycle (18-32 min) that always returns to baseline: the price
+  // swings down and then climbs right back, so nothing stays "down forever".
+  const pulsePeriodSeconds = (18 + pseudoRandomFraction(`${resourceId}-pulse-period`) * 14) * 60;
+  const pulseProgress = (time % pulsePeriodSeconds) / pulsePeriodSeconds;
+  const triangle = 2 * Math.abs(2 * pulseProgress - 1) - 1;
+  const pulse = triangle * (0.12 + pseudoRandomFraction(`${resourceId}-pulse-strength`) * 0.18);
 
-  let deviation = trend + drift + micro;
+  // Occasional sharp event (usually a surge) that spikes then decays back to
+  // baseline over ~5 minutes - big visible moves that keep it exciting and
+  // always recover. One event window every 50-90 minutes per resource.
+  const eventPeriodBuckets = (50 + pseudoRandomFraction(`${resourceId}-event-period`) * 40) * 12;
+  const eventTailBuckets = 60; // 5 minutes of tail
+  const eventProgress = bucket % eventPeriodBuckets;
+  const eventStrength = 0.2 + pseudoRandomFraction(`${resourceId}-event-strength`) * 0.2; // 20-40%
+  const eventSign =
+    pseudoRandomFraction(`${resourceId}-event-sign-${Math.floor(bucket / eventPeriodBuckets)}`) >
+    0.62
+      ? -1
+      : 1;
+  const eventDecay = eventProgress < eventTailBuckets ? 1 - eventProgress / eventTailBuckets : 0;
+  const eventBump = eventStrength * eventSign * eventDecay;
 
-  const maxDeviation = 0.25 + 0.25 * Math.exp(-baseFloor / 150); // 25% to ~50%
+  // Small per-tick noise so the live price is never static on the graph, but
+  // kept subtle so trend/pulse/event movement reads as real directional runs
+  // instead of a jagged comb that flips direction every tick.
+  const microStrength = 0.008 + 0.01 * Math.exp(-baseFloor / 200);
+  const micro = smoothedNoise(`${resourceId}-micro`, Math.floor(time / interval)) * microStrength;
+
+  let deviation = trend + drift + pulse + eventBump + micro;
+
+  const maxDeviation = 0.75; // up to ±75% before the news multiplier
   deviation = clamp(deviation, -maxDeviation, maxDeviation);
 
   let price = resourceBase * (1 + deviation) * getPriceMultiplier(resourceId, time);
-  price = Math.max(price, 0.01); // Minimum price of 0.01
+  price = clamp(price, 0.01, resourceBase * 3); // Minimum price of 0.01, cap at 3x base
 
-  priceByBucket.set(resourceId, { bucket, price });
+  priceByBucket.set(cacheKey, { price });
   return price;
 }

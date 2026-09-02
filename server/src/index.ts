@@ -82,6 +82,18 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       if (typeof value === 'string') headers.set(key, value);
       else if (Array.isArray(value)) headers.set(key, value.join(', '));
     }
+    // The client's real IP is available from the socket, but the `Request` we
+    // build below has no way to carry it. When no reverse proxy already set a
+    // forwarding header, inject the socket address as `x-real-ip` so the auth
+    // middleware can record it in the user's IP history.
+    if (
+      !req.headers['x-forwarded-for'] &&
+      !req.headers['x-real-ip'] &&
+      !req.headers['client-ip'] &&
+      req.socket.remoteAddress
+    ) {
+      headers.set('x-real-ip', String(req.socket.remoteAddress).replace(/^::ffff:/, ''));
+    }
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
     const body = hasBody ? (await readBody(req)).toString('utf8') : undefined;
     const request = new Request(url, {

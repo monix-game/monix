@@ -10,10 +10,11 @@ import {
   deleteMessageByUUID,
   updateMessage,
   createReport,
+  updateUser,
 } from './db';
 import {
-  buildFishLeaderboard,
-  buildMoneyLeaderboard,
+  buildFishLeaderboardCached,
+  buildMoneyLeaderboardCached,
   buildNewsFeed,
   buildPets,
   buildResourceHistory,
@@ -24,6 +25,7 @@ import {
   buildUserSnapshot,
 } from './helpers/snapshots';
 import { sendChatMessage } from './helpers/chat';
+import { applyActivityTracking } from './middleware';
 import type { IUser } from '../common/models/user';
 import { createLogger } from './logging';
 import { profanityFilter } from './constants';
@@ -46,6 +48,7 @@ type WSSocket = {
 type SocketAuthData = {
   socketUser?: IUser;
   socketAuthed?: boolean;
+  remoteIp?: string;
 };
 
 function getAuthData(ws: { data: object }): SocketAuthData {
@@ -145,10 +148,10 @@ function startLeaderboardPublisher() {
     void (async () => {
       try {
         if (isChannelActive('leaderboard:money')) {
-          broadcast('leaderboard:money', await buildMoneyLeaderboard());
+          broadcast('leaderboard:money', await buildMoneyLeaderboardCached());
         }
         if (isChannelActive('leaderboard:fish')) {
-          broadcast('leaderboard:fish', await buildFishLeaderboard());
+          broadcast('leaderboard:fish', await buildFishLeaderboardCached());
         }
       } catch {
         // Swallow errors.
@@ -315,9 +318,9 @@ async function sendInitialSnapshot(channel: string, ws: WSSocket) {
     const messages = await chatSnapshot(channel.slice('chat:'.length));
     if (messages) data = messages;
   } else if (channel === 'leaderboard:money') {
-    data = await buildMoneyLeaderboard();
+    data = await buildMoneyLeaderboardCached();
   } else if (channel === 'leaderboard:fish') {
-    data = await buildFishLeaderboard();
+    data = await buildFishLeaderboardCached();
   } else if (channel.startsWith('pets:')) {
     data = await buildPets(channel.slice('pets:'.length));
   } else if (channel === 'resources:prices') {
@@ -377,7 +380,16 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
             const session = await getSessionByToken(msg.token);
             if (session) {
               const user = await getUserByUUID(session.user_uuid);
-              target.socketUser = user ?? undefined;
+              if (user) {
+                // Record the IP on socket auth too, so game clients that live
+                // mostly over WebSocket still populate IP history. Uses the same
+                // throttled tracking as the HTTP middleware.
+                const remoteIp = target.remoteIp;
+                if (remoteIp && applyActivityTracking(user, remoteIp)) {
+                  await updateUser(user);
+                }
+                target.socketUser = user ?? undefined;
+              }
             }
           }
           target.socketAuthed = true;
@@ -669,7 +681,9 @@ export function attachSocketServer(server: Server | HttpsServer) {
   log.info('WebSocket server attached on /ws');
   wss.on('connection', rawWs => {
     const ws = rawWs as unknown as WSSocket;
-    ws.data = {};
+    ws.data = {
+      remoteIp: (rawWs as { _socket?: { remoteAddress?: string } })._socket?.remoteAddress,
+    };
     log.debug('WebSocket client connected');
     let messageChain: Promise<void> = Promise.resolve();
     rawWs.on('message', data => {

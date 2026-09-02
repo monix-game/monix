@@ -101,6 +101,17 @@ export async function getUserByUUID(uuid: string): Promise<IUser | null> {
   return doc ? userFromDoc(doc) : null;
 }
 
+export async function getUsersByUUID(uuids: string[]): Promise<IUser[]> {
+  const unique = uuids.filter(Boolean);
+  if (unique.length === 0) return [];
+  const database = ensureDB();
+  const docs = await database
+    .collection('users')
+    .find({ uuid: { $in: unique } })
+    .toArray();
+  return docs.map(userFromDoc);
+}
+
 export async function getUserByUsername(username: string): Promise<IUser | null> {
   const database = ensureDB();
   const doc = await database.collection('users').findOne({ username });
