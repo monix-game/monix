@@ -60,7 +60,7 @@ export const BuySellPanel: React.FC<BuySellPanelProps> = ({
       </div>
       <div className={styles['content']}>
         {marketMode === 'buy' ? (
-          <div>
+          <div className={styles['buy-sell-inner']}>
             <div className={styles['resource-info']}>
               <span className={styles['resource-name']}>{resource.name}</span>
               <span className={`${styles['resource-value']} mono`}>
@@ -126,14 +126,14 @@ export const BuySellPanel: React.FC<BuySellPanelProps> = ({
             </Button>
           </div>
         ) : (
-          <div>
+          <div className={styles['buy-sell-inner']}>
             {quantity === 0 && (
               <p className={styles['no-quantity']}>
                 You have no {resource.name.toLowerCase()} to sell.
               </p>
             )}
             {quantity > 0 && (
-              <div>
+              <div className={styles['buy-sell-inner']}>
                 <div className={styles['resource-info']}>
                   <span className={styles['resource-name']}>{resource.name}</span>
                   <span className={`${styles['resource-value']} mono`}>

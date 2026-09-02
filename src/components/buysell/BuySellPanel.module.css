@@ -63,6 +63,12 @@
   gap: 12px;
 }
 
+.buy-sell-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .resource-info {
   display: flex;
   gap: 8px;
