@@ -120,6 +120,13 @@
         "x": 0,
         "y": 12
       },
+      "options": {
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
       "targets": [
         {
           "expr": "sum(rate(monix_mongo_operations_total[5m])) by (operation, collection)",
