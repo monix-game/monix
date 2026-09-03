@@ -85,7 +85,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(monix_nodejs_eventloop_lag_seconds_bucket[5m])) by (le))"
+          "expr": "monix_nodejs_eventloop_lag_p99_seconds"
         }
       ]
     },
