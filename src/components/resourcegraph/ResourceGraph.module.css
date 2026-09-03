@@ -1,7 +1,7 @@
 .graph-container {
   margin-top: 20px;
-  width: fit-content;
-  min-width: 650px;
+  width: 100%;
+  min-width: 0;
   height: 300px;
   border: 2px solid var(--primary-2);
   border-radius: var(--border-radius);

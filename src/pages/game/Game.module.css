@@ -1748,12 +1748,16 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: stretch;
+  height: calc(100vh - 220px);
 }
 
 .market-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .market-panel-header {
@@ -1858,5 +1862,10 @@
 @media (max-width: 768px) {
   .resources-two-pane {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .market-panel {
+    overflow-y: visible;
   }
 }
