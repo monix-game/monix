@@ -14,6 +14,12 @@
         "x": 0,
         "y": 0
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "expr": "monix_websocket_connections"
@@ -28,6 +34,12 @@
         "w": 6,
         "x": 6,
         "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
       },
       "targets": [
         {
@@ -44,6 +56,12 @@
         "x": 12,
         "y": 0
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "expr": "monix_user_mutation_queue"
@@ -59,6 +77,12 @@
         "x": 18,
         "y": 0
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.99, sum(rate(monix_nodejs_eventloop_lag_seconds_bucket[5m])) by (le))"
@@ -73,6 +97,13 @@
         "w": 12,
         "x": 0,
         "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": []
       },
       "options": {
         "tooltip": {
@@ -97,6 +128,12 @@
         "x": 12,
         "y": 4
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
       "options": {
         "tooltip": {
           "hideZeros": false,
@@ -119,6 +156,12 @@
         "w": 12,
         "x": 0,
         "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
       },
       "options": {
         "tooltip": {
@@ -143,6 +186,12 @@
         "x": 12,
         "y": 12
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
       "options": {
         "tooltip": {
           "hideZeros": false,
@@ -166,6 +215,13 @@
         "x": 0,
         "y": 20
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": []
+      },
       "options": {
         "tooltip": {
           "hideZeros": false,
@@ -188,6 +244,12 @@
         "w": 12,
         "x": 12,
         "y": 20
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
       },
       "options": {
         "tooltip": {
