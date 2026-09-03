@@ -61,6 +61,25 @@
   color: var(--text-muted);
 }
 
+.pet-progression {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: capitalize;
+}
+
+.pet-rarity-rare {
+  color: var(--blue-2);
+}
+.pet-rarity-epic {
+  color: var(--purple-2);
+}
+.pet-rarity-legendary {
+  color: var(--red-1);
+}
+
 .pet-exp {
   width: 80%;
   display: flex;

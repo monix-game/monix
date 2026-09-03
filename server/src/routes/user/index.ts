@@ -11,6 +11,7 @@ import tutorialRoutes from './tutorial';
 import avatarRoutes from './avatar';
 import upgradesRoutes from './upgrades';
 import rewardsRoutes from './rewards';
+import progressionRoutes from './progression';
 
 export const userRoutes = new Elysia()
   .use(register)
@@ -21,6 +22,7 @@ export const userRoutes = new Elysia()
   .use(avatarRoutes)
   .use(upgradesRoutes)
   .use(rewardsRoutes)
+  .use(progressionRoutes)
   .use(getUser)
   .use(logout)
   .use(deleteAccount)

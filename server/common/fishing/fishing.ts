@@ -67,7 +67,8 @@ export interface FishingResult {
 export function calculateFishingResult(
   baitId: string | null,
   rodId: string,
-  upgrades?: Record<string, { expires_at: number }>
+  upgrades?: Record<string, { expires_at: number }>,
+  permanentUpgrades?: Record<string, number>
 ): FishingResult {
   const bait = baitId ? fishingBaits.find(b => b.id === baitId) : null;
   const rod = fishingRods.find(r => r.id === rodId);
@@ -111,7 +112,12 @@ export function calculateFishingResult(
 
   // Determine modifiers for the caught fish based on active event and random chance
   let modifier = null;
-  const modifierChance = isUpgradeActive(upgrades, LUCKY_CHARM_UPGRADE_ID) ? 1 : 0.5;
+  const modifierChance = Math.min(
+    1,
+    0.5 +
+      (permanentUpgrades?.lucky_tide || 0) * 0.05 +
+      (isUpgradeActive(upgrades, LUCKY_CHARM_UPGRADE_ID) ? 0.5 : 0)
+  );
   if (rng() <= modifierChance) {
     const possibleModifiers = fishModifiers.filter(mod => mod.event === event.event?.id);
     if (possibleModifiers.length > 0) {
@@ -130,7 +136,9 @@ export function calculateFishingResult(
   // Calculate weight of the caught fish based on its type, rod multiplier, and lucky boost
   const baseWeight = rng() * (fishType.max_weight - fishType.min_weight) + fishType.min_weight;
   const rodMultiplier = rod ? rod.multiplier : 1;
-  const upgradeWeightMultiplier = isUpgradeActive(upgrades, HEAVY_LINE_UPGRADE_ID) ? 1.25 : 1;
+  const permanentWeightMultiplier = 1 + (permanentUpgrades?.angler_instinct || 0) * 0.08;
+  const upgradeWeightMultiplier =
+    permanentWeightMultiplier * (isUpgradeActive(upgrades, HEAVY_LINE_UPGRADE_ID) ? 1.25 : 1);
   const finalWeight = baseWeight * rodMultiplier * luckyBoost * upgradeWeightMultiplier;
 
   return {

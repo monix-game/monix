@@ -41,6 +41,9 @@ export const levelUpPet = new Elysia()
 
       // Level up the pet
       pet.level += 1;
+      if (pet.level >= 50) pet.rarity = 'legendary';
+      else if (pet.level >= 25) pet.rarity = 'epic';
+      else if (pet.level >= 10) pet.rarity = 'rare';
       await updatePet(pet);
 
       return {

@@ -3,7 +3,7 @@ import styles from './PetsList.module.css';
 import { Pet } from './pet/Pet';
 import type { IPet } from '../../../server/common/models/pet';
 import { PetModal } from './petmodal/PetModal';
-import { adoptPet, buyPetSlot, getAllPets } from '../../helpers/pets';
+import { adoptPet, collectPetEarnings, getAllPets } from '../../helpers/pets';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
@@ -12,30 +12,20 @@ import { useSocket } from '../../providers/socket';
 
 interface PetsListProps {
   money: number;
-  gems: number;
   petSlots?: number;
   userUuid: string;
   refreshUser: () => Promise<void>;
 }
 
-export const PetsList: React.FC<PetsListProps> = ({
-  money,
-  gems,
-  petSlots,
-  userUuid,
-  refreshUser,
-}) => {
+export const PetsList: React.FC<PetsListProps> = ({ money, petSlots, userUuid, refreshUser }) => {
   const [hydrated, setHydrated] = useState<boolean>(false);
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
   const [petShopModalOpen, setPetShopModalOpen] = useState<boolean>(false);
-  const maxSlots = Math.min(Math.max(petSlots ?? 3, 3), 10);
+  const maxSlots = Math.min(Math.max(petSlots ?? 3, 3), 17);
 
   const [isBuyingPet, setIsBuyingPet] = useState<boolean>(false);
   const [isPetPurchaseLoading, setIsPetPurchaseLoading] = useState<boolean>(false);
-
-  const [isBuyingSlot, setIsBuyingSlot] = useState<boolean>(false);
-  const [isSlotPurchaseLoading, setIsSlotPurchaseLoading] = useState<boolean>(false);
 
   const { subscribe } = useSocket();
 
@@ -56,6 +46,16 @@ export const PetsList: React.FC<PetsListProps> = ({
     <>
       <div className={styles['pets-list-buttons']}>
         <Button
+          onClick={async () => {
+            await collectPetEarnings();
+            await refreshUser();
+            await fetchPets();
+          }}
+          disabled={!hydrated || pets.length === 0}
+        >
+          Collect Pet Earnings
+        </Button>
+        <Button
           onClick={() => setIsBuyingPet(true)}
           disabled={!hydrated || pets.length >= maxSlots}
         >
@@ -67,15 +67,14 @@ export const PetsList: React.FC<PetsListProps> = ({
         >
           Open Pet Shop
         </Button>
-        <Button onClick={() => setIsBuyingSlot(true)} disabled={!hydrated || maxSlots >= 10}>
-          Buy Pet Slot
-        </Button>
       </div>
       <div className={styles['info-text']}>
         Pet slots: {pets.length} / {maxSlots}
       </div>
       {pets.length >= maxSlots && (
-        <div className={styles['info-text']}>You have reached the maximum number of pets ({maxSlots}).</div>
+        <div className={styles['info-text']}>
+          You have reached the maximum number of pets ({maxSlots}).
+        </div>
       )}
       <div className={`${styles['pets-list']} ${pets.length === 0 ? styles['no-pets'] : ''}`}>
         {pets.map(pet => (
@@ -147,29 +146,6 @@ export const PetsList: React.FC<PetsListProps> = ({
             const newPet = pets.find(p => p.uuid === pet.uuid);
             return { ...prev, [newPet ? newPet.uuid : pet.uuid]: true };
           });
-        }}
-      />
-
-      <PaymentModal
-        isOpen={isBuyingSlot}
-        isLoading={isSlotPurchaseLoading}
-        onClose={() => setIsBuyingSlot(false)}
-        type="gems"
-        amount={50}
-        balance={gems}
-        productName="Pet Slot Upgrade"
-        onPurchase={async () => {
-          setIsSlotPurchaseLoading(true);
-
-          // Artificial delay
-          await new Promise(resolve => setTimeout(resolve, 750));
-
-          await buyPetSlot();
-          await fetchPets();
-          await refreshUser();
-
-          setIsSlotPurchaseLoading(false);
-          setIsBuyingSlot(false);
         }}
       />
     </>

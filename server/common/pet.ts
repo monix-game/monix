@@ -12,6 +12,13 @@ export function expRequiredForLevel(level: number): number {
   return 100 * Math.pow(level, 2);
 }
 
+export function petPassiveRate(pet: IPet, passiveIncomeBonus = 0): number {
+  const rarityMultiplier = { common: 1, rare: 2, epic: 4, legendary: 8 }[pet.rarity || 'common'];
+  return Math.floor(
+    (pet.level + (pet.bond || 0) / 10) * rarityMultiplier * (1 + passiveIncomeBonus)
+  );
+}
+
 export function canLevelUpPet(pet: IPet): boolean {
   // Exponential level up requirement: 100 * (level ^ 2)
   const requiredExp = expRequiredForLevel(pet.level);

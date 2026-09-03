@@ -111,6 +111,13 @@ export interface IUser {
       expires_at: number;
     };
   };
+  prestige?: {
+    count: number;
+    shards: number;
+    lifetime_earned: number;
+  };
+  permanent_upgrades?: Record<string, number>;
+  achievements?: string[];
 }
 
 export function userToDoc(u: IUser): IUser {
@@ -140,6 +147,9 @@ export function userToDoc(u: IUser): IUser {
     punishments: u.punishments,
     ip_history: u.ip_history || [],
     upgrades: u.upgrades || {},
+    prestige: u.prestige || { count: 0, shards: 0, lifetime_earned: 0 },
+    permanent_upgrades: u.permanent_upgrades || {},
+    achievements: u.achievements || [],
   };
 }
 
@@ -214,6 +224,13 @@ export function userFromDoc(doc: any): IUser {
     punishments: doc.punishments || [],
     ip_history: doc.ip_history || [],
     upgrades: doc.upgrades || {},
+    prestige: {
+      count: doc.prestige?.count || 0,
+      shards: doc.prestige?.shards ?? doc.prestige?.stars ?? 0,
+      lifetime_earned: doc.prestige?.lifetime_earned || 0,
+    },
+    permanent_upgrades: doc.permanent_upgrades || {},
+    achievements: doc.achievements || [],
   };
 }
 

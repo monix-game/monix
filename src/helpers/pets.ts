@@ -51,13 +51,12 @@ export async function buyPet(petTypeId: string): Promise<IPet | null> {
   }
 }
 
-export async function buyPetSlot(): Promise<boolean> {
+export async function collectPetEarnings(): Promise<number> {
   try {
-    const resp = await api.post<{ pet_slots: number }>('/pets/buy-slot');
-    return resp?.success ?? false;
-  } catch (err) {
-    console.error('Error buying pet slot', err);
-    return false;
+    const resp = await api.post<{ earned: number }>('/pets/collect');
+    return resp.success ? resp.data?.earned || 0 : 0;
+  } catch {
+    return 0;
   }
 }
 

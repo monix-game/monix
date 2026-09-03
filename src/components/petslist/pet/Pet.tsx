@@ -10,6 +10,7 @@ import {
   formatSleepRemainder,
   formatTimeUntilSleep,
   isPetAsleep,
+  petPassiveRate,
 } from '../../../../server/common/pet';
 import type { IPet } from '../../../../server/common/models/pet';
 import { smartFormatNumber } from '../../../../server/common/math';
@@ -36,6 +37,13 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
           <span className={styles['pet-name']}>{pet.name || 'Unnamed Pet'}</span>
           <span className={styles['pet-type']}>{type.name}</span>
         </div>
+      </div>
+      <div className={styles['pet-progression']}>
+        <span className={styles[`pet-rarity-${pet.rarity || 'common'}`]}>
+          {pet.rarity || 'common'}
+        </span>
+        <span>Bond {pet.bond || 0}%</span>
+        <span>+{smartFormatNumber(petPassiveRate(pet))}/min</span>
       </div>
       {!pet.is_dead && (
         <>

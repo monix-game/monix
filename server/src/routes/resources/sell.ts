@@ -32,40 +32,35 @@ export const sellResource = new Elysia()
       const resourcePrice = generatePrice(resourceId, Math.floor(Date.now() / 1000));
       const totalValue = resourcePrice * quantityToSell;
 
-      const result = await mutateUserAndSave<SellOutcome>(
-        user_uuid,
-        async fetchedUser => {
-          const currentQuantity = fetchedUser.resources
-            ? fetchedUser.resources[resourceId] || 0
-            : 0;
-          if (fetchedUser.resources === undefined || currentQuantity < quantityToSell) {
-            return {
-              changed: false,
-              value: { ok: 'error', status: 400, error: 'Insufficient resources to sell' },
-            };
-          }
-
-          // Deduct resources and add balance
-          fetchedUser.resources[resourceId] = currentQuantity - quantityToSell;
-          fetchedUser.money = (fetchedUser.money || 0) + Number(totalValue);
-
-          fetchedUser.stats ??= DEFAULT_USER_STATS;
-          fetchedUser.stats.resource_sells = (fetchedUser.stats.resource_sells || 0) + 1;
-          fetchedUser.stats.resources_sold =
-            (fetchedUser.stats.resources_sold || 0) + quantityToSell;
-
+      const result = await mutateUserAndSave<SellOutcome>(user_uuid, async fetchedUser => {
+        const currentQuantity = fetchedUser.resources ? fetchedUser.resources[resourceId] || 0 : 0;
+        if (fetchedUser.resources === undefined || currentQuantity < quantityToSell) {
           return {
-            changed: true,
-            value: {
-              ok: 'success',
-              message: 'Sale successful',
-              resourceId,
-              quantity: fetchedUser.resources[resourceId],
-              money: fetchedUser.money,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient resources to sell' },
           };
         }
-      );
+
+        // Deduct resources and add balance
+        fetchedUser.resources[resourceId] = currentQuantity - quantityToSell;
+        const marketBonus = 1 + (fetchedUser.permanent_upgrades?.market_instinct || 0) * 0.04;
+        fetchedUser.money = (fetchedUser.money || 0) + Number(totalValue) * marketBonus;
+
+        fetchedUser.stats ??= DEFAULT_USER_STATS;
+        fetchedUser.stats.resource_sells = (fetchedUser.stats.resource_sells || 0) + 1;
+        fetchedUser.stats.resources_sold = (fetchedUser.stats.resources_sold || 0) + quantityToSell;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success',
+            message: 'Sale successful',
+            resourceId,
+            quantity: fetchedUser.resources[resourceId],
+            money: fetchedUser.money,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

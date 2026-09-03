@@ -99,7 +99,11 @@ import {
   isUpgradeActive,
   MAGIC_JELLYBEAN_UPGRADE_ID,
   UPGRADES,
+  PERMANENT_UPGRADES,
+  permanentUpgradeCost,
 } from '../../../server/common/upgrades';
+import { ACHIEVEMENTS } from '../../../server/common/achievements';
+import { buyPermanentUpgrade, prestige } from '../../helpers/progression';
 import { useSocket } from '../../providers/socket';
 import { useChatNotifications } from '../../hooks/useChatNotifications';
 
@@ -107,7 +111,10 @@ const getRodTierInfo = (price: number) => {
   if (price <= 10000) return { emoji: '🟢', title: 'Starter' };
   if (price <= 150000) return { emoji: '🔷', title: 'Skilled' };
   if (price <= 1000000) return { emoji: '🟣', title: 'Elite' };
-  return { emoji: '🌌', title: 'Mythic' };
+  if (price <= 500000000) return { emoji: '🌌', title: 'Mythic' };
+  if (price <= 10000000000) return { emoji: '🌠', title: 'Cosmic' };
+  if (price <= 25000000000) return { emoji: '🕳️', title: 'Singularity' };
+  return { emoji: '✨', title: 'Genesis' };
 };
 
 export default function Game() {
@@ -129,6 +136,7 @@ export default function Game() {
     | 'social'
     | 'radio'
     | 'upgrades'
+    | 'achievements'
     | 'leaderboard'
     | 'store'
     | 'cosmetics'
@@ -1093,6 +1101,7 @@ export default function Game() {
                     { key: 'social', label: '💬 Social' },
                     { key: 'radio', label: '📻 Radio' },
                     { key: 'upgrades', label: '⚡ Upgrades' },
+                    { key: 'achievements', label: '🏅 Achievements' },
                     { key: 'leaderboard', label: '🏆 Leaderboard' },
                     { key: 'store', label: '🛒 Store' },
                     { key: 'cosmetics', label: '🎨 Cosmetics' },
@@ -2251,7 +2260,6 @@ export default function Game() {
                 <h2>Pets</h2>
                 <PetsList
                   money={user?.money || 0}
-                  gems={user?.gems ?? 0}
                   petSlots={user?.pet_slots}
                   userUuid={user?.uuid ?? ''}
                   refreshUser={updateEverything}
@@ -2332,6 +2340,88 @@ export default function Game() {
           {tab === 'upgrades' && (
             <div className="tab-content">
               <h2>Upgrades</h2>
+              <div className={styles['prestige-panel']}>
+                <div>
+                  <h3>
+                    <EmojiText>🌟</EmojiText> Prestige
+                  </h3>
+                  <p>
+                    Reset money, resources, rods, and aquarium progress to earn permanent shards
+                    based on net worth.
+                  </p>
+                  <span>
+                    Prestiges: <b>{user?.prestige?.count || 0}</b> · Shards:{' '}
+                    <b>{user?.prestige?.shards || 0}</b>
+                  </span>
+                </div>
+                <Button
+                  color="purple"
+                  disabled={!user || user.money < 1_000_000_000}
+                  onClickAsync={async () => {
+                    if (
+                      !globalThis.confirm(
+                        'Prestige will reset your money, resources, rods, and aquarium. Continue?'
+                      )
+                    )
+                      return;
+                    if (await prestige()) await updateEverything();
+                  }}
+                >
+                  Prestige for{' '}
+                  {user
+                    ? Math.floor(
+                        Math.sqrt(
+                          Math.max(
+                            0,
+                            user.money +
+                              Object.entries(user.resources || {}).reduce(
+                                (total, [id, quantity]) =>
+                                  total +
+                                  (resources.find(resource => resource.id === id)?.basePrice || 0) *
+                                    quantity,
+                                0
+                              )
+                          ) / 1_000_000_000
+                        )
+                      )
+                    : 0}{' '}
+                  shards
+                </Button>
+              </div>
+              <h3 className={styles['upgrade-section-title']}>Permanent Upgrade Tree</h3>
+              <div className={styles['upgrades-grid']}>
+                {PERMANENT_UPGRADES.map(upgrade => {
+                  const level = user?.permanent_upgrades?.[upgrade.id] || 0;
+                  const cost = permanentUpgradeCost(upgrade, level);
+                  return (
+                    <div
+                      key={upgrade.id}
+                      className={`${styles['upgrade-card']} ${styles['permanent-upgrade-card']}`}
+                    >
+                      <h3 className={styles['upgrade-name']}>
+                        <EmojiText>{upgrade.icon}</EmojiText> {upgrade.name}
+                      </h3>
+                      <p className={styles['upgrade-description']}>{upgrade.description}</p>
+                      <span className={styles['upgrade-level']}>
+                        Level {level} / {upgrade.maxLevel}
+                      </span>
+                      <Button
+                        disabled={
+                          level >= upgrade.maxLevel || !user || (user.prestige?.shards || 0) < cost
+                        }
+                        onClickAsync={async () => {
+                          if (await buyPermanentUpgrade(upgrade.id)) await updateEverything();
+                        }}
+                      >
+                        {level >= upgrade.maxLevel
+                          ? 'Maxed'
+                          : `Upgrade for ${cost} star${cost === 1 ? '' : 's'}`}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+              <h3 className={styles['upgrade-section-title']}>Timed Upgrades</h3>
               <div className={styles['upgrades-grid']}>
                 {UPGRADES.sort((a, b) => {
                   // Sort by if it is active, and then alphabetically by name
@@ -2391,6 +2481,33 @@ export default function Game() {
                             }`
                           : `30mins for ${smartFormatNumber(upgrade.price_per_half_hour || 0)}`}
                       </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {tab === 'achievements' && (
+            <div className="tab-content">
+              <h2>Achievements</h2>
+              <p className={styles['achievement-summary']}>
+                {user?.achievements?.length || 0} / {ACHIEVEMENTS.length} unlocked
+              </p>
+              <div className={styles['achievements-grid']}>
+                {ACHIEVEMENTS.map(achievement => {
+                  const unlocked = user?.achievements?.includes(achievement.id) || false;
+                  return (
+                    <div
+                      key={achievement.id}
+                      className={`${styles['achievement-card']} ${unlocked ? styles['achievement-unlocked'] : ''}`}
+                    >
+                      <span className={styles['achievement-icon']}>
+                        <EmojiText>{unlocked ? achievement.icon : '🔒'}</EmojiText>
+                      </span>
+                      <div>
+                        <h3>{unlocked ? achievement.name : 'Locked Achievement'}</h3>
+                        <p>{unlocked ? achievement.description : achievement.requirement}</p>
+                      </div>
                     </div>
                   );
                 })}

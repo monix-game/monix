@@ -34,46 +34,61 @@ export const shopPet = new Elysia()
       const petTypeId = petType.id;
       const petCost = petType.cost;
 
-      const result = await mutateUserAndSave<ShopOutcome>(
-        user_uuid,
-        async fetchedUser => {
-          const maxPets = getPetSlotLimit(fetchedUser);
+      const result = await mutateUserAndSave<ShopOutcome>(user_uuid, async fetchedUser => {
+        const maxPets = getPetSlotLimit(fetchedUser);
 
-          // Check if the user already has the maximum number of pets
-          const pets = await getPetsByOwnerUUID(user_uuid);
-          if (pets.length >= maxPets) {
-            return { changed: false, value: { ok: 'error', status: 400, error: `You have reached the maximum number of pets (${maxPets})` } };
-          }
-
-          // Check if the user has enough money to adopt the pet
-          if ((fetchedUser.money || 0) < petCost) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to adopt this pet' } };
-          }
-
-          // Deduct the money from the user
-          fetchedUser.money = (fetchedUser.money || 0) - petCost;
-
-          const pet: IPet = {
-            uuid: v4(),
-            owner_uuid: user_uuid,
-            name: null,
-            type_id: petTypeId,
-            level: 1,
-            time_last_fed: Date.now(),
-            time_last_played: Date.now(),
-            time_created: Date.now(),
-            exp: 0,
-            is_dead: false,
-          };
-
-          await createPet(pet);
-
+        // Check if the user already has the maximum number of pets
+        const pets = await getPetsByOwnerUUID(user_uuid);
+        if (pets.length >= maxPets) {
           return {
-            changed: true,
-            value: { ok: 'success' as const, message: 'Pet purchased successfully', pet: petToDoc(pet) },
+            changed: false,
+            value: {
+              ok: 'error',
+              status: 400,
+              error: `You have reached the maximum number of pets (${maxPets})`,
+            },
           };
         }
-      );
+
+        // Check if the user has enough money to adopt the pet
+        if ((fetchedUser.money || 0) < petCost) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient funds to adopt this pet' },
+          };
+        }
+
+        // Deduct the money from the user
+        fetchedUser.money = (fetchedUser.money || 0) - petCost;
+
+        const pet: IPet = {
+          uuid: v4(),
+          owner_uuid: user_uuid,
+          name: null,
+          type_id: petTypeId,
+          level: 1,
+          time_last_fed: Date.now(),
+          time_last_played: Date.now(),
+          time_created: Date.now(),
+          exp: 0,
+          is_dead: false,
+          rarity: petType.cost >= 10000 ? 'rare' : 'common',
+          bond: 0,
+          passive_earned: 0,
+          last_passive_collected: Date.now(),
+        };
+
+        await createPet(pet);
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Pet purchased successfully',
+            pet: petToDoc(pet),
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

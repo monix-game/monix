@@ -44,20 +44,20 @@ export const feedPet = new Elysia()
       const feedCost =
         feed_type && FEED_COSTS[feed_type] ? FEED_COSTS[feed_type] : FEED_COSTS['standard'];
 
-      const result = await mutateUserAndSave<FeedOutcome>(
-        user_uuid,
-        async fetchedUser => {
-          if ((fetchedUser.money || 0) < feedCost) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to feed the pet' } };
-          }
-
-          fetchedUser.money = (fetchedUser.money || 0) - feedCost;
-          fetchedUser.stats ??= DEFAULT_USER_STATS;
-          fetchedUser.stats.pets_fed = (fetchedUser.stats.pets_fed || 0) + 1;
-
-          return { changed: true, value: { ok: 'success' as const, pet: petToDoc(pet) } };
+      const result = await mutateUserAndSave<FeedOutcome>(user_uuid, async fetchedUser => {
+        if ((fetchedUser.money || 0) < feedCost) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient funds to feed the pet' },
+          };
         }
-      );
+
+        fetchedUser.money = (fetchedUser.money || 0) - feedCost;
+        fetchedUser.stats ??= DEFAULT_USER_STATS;
+        fetchedUser.stats.pets_fed = (fetchedUser.stats.pets_fed || 0) + 1;
+
+        return { changed: true, value: { ok: 'success' as const, pet: petToDoc(pet) } };
+      });
 
       if (!result) {
         set.status = 404;
@@ -71,6 +71,7 @@ export const feedPet = new Elysia()
       // Update the pet's last fed time and add experience
       pet.time_last_fed = Date.now();
       pet.exp += feed_type && FEED_EXP[feed_type] ? FEED_EXP[feed_type] : FEED_EXP['standard'];
+      pet.bond = Math.min(100, (pet.bond || 0) + 2);
       await updatePet(pet);
 
       return result;

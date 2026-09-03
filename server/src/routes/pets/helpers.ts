@@ -13,13 +13,13 @@ export const FEED_EXP: { [key: string]: number } = {
   premium: 25,
 };
 
-export const PET_SLOT_COST = 50;
 export const PET_SLOT_MIN = 3;
 export const PET_SLOT_MAX = 10;
 
 export function getPetSlotLimit(user: IUser): number {
   const rawSlots = typeof user.pet_slots === 'number' ? user.pet_slots : PET_SLOT_MIN;
-  return Math.min(Math.max(rawSlots, PET_SLOT_MIN), PET_SLOT_MAX);
+  const permanentSlots = user.permanent_upgrades?.expanded_kennel || 0;
+  return Math.min(Math.max(rawSlots + permanentSlots, PET_SLOT_MIN), PET_SLOT_MAX + 7);
 }
 
 /**

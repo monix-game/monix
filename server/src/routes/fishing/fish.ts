@@ -61,7 +61,12 @@ export const fish = new Elysia()
         const baitId = fetchedUser.fishing?.equipped_bait || null;
         const rodId = fetchedUser.fishing?.equipped_rod || 'damaged-rod';
 
-        const fishingResult = calculateFishingResult(baitId, rodId, fetchedUser.upgrades);
+        const fishingResult = calculateFishingResult(
+          baitId,
+          rodId,
+          fetchedUser.upgrades,
+          fetchedUser.permanent_upgrades
+        );
 
         const fish: IFish = {
           uuid: v4(),

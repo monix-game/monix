@@ -39,14 +39,18 @@ export const playPet = new Elysia()
         return { error: 'Cannot play with the pet while it is asleep' };
       }
 
-      const result = await mutateUserAndSave<PlayOutcome>(
-        user_uuid,
-        async fetchedUser => {
-          fetchedUser.stats ??= DEFAULT_USER_STATS;
-          fetchedUser.stats.pets_played = (fetchedUser.stats.pets_played || 0) + 1;
-          return { changed: true, value: { ok: 'success' as const, message: 'Pet played with successfully', pet: petToDoc(pet) } };
-        }
-      );
+      const result = await mutateUserAndSave<PlayOutcome>(user_uuid, async fetchedUser => {
+        fetchedUser.stats ??= DEFAULT_USER_STATS;
+        fetchedUser.stats.pets_played = (fetchedUser.stats.pets_played || 0) + 1;
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Pet played with successfully',
+            pet: petToDoc(pet),
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;
@@ -60,6 +64,7 @@ export const playPet = new Elysia()
       // Update the pet's last played time and add experience
       pet.time_last_played = Date.now();
       pet.exp += 5;
+      pet.bond = Math.min(100, (pet.bond || 0) + 3);
       await updatePet(pet);
 
       return result;
