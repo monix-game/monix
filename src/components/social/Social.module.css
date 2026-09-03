@@ -149,6 +149,16 @@
   background: var(--primary-1);
 }
 
+.context-menu-item-disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.context-menu-item-disabled:hover {
+  background: transparent;
+}
+
 .social-modal-content {
   display: flex;
   flex-direction: column;

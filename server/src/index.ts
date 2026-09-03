@@ -25,7 +25,6 @@ import resourcesRoutes from './routes/resources';
 import appealsRoutes from './routes/appeals';
 import hooksRoutes from './routes/hooks';
 import fishingRoutes from './routes/fishing';
-import casinoRoutes from './routes/casino';
 import petsRoutes from './routes/pets';
 import socialRoutes from './routes/social';
 import staffRoutes from './routes/staff';
@@ -60,7 +59,6 @@ const app = new Elysia()
   .group('/api/appeals', app => app.use(appealsRoutes))
   .group('/api/hooks', app => app.use(hooksRoutes))
   .group('/api/fishing', app => app.use(fishingRoutes))
-  .group('/api/casino', app => app.use(casinoRoutes))
   .group('/api/pets', app => app.use(petsRoutes))
   .group('/api/social', app => app.use(socialRoutes))
   .group('/api/staff', app => app.use(staffRoutes))

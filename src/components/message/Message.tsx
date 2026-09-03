@@ -14,9 +14,17 @@ interface MessageProps {
   user?: IUser;
   message: IMessage;
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  onTouchStart?: (e: React.TouchEvent<HTMLDivElement>) => void;
+  onTouchEnd?: () => void;
 }
 
-export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }) => {
+export const Message: React.FC<MessageProps> = ({
+  user,
+  message,
+  onContextMenu,
+  onTouchStart,
+  onTouchEnd,
+}) => {
   const self = user ? user.uuid === message.sender_uuid : false;
 
   const { request } = useSocket();
@@ -225,6 +233,9 @@ export const Message: React.FC<MessageProps> = ({ user, message, onContextMenu }
     <div
       className={`${styles['message-item']} ${self ? styles.self : ''} ${message.ephemeral ? styles.ephemeral : ''}`}
       onContextMenu={onContextMenu}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onTouchMove={onTouchEnd}
     >
       <div className={styles['message-header']}>
         <span className={styles['message-sender']}>

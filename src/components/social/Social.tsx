@@ -2,12 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import styles from './Social.module.css';
 import type { IRoom } from '../../../server/common/models/room';
 import { EmojiText } from '../EmojiText';
-import {
-  deleteMessage,
-  editMessage,
-  getRoomMessages,
-  reportMessage,
-} from '../../helpers/social';
+import { deleteMessage, editMessage, getRoomMessages, reportMessage } from '../../helpers/social';
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
 import type { IUser } from '../../../server/common/models/user';
@@ -69,6 +64,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
   const [hydrated, setHydrated] = React.useState<boolean>(false);
 
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
+  const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const previousMessages = prevMessagesRef.current;
@@ -235,6 +231,28 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
     setContextMenu({ visible: true, x, y, message: msg });
   };
 
+  const onMessageTouchStart = (e: React.TouchEvent<HTMLDivElement>, msg: IMessage) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    longPressTimerRef.current = setTimeout(() => {
+      onMessageContextMenu(
+        {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          preventDefault: () => undefined,
+        } as MouseEvent,
+        msg
+      );
+    }, 500);
+  };
+
+  const cancelMessageLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   const hideContextMenu = () => setContextMenu({ visible: false, x: 0, y: 0, message: null });
 
   useEffect(() => {
@@ -361,194 +379,208 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
       </div>
       <div className={styles['social-main']}>
         {socialView === 'polls' && (
-          <PollsPanel
-            canCreatePoll={user.role === 'admin' || user.role === 'owner'}
-          />
+          <PollsPanel canCreatePoll={user.role === 'admin' || user.role === 'owner'} />
         )}
         {socialView === 'chat' && (
-        <>
-        <h2>
-          <EmojiText>{room.name}</EmojiText>
-        </h2>
-        <div className={styles['message-container']} ref={messageContainerRef}>
-          {!hydrated && (
-            <div className={styles['loading-messages']}>
-              <Spinner size={48} />
-            </div>
-          )}
-          {hydrated && messages.length === 0 && (
-            <div className={styles['no-messages']}>No messages yet. Start the conversation!</div>
-          )}
-          {hydrated &&
-            messages.length > 0 &&
-            messages.map(msg => (
-              <Message
-                key={msg.uuid}
-                user={user}
-                message={msg}
-                onContextMenu={e => {
-                  onMessageContextMenu(e.nativeEvent, msg);
-                }}
-              />
-            ))}
-          {contextMenu.visible && contextMenu.message && (
-            <div
-              className={styles['context-menu']}
-              style={{ left: contextMenu.x, top: contextMenu.y, position: 'fixed' }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div
-                className={styles['context-menu-item']}
-                onClick={() => {
-                  void copyText(contextMenu.message!.content);
-                  hideContextMenu();
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    void copyText(contextMenu.message!.content);
-                    hideContextMenu();
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <IconClipboard />
-                <span>Copy text</span>
-              </div>
+          <>
+            <h2>
+              <EmojiText>{room.name}</EmojiText>
+            </h2>
+            <div className={styles['message-container']} ref={messageContainerRef}>
+              {!hydrated && (
+                <div className={styles['loading-messages']}>
+                  <Spinner size={48} />
+                </div>
+              )}
+              {hydrated && messages.length === 0 && (
+                <div className={styles['no-messages']}>
+                  No messages yet. Start the conversation!
+                </div>
+              )}
+              {hydrated &&
+                messages.length > 0 &&
+                messages.map(msg => (
+                  <Message
+                    key={msg.uuid}
+                    user={user}
+                    message={msg}
+                    onContextMenu={e => {
+                      onMessageContextMenu(e.nativeEvent, msg);
+                    }}
+                    onTouchStart={e => onMessageTouchStart(e, msg)}
+                    onTouchEnd={cancelMessageLongPress}
+                  />
+                ))}
+              {contextMenu.visible && contextMenu.message && (
+                <div
+                  className={styles['context-menu']}
+                  style={{ left: contextMenu.x, top: contextMenu.y, position: 'fixed' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div
+                    className={styles['context-menu-item']}
+                    onClick={() => {
+                      void copyText(contextMenu.message!.content);
+                      hideContextMenu();
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        void copyText(contextMenu.message!.content);
+                        hideContextMenu();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <IconClipboard />
+                    <span>Copy text</span>
+                  </div>
 
-              {contextMenu.message.sender_uuid !== user.uuid &&
-                contextMenu.message.sender_uuid !== 'nyx' && (
-                  <div
-                    className={styles['context-menu-item']}
-                    onClick={() => {
-                      replyToMessage(contextMenu.message!);
-                      hideContextMenu();
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        replyToMessage(contextMenu.message!);
-                        hideContextMenu();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <IconArrowBack />
-                    <span>Reply</span>
-                  </div>
-                )}
-              {!contextMenu.message.deleted &&
-                contextMenu.message.sender_uuid !== user.uuid &&
-                contextMenu.message.sender_uuid !== 'nyx' &&
-                !hasRole(
-                  contextMenu.message.sender_badge as 'owner' | 'admin' | 'mod' | 'helper' | 'user',
-                  'admin'
-                ) && (
-                  <div
-                    className={styles['context-menu-item']}
-                    onClick={() => {
-                      setReportedMessage(contextMenu.message!);
-                      setIsReportModalOpen(true);
-                      hideContextMenu();
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        setReportedMessage(contextMenu.message!);
-                        setIsReportModalOpen(true);
-                        hideContextMenu();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <IconFlag />
-                    <span>Report</span>
-                  </div>
-                )}
-              {!contextMenu.message.deleted &&
-                (contextMenu.message.sender_uuid === user.uuid ||
-                  (hasRole(user.role, 'helper') &&
-                    (!contextMenu.message.sent_restricted ||
-                      hasRole(
-                        user.role,
-                        contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
-                      )))) && (
-                  <div
-                    className={styles['context-menu-item']}
-                    onClick={() => {
-                      setEditedMessage(contextMenu.message!);
-                      setEditContent(contextMenu.message!.content);
-                      setIsEditModalOpen(true);
-                      hideContextMenu();
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        setEditedMessage(contextMenu.message!);
-                        setEditContent(contextMenu.message!.content);
-                        setIsEditModalOpen(true);
-                        hideContextMenu();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <IconPencil />
-                    <span>Edit</span>
-                  </div>
-                )}
-              {!contextMenu.message.deleted &&
-                (contextMenu.message.sender_uuid === user.uuid ||
-                  (hasRole(user.role, 'helper') &&
-                    (!contextMenu.message.sent_restricted ||
-                      hasRole(
-                        user.role,
-                        contextMenu.message.restricted_role as 'owner' | 'admin' | 'mod' | 'helper'
-                      )))) && (
-                  <div
-                    className={styles['context-menu-item']}
-                    onClick={() => {
-                      void deleteMessage(contextMenu.message!.uuid, request);
-                      void fetchMessages();
-                      hideContextMenu();
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        void deleteMessage(contextMenu.message!.uuid, request);
-                        void fetchMessages();
-                        hideContextMenu();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <IconTrash />
-                    <span>Delete</span>
-                  </div>
-                )}
+                  {contextMenu.message.sender_uuid !== user.uuid &&
+                    contextMenu.message.sender_uuid !== 'nyx' && (
+                      <div
+                        className={styles['context-menu-item']}
+                        onClick={() => {
+                          replyToMessage(contextMenu.message!);
+                          hideContextMenu();
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            replyToMessage(contextMenu.message!);
+                            hideContextMenu();
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <IconArrowBack />
+                        <span>Reply</span>
+                      </div>
+                    )}
+                  {(() => {
+                    const reportable =
+                      !contextMenu.message.deleted &&
+                      contextMenu.message.sender_uuid !== user.uuid &&
+                      contextMenu.message.sender_uuid !== 'nyx' &&
+                      !hasRole(
+                        contextMenu.message.sender_badge as
+                          'owner' | 'admin' | 'mod' | 'helper' | 'user',
+                        'admin'
+                      );
+                    return (
+                      <div
+                        className={`${styles['context-menu-item']} ${!reportable ? styles['context-menu-item-disabled'] : ''}`}
+                        onClick={() => {
+                          if (!reportable) return;
+                          setReportedMessage(contextMenu.message!);
+                          setIsReportModalOpen(true);
+                          hideContextMenu();
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && reportable) {
+                            setReportedMessage(contextMenu.message!);
+                            setIsReportModalOpen(true);
+                            hideContextMenu();
+                          }
+                        }}
+                        role="button"
+                        aria-disabled={!reportable}
+                        tabIndex={reportable ? 0 : -1}
+                        title={
+                          reportable ? 'Report this message' : 'This message cannot be reported'
+                        }
+                      >
+                        <IconFlag />
+                        <span>{reportable ? 'Report' : 'Report unavailable'}</span>
+                      </div>
+                    );
+                  })()}
+                  {!contextMenu.message.deleted &&
+                    (contextMenu.message.sender_uuid === user.uuid ||
+                      (hasRole(user.role, 'helper') &&
+                        (!contextMenu.message.sent_restricted ||
+                          hasRole(
+                            user.role,
+                            contextMenu.message.restricted_role as
+                              'owner' | 'admin' | 'mod' | 'helper'
+                          )))) && (
+                      <div
+                        className={styles['context-menu-item']}
+                        onClick={() => {
+                          setEditedMessage(contextMenu.message!);
+                          setEditContent(contextMenu.message!.content);
+                          setIsEditModalOpen(true);
+                          hideContextMenu();
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            setEditedMessage(contextMenu.message!);
+                            setEditContent(contextMenu.message!.content);
+                            setIsEditModalOpen(true);
+                            hideContextMenu();
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <IconPencil />
+                        <span>Edit</span>
+                      </div>
+                    )}
+                  {!contextMenu.message.deleted &&
+                    (contextMenu.message.sender_uuid === user.uuid ||
+                      (hasRole(user.role, 'helper') &&
+                        (!contextMenu.message.sent_restricted ||
+                          hasRole(
+                            user.role,
+                            contextMenu.message.restricted_role as
+                              'owner' | 'admin' | 'mod' | 'helper'
+                          )))) && (
+                      <div
+                        className={styles['context-menu-item']}
+                        onClick={() => {
+                          void deleteMessage(contextMenu.message!.uuid, request);
+                          void fetchMessages();
+                          hideContextMenu();
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            void deleteMessage(contextMenu.message!.uuid, request);
+                            void fetchMessages();
+                            hideContextMenu();
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <IconTrash />
+                        <span>Delete</span>
+                      </div>
+                    )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div className={styles['social-main-bottom']}>
-          {!room.restrict_send_to ||
-          (room.restrict_send_to && hasRole(user.role, room.restrict_send_to)) ? (
-            <Input
-              placeholder="Type a message..."
-              onValueChange={value => setMessageInput(value)}
-              value={messageInput}
-              className={styles['social-message-input']}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  void sendMessageClick();
-                }
-              }}
-            />
-          ) : (
-            <div className={styles['social-restricted-notice']}>
-              You do not have permission to send messages in this room.
+            <div className={styles['social-main-bottom']}>
+              {!room.restrict_send_to ||
+              (room.restrict_send_to && hasRole(user.role, room.restrict_send_to)) ? (
+                <Input
+                  placeholder="Type a message..."
+                  onValueChange={value => setMessageInput(value)}
+                  value={messageInput}
+                  className={styles['social-message-input']}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      void sendMessageClick();
+                    }
+                  }}
+                />
+              ) : (
+                <div className={styles['social-restricted-notice']}>
+                  You do not have permission to send messages in this room.
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        </>
+          </>
         )}
       </div>
 
