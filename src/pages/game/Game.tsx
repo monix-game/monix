@@ -95,7 +95,11 @@ import {
   DEFAULT_GLOBAL_SETTINGS,
   type IGlobalSettings,
 } from '../../../server/common/models/globalSettings';
-import { UPGRADES } from '../../../server/common/upgrades';
+import {
+  isUpgradeActive,
+  MAGIC_JELLYBEAN_UPGRADE_ID,
+  UPGRADES,
+} from '../../../server/common/upgrades';
 import { useSocket } from '../../providers/socket';
 import { useChatNotifications } from '../../hooks/useChatNotifications';
 
@@ -234,11 +238,9 @@ export default function Game() {
   const socialDisabled = !featureFlags.social;
   const gemPurchasesDisabled = !featureFlags.gemPurchases;
   const cosmeticPurchasesDisabled = !featureFlags.cosmeticPurchases;
-  const fishingCooldownMs =
-    user?.upgrades?.magic_jellybean?.expires_at &&
-    user.upgrades.magic_jellybean.expires_at > fishingNow
-      ? 2500
-      : 5000;
+  const fishingCooldownMs = isUpgradeActive(user?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, fishingNow)
+    ? 2500
+    : 5000;
   const isTutorialStepComplete = useMemo(() => {
     if (!currentTutorialStep) return true;
 

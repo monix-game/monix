@@ -1,6 +1,7 @@
 import { fnv1a32, mulberry32, weightedRandom } from '../math';
 import type { IFish } from '../models/fish';
 import { fishingBaits } from './fishingBait';
+import { HEAVY_LINE_UPGRADE_ID, LUCKY_CHARM_UPGRADE_ID, isUpgradeActive } from '../upgrades';
 import {
   type FishingEventInfo,
   type CurrentFishingEvent,
@@ -63,7 +64,11 @@ export interface FishingResult {
  * @param rodId - ID of the fishing rod used for fishing
  * @returns A FishingResult object containing details about the fish caught, the bait and rod used, any active event, and the timestamp of the attempt in milliseconds since the Unix epoch.
  */
-export function calculateFishingResult(baitId: string | null, rodId: string): FishingResult {
+export function calculateFishingResult(
+  baitId: string | null,
+  rodId: string,
+  upgrades?: Record<string, { expires_at: number }>
+): FishingResult {
   const bait = baitId ? fishingBaits.find(b => b.id === baitId) : null;
   const rod = fishingRods.find(r => r.id === rodId);
 
@@ -106,7 +111,8 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
 
   // Determine modifiers for the caught fish based on active event and random chance
   let modifier = null;
-  if (rng() <= 0.5) {
+  const modifierChance = isUpgradeActive(upgrades, LUCKY_CHARM_UPGRADE_ID) ? 1 : 0.5;
+  if (rng() <= modifierChance) {
     const possibleModifiers = fishModifiers.filter(mod => mod.event === event.event?.id);
     if (possibleModifiers.length > 0) {
       const chosenModifier = weightedRandom(
@@ -124,7 +130,8 @@ export function calculateFishingResult(baitId: string | null, rodId: string): Fi
   // Calculate weight of the caught fish based on its type, rod multiplier, and lucky boost
   const baseWeight = rng() * (fishType.max_weight - fishType.min_weight) + fishType.min_weight;
   const rodMultiplier = rod ? rod.multiplier : 1;
-  const finalWeight = baseWeight * rodMultiplier * luckyBoost;
+  const upgradeWeightMultiplier = isUpgradeActive(upgrades, HEAVY_LINE_UPGRADE_ID) ? 1.25 : 1;
+  const finalWeight = baseWeight * rodMultiplier * luckyBoost * upgradeWeightMultiplier;
 
   return {
     fish_type: fishType.id,
