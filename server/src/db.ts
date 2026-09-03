@@ -14,12 +14,11 @@ import { IReport, reportFromDoc, reportToDoc } from '../common/models/report';
 import { appealFromDoc, appealToDoc, IAppeal } from '../common/models/appeal';
 import { LogEntry, logEntryFromDoc, logEntryToDoc } from '../common/models/logEntry';
 import { type IPoll, pollFromDoc, pollToDoc } from '../common/models/poll';
-import {
-  IPushSubscription,
-  pushSubscriptionFromDoc,
-} from '../common/models/pushSubscription';
+import { IPushSubscription, pushSubscriptionFromDoc } from '../common/models/pushSubscription';
 import { createLogger } from './logging';
 import { cacheGet, cacheSet, cacheDel } from './redis';
+import { emitUserChanged } from './helpers/userEvents';
+import { mongoOperationsTotal, userMutationDuration, userMutationQueue } from './metrics';
 
 const log = createLogger('db');
 
@@ -60,7 +59,7 @@ function memCache<T>(ttlMs: number): {
   };
 }
 
-const roomCache = memCache<IRoom[]>(30_000);   // 30s – rooms almost never change
+const roomCache = memCache<IRoom[]>(30_000); // 30s – rooms almost never change
 const settingsCache = memCache<IGlobalSettings>(15_000); // 15s
 const messagesCache = memCache<IMessage[]>(2_000); // 2s – chat messages update more often
 
@@ -71,8 +70,12 @@ const messagesCache = memCache<IMessage[]>(2_000); // 2s – chat messages updat
 const SESSION_TTL = 60 * 60 * 24 * 2; // 2 days in seconds (matches SESSION_EXPIRES_IN default)
 const USER_TTL = 5; // 5 seconds – fast enough for live game state, cuts DB load dramatically
 
-function sessionKey(token: string) { return `sess:${token}`; }
-function userKey(uuid: string) { return `usr:${uuid}`; }
+function sessionKey(token: string) {
+  return `sess:${token}`;
+}
+function userKey(uuid: string) {
+  return `usr:${uuid}`;
+}
 
 export async function connectDB(uri: string) {
   log.info('Connecting to MongoDB...');
@@ -176,7 +179,7 @@ export async function getUsersByUUID(uuids: string[]): Promise<IUser[]> {
   const misses: string[] = [];
 
   const cached = await Promise.all(
-    unique.map(async (uuid) => ({ uuid, user: await cacheGet<IUser>(userKey(uuid)) }))
+    unique.map(async uuid => ({ uuid, user: await cacheGet<IUser>(userKey(uuid)) }))
   );
   for (const { uuid, user } of cached) {
     if (user) results.set(uuid, user);
@@ -225,6 +228,31 @@ export async function updateUser(user: IUser): Promise<void> {
   const database = ensureDB();
   await database.collection('users').updateOne({ uuid: user.uuid }, { $set: userToDoc(user) });
   void cacheSet(userKey(user.uuid), user, USER_TTL);
+  emitUserChanged(user.uuid);
+}
+
+async function updateUserDelta(previous: IUser, next: IUser): Promise<void> {
+  const previousDoc = userToDoc(previous) as unknown as Record<string, unknown>;
+  const nextDoc = userToDoc(next) as unknown as Record<string, unknown>;
+  const set: Record<string, unknown> = {};
+  const unset: Record<string, ''> = {};
+
+  for (const key of new Set([...Object.keys(previousDoc), ...Object.keys(nextDoc)])) {
+    const before = previousDoc[key];
+    const after = nextDoc[key];
+    if (after === undefined) {
+      if (before !== undefined) unset[key] = '';
+    } else if (JSON.stringify(before) !== JSON.stringify(after)) {
+      set[key] = after;
+    }
+  }
+
+  if (Object.keys(set).length === 0 && Object.keys(unset).length === 0) return;
+  const database = ensureDB();
+  mongoOperationsTotal.inc({ operation: 'updateOne', collection: 'users' });
+  await database.collection('users').updateOne({ uuid: next.uuid }, { $set: set, $unset: unset });
+  void cacheSet(userKey(next.uuid), next, USER_TTL);
+  emitUserChanged(next.uuid);
 }
 
 /**
@@ -268,6 +296,7 @@ const userLocks = new Map<string, Promise<void>>();
  */
 async function getUserByUUIDFresh(uuid: string): Promise<IUser | null> {
   const database = ensureDB();
+  mongoOperationsTotal.inc({ operation: 'findOne', collection: 'users' });
   const doc = await database.collection('users').findOne({ uuid });
   if (!doc) return null;
   return userFromDoc(doc);
@@ -294,20 +323,25 @@ export async function mutateUserAndSave<T>(
     release = res;
   });
   userLocks.set(uuid, next);
+  userMutationQueue.inc();
+  const stopTimer = userMutationDuration.startTimer();
 
   try {
     await prev;
     const freshUser = await getUserByUUIDFresh(uuid);
     if (!freshUser) return null;
+    const freshUserBefore = structuredClone(freshUser);
 
     const outcome = await fn(freshUser);
     if (!outcome) return null;
 
     if (outcome.changed) {
-      await updateUser(freshUser);
+      await updateUserDelta(freshUserBefore, freshUser);
     }
     return outcome.value;
   } finally {
+    stopTimer();
+    userMutationQueue.dec();
     release();
     if (userLocks.get(uuid) === next) userLocks.delete(uuid);
   }
@@ -646,10 +680,7 @@ export async function getPushSubscriptionsByUserUUID(
   user_uuid: string
 ): Promise<IPushSubscription[]> {
   const database = ensureDB();
-  const docs = await database
-    .collection('push_subscriptions')
-    .find({ user_uuid })
-    .toArray();
+  const docs = await database.collection('push_subscriptions').find({ user_uuid }).toArray();
   return docs.map(pushSubscriptionFromDoc);
 }
 

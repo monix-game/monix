@@ -3,6 +3,24 @@ services:
     container_name: monix-mongodb
     image: mongo:7
     restart: unless-stopped
+    command: ['mongod', '--wiredTigerCacheSizeGB', '1']
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          memory: 1G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
       - mongo_data:/data/db
 
@@ -10,12 +28,23 @@ services:
     container_name: monix-redis
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
       - redis_data:/data
 
   server:
     container_name: monix-server
+    init: true
+    stop_grace_period: 30s
     deploy:
       resources:
         limits:
@@ -29,14 +58,65 @@ services:
     env_file:
       - .env
     ports:
-      - "6200:6200"
+      - '6200:6200'
+    healthcheck:
+      test: ['CMD-SHELL', "wget -q -O - http://127.0.0.1:6200/api/ping/ | grep -q 'true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
       - certs_data:/app/certs
     depends_on:
-      - mongodb
-      - redis
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: monix-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.wal-compression'
+      - '--web.listen-address=:5444'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - '5444:5444'
+    depends_on:
+      server:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: monix-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SERVER_HTTP_PORT: 5443
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - '5443:5443'
+    depends_on:
+      prometheus:
+        condition: service_started
 
 volumes:
   mongo_data: {}
   redis_data: {}
   certs_data: {}
+  prometheus_data: {}
+  grafana_data: {}

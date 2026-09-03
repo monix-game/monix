@@ -210,6 +210,37 @@ export async function goFishing(autoSell: boolean = false): Promise<{
 export interface SailorFleet {
   levels: number[];
   last_collected_at?: number;
+  pending_coins?: number;
+}
+
+export async function collectSailorEarnings(): Promise<{
+  success: boolean;
+  earned?: number;
+  money?: number;
+  sailors?: SailorFleet;
+  message?: string;
+}> {
+  try {
+    const resp = await api.post<{
+      message?: string;
+      earned?: number;
+      money?: number;
+      sailors?: SailorFleet;
+    }>('/fishing/sailors/collect');
+    if (resp?.success) {
+      return {
+        success: true,
+        earned: resp.data?.earned,
+        money: resp.data?.money,
+        sailors: resp.data?.sailors,
+        message: resp.data?.message,
+      };
+    }
+    return { success: false, message: resp?.data?.message };
+  } catch (error) {
+    console.error('Error collecting sailor earnings:', error);
+    throw error;
+  }
 }
 
 export async function hireSailor(): Promise<{

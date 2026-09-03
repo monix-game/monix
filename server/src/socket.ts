@@ -39,6 +39,12 @@ import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
 import { getCategoryById } from '../common/punishx/categories';
 import type { IReport } from '../common/models/report';
+import { onUserChanged } from './helpers/userEvents';
+import {
+  websocketBackpressureSkipsTotal,
+  websocketConnections,
+  websocketMessagesTotal,
+} from './metrics';
 
 const log = createLogger('ws');
 
@@ -48,6 +54,7 @@ const log = createLogger('ws');
 
 type WSSocket = {
   send(data: string): unknown;
+  bufferedAmount?: number;
   data: object;
 };
 
@@ -63,6 +70,19 @@ function getAuthData(ws: { data: object }): SocketAuthData {
 }
 
 const subscribers = new Map<string, Set<WSSocket>>();
+const MAX_SOCKET_BUFFERED_BYTES = 1_000_000;
+
+function sendBroadcast(ws: WSSocket, message: string) {
+  if ((ws.bufferedAmount ?? 0) > MAX_SOCKET_BUFFERED_BYTES) {
+    websocketBackpressureSkipsTotal.inc();
+    return;
+  }
+  try {
+    ws.send(message);
+  } catch {
+    // Ignore disconnected sockets; cleaned up on close.
+  }
+}
 
 function addSubscriber(channel: string, ws: WSSocket) {
   let set = subscribers.get(channel);
@@ -85,17 +105,28 @@ function isChannelActive(channel: string): boolean {
   return (subscribers.get(channel)?.size ?? 0) > 0;
 }
 
+function publishUserSnapshot(uuid: string) {
+  const sockets = Array.from(subscribers.get('user:me') ?? []).filter(
+    ws => getAuthData(ws).socketUser?.uuid === uuid
+  );
+  if (sockets.length === 0) return;
+
+  void buildUserSnapshot({ uuid })
+    .then(snapshot => {
+      if (!snapshot) return;
+      const message = JSON.stringify({ type: 'snapshot', channel: 'user:me', data: snapshot });
+      for (const ws of sockets) sendBroadcast(ws, message);
+    })
+    .catch(() => {});
+}
+
 /** Serialize a payload to JSON and send to every subscriber of a channel. */
 function sendToChannel(channel: string, payload: unknown) {
   const set = subscribers.get(channel);
   if (!set || set.size === 0) return;
   const msg = JSON.stringify(payload);
   for (const ws of set) {
-    try {
-      ws.send(msg);
-    } catch {
-      // Ignore disconnected sockets; cleaned up on close.
-    }
+    sendBroadcast(ws, msg);
   }
 }
 
@@ -159,11 +190,7 @@ export function broadcastNewChatMessage(roomName: string, message: IMessage, roo
       const uuid = auth.socketUser?.uuid;
       if (!uuid || !room.members?.includes(uuid)) continue;
     }
-    try {
-      ws.send(msg);
-    } catch {
-      // Ignore disconnected sockets; cleaned up on close.
-    }
+    sendBroadcast(ws, msg);
   }
 }
 
@@ -223,13 +250,18 @@ function startPetsPublisher() {
         }
       })();
     }
-  }, 5000);
+  }, 30000);
 }
 
 function startResourcesPublisher() {
   return setInterval(() => {
     for (const channel of subscribers.keys()) {
-      if (!channel.startsWith('resources:') || channel === 'resources:prices' || channel === 'resources:changes') continue;
+      if (
+        !channel.startsWith('resources:') ||
+        channel === 'resources:prices' ||
+        channel === 'resources:changes'
+      )
+        continue;
       const resourceId = channel.slice('resources:'.length);
       broadcast(channel, buildResourceHistory(resourceId, 1));
     }
@@ -256,9 +288,12 @@ function startNewsPublisher() {
 }
 
 function startUserPublisher() {
+  let publishing = false;
   return setInterval(() => {
+    if (publishing) return;
     const set = subscribers.get('user:me');
     if (!set || set.size === 0) return;
+    publishing = true;
 
     // Same user may be connected from multiple tabs/devices. Compute and
     // serialize the snapshot once per user, then share the serialized message
@@ -273,27 +308,25 @@ function startUserPublisher() {
       else socketsByUser.set(socketUser.uuid, [ws]);
     }
 
-    for (const sockets of socketsByUser.values()) {
-      const socketUser = getAuthData(sockets[0]).socketUser;
-      if (!socketUser) continue;
-      void (async () => {
-        try {
-          const snapshot = await buildUserSnapshot(socketUser);
-          if (!snapshot) return;
-          const msg = JSON.stringify({ type: 'snapshot', channel: 'user:me', data: snapshot });
-          for (const ws of sockets) {
-            try {
-              ws.send(msg);
-            } catch {
-              // Ignore disconnected sockets; cleaned up on close.
-            }
-          }
-        } catch {
-          // Swallow per-subscriber errors.
-        }
-      })();
-    }
-  }, 2000);
+    void (async () => {
+      try {
+        await Promise.all(
+          Array.from(socketsByUser.values()).map(async sockets => {
+            const socketUser = getAuthData(sockets[0]).socketUser;
+            if (!socketUser) return;
+            const snapshot = await buildUserSnapshot(socketUser);
+            if (!snapshot) return;
+            const msg = JSON.stringify({ type: 'snapshot', channel: 'user:me', data: snapshot });
+            for (const ws of sockets) sendBroadcast(ws, msg);
+          })
+        );
+      } catch {
+        // Swallow per-publisher errors.
+      } finally {
+        publishing = false;
+      }
+    })();
+  }, 30000);
 }
 
 function startRoomsPublisher() {
@@ -424,331 +457,327 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           })
         : (raw as { op?: string; channel?: string; token?: string });
 
-      if (!msg || typeof msg.op !== 'string') return;
+    if (!msg || typeof msg.op !== 'string') return;
+    websocketMessagesTotal.inc({ operation: msg.op });
 
-      switch (msg.op) {
-        case 'ping': {
-          ws.send(JSON.stringify({ type: 'pong', time: Date.now() }));
-          break;
-        }
-        case 'auth': {
-          const target = getAuthData(ws);
-          if (typeof msg.token === 'string') {
-            const session = await getSessionByToken(msg.token);
-            if (session) {
-              const user = await getUserByUUID(session.user_uuid);
-              if (user) {
-                // Record the IP on socket auth too, so game clients that live
-                // mostly over WebSocket still populate IP history. Uses the same
-                // throttled tracking as the HTTP middleware.
-                const remoteIp = target.remoteIp;
-                if (remoteIp && applyActivityTracking(user, remoteIp)) {
-                  await updateUser(user);
-                }
-                target.socketUser = user ?? undefined;
-                target.connectedAt = Date.now();
-                if (user) addUserConnection(user.uuid);
+    switch (msg.op) {
+      case 'ping': {
+        ws.send(JSON.stringify({ type: 'pong', time: Date.now() }));
+        break;
+      }
+      case 'auth': {
+        const target = getAuthData(ws);
+        if (typeof msg.token === 'string') {
+          const session = await getSessionByToken(msg.token);
+          if (session) {
+            const user = await getUserByUUID(session.user_uuid);
+            if (user) {
+              const remoteIp = target.remoteIp;
+              if (remoteIp && applyActivityTracking(user, remoteIp)) {
+                await updateUser(user);
               }
+              target.socketUser = user ?? undefined;
+              target.connectedAt = Date.now();
+              addUserConnection(user.uuid);
             }
           }
-          target.socketAuthed = true;
-          break;
         }
-        case 'subscribe': {
-          if (typeof msg.channel !== 'string' || msg.channel.length === 0) return;
-          addSubscriber(msg.channel, ws);
-          void sendInitialSnapshot(msg.channel, ws);
-          break;
+        target.socketAuthed = true;
+        break;
+      }
+      case 'subscribe': {
+        if (typeof msg.channel !== 'string' || msg.channel.length === 0) return;
+        addSubscriber(msg.channel, ws);
+        void sendInitialSnapshot(msg.channel, ws);
+        break;
+      }
+      case 'unsubscribe': {
+        if (typeof msg.channel !== 'string') return;
+        removeSubscriber(msg.channel, ws);
+        break;
+      }
+      case 'user:get': {
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        if (!socketUser) break;
+        const snapshot = await buildUserSnapshot(socketUser);
+        if (snapshot) {
+          ws.send(JSON.stringify({ type: 'user_snapshot', data: snapshot }));
         }
-        case 'unsubscribe': {
-          if (typeof msg.channel !== 'string') return;
-          removeSubscriber(msg.channel, ws);
-          break;
-        }
-        case 'user:get': {
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          if (!socketUser) break;
-          const snapshot = await buildUserSnapshot(socketUser);
-          if (snapshot) {
-            ws.send(JSON.stringify({ type: 'user_snapshot', data: snapshot }));
-          }
-          break;
-        }
-        case 'socialRooms:get': {
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          const snapshot = await buildRooms(socketUser);
-          ws.send(JSON.stringify({ type: 'socialRooms_snapshot', data: snapshot }));
-          break;
-        }
-        case 'chat:send': {
-          const body = msg as { room_uuid?: string; content?: string };
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          if (!socketUser) {
-            ws.send(
-              JSON.stringify({
-                type: 'chat:send_result',
-                ok: false,
-                error: 'Not authenticated',
-              })
-            );
-            break;
-          }
-          const room_uuid = typeof body.room_uuid === 'string' ? body.room_uuid : '';
-          const content = typeof body.content === 'string' ? body.content : '';
-          const room = await getRoomByUUID(room_uuid || '');
-          const result = await sendChatMessage(socketUser, room ?? null, room_uuid, content);
+        break;
+      }
+      case 'socialRooms:get': {
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        const snapshot = await buildRooms(socketUser);
+        ws.send(JSON.stringify({ type: 'socialRooms_snapshot', data: snapshot }));
+        break;
+      }
+      case 'chat:send': {
+        const body = msg as { room_uuid?: string; content?: string };
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        if (!socketUser) {
           ws.send(
             JSON.stringify({
               type: 'chat:send_result',
-              ok: result.ok,
-              error: result.ok ? undefined : result.message,
+              ok: false,
+              error: 'Not authenticated',
             })
           );
-          if (result.ok && room_uuid) {
-            // Track lifetime stats: messages sent
-            socketUser.stats ??= DEFAULT_USER_STATS;
-            socketUser.stats.messages_sent = (socketUser.stats.messages_sent || 0) + 1;
-            void updateUser(socketUser);
+          break;
+        }
+        const room_uuid = typeof body.room_uuid === 'string' ? body.room_uuid : '';
+        const content = typeof body.content === 'string' ? body.content : '';
+        const room = await getRoomByUUID(room_uuid || '');
+        const result = await sendChatMessage(socketUser, room ?? null, room_uuid, content);
+        ws.send(
+          JSON.stringify({
+            type: 'chat:send_result',
+            ok: result.ok,
+            error: result.ok ? undefined : result.message,
+          })
+        );
+        if (result.ok && room_uuid) {
+          // Track lifetime stats: messages sent
+          socketUser.stats ??= DEFAULT_USER_STATS;
+          socketUser.stats.messages_sent = (socketUser.stats.messages_sent || 0) + 1;
+          void updateUser(socketUser);
 
-            // Push an up-to-date chat snapshot to subscribers so no HTTP is needed.
-            const messages = await chatSnapshot(room_uuid);
-            if (messages) broadcast(`chat:${room_uuid}`, messages);
+          // Push an up-to-date chat snapshot to subscribers so no HTTP is needed.
+          const messages = await chatSnapshot(room_uuid);
+          if (messages) broadcast(`chat:${room_uuid}`, messages);
 
-            if (result.message && room) {
-              broadcastNewChatMessage(room.name, result.message, room);
-              void notifyNewChatMessage(result.message, room);
-            }
+          if (result.message && room) {
+            broadcastNewChatMessage(room.name, result.message, room);
+            void notifyNewChatMessage(result.message, room);
           }
-          break;
         }
-        case 'chat:delete': {
-          const body = msg as { message_uuid?: string };
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          const fail = (error: string) =>
-            ws.send(JSON.stringify({ type: 'chat:delete_result', ok: false, error }));
-          if (!socketUser) {
-            fail('Not authenticated');
-            break;
-          }
-          if (isUserBanned(socketUser)) {
-            fail('Forbidden');
-            break;
-          }
-          const delete_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
-          const deleteMessage = await getMessageByUUID(delete_uuid);
-          if (!deleteMessage) {
-            fail('Message not found');
-            break;
-          }
-          if (deleteMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
-            fail('You are not allowed to delete this message');
-            break;
-          }
-          const deleteRoom = await getRoomByUUID(deleteMessage.room_uuid);
-          if (!deleteRoom) {
-            fail('Room not found');
-            break;
-          }
-          if (deleteRoom.type === 'private' && !hasRole(socketUser.role, 'admin')) {
-            fail('You are not allowed to delete messages in this room');
-            break;
-          }
-          if (deleteRoom.restrict_send_to && !hasRole(socketUser.role, deleteRoom.restrict_send_to)) {
-            fail('You are not allowed to delete messages in this room');
-            break;
-          }
-          if (!deleteMessage.deleted) {
-            deleteMessage.deleted = true;
-            deleteMessage.content = '';
-            deleteMessage.edited = false;
-            deleteMessage.time_edited = Date.now();
-            await updateMessage(deleteMessage);
-          }
-          ws.send(JSON.stringify({ type: 'chat:delete_result', ok: true }));
-          if (deleteMessage.room_uuid) {
-            const messages = await chatSnapshot(deleteMessage.room_uuid);
-            if (messages) broadcast(`chat:${deleteMessage.room_uuid}`, messages);
-          }
-          break;
-        }
-        case 'chat:edit': {
-          const body = msg as { message_uuid?: string; content?: string };
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          const fail = (error: string) =>
-            ws.send(JSON.stringify({ type: 'chat:edit_result', ok: false, error }));
-          if (!socketUser) {
-            fail('Not authenticated');
-            break;
-          }
-          if (isUserBanned(socketUser)) {
-            fail('Forbidden');
-            break;
-          }
-          const edit_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
-          const content = typeof body.content === 'string' ? body.content : '';
-          if (!content) {
-            fail('Missing content');
-            break;
-          }
-          const editMessage = await getMessageByUUID(edit_uuid);
-          if (!editMessage) {
-            fail('Message not found');
-            break;
-          }
-          if (editMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
-            fail('You are not allowed to edit this message');
-            break;
-          }
-          const editRoom = await getRoomByUUID(editMessage.room_uuid);
-          if (!editRoom) {
-            fail('Room not found');
-            break;
-          }
-          if (editRoom.type === 'private' && !hasRole(socketUser.role, 'admin')) {
-            fail('You are not allowed to edit messages in this room');
-            break;
-          }
-          if (editRoom.restrict_send_to && !hasRole(socketUser.role, editRoom.restrict_send_to)) {
-            fail('You are not allowed to edit messages in this room');
-            break;
-          }
-          if (content.trim() === '') {
-            fail('Message content cannot be empty');
-            break;
-          }
-          if (content.length > 300) {
-            fail('Message content is too long');
-            break;
-          }
-          const censoredContent = profanityFilter.censorText(content);
-          if (
-            censoredContent.trim() === '' ||
-            censoredContent.replaceAll(/\*+/g, '').trim() === ''
-          ) {
-            fail('Message content cannot be only profanity');
-            break;
-          }
-          editMessage.content = censoredContent;
-          editMessage.edited = true;
-          editMessage.time_edited = Date.now();
-          await updateMessage(editMessage);
-          ws.send(JSON.stringify({ type: 'chat:edit_result', ok: true }));
-          if (editMessage.room_uuid) {
-            const messages = await chatSnapshot(editMessage.room_uuid);
-            if (messages) broadcast(`chat:${editMessage.room_uuid}`, messages);
-          }
-          break;
-        }
-        case 'chat:report': {
-          const body = msg as { message_uuid?: string; reason?: string; details?: string };
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          const fail = (error: string) =>
-            ws.send(JSON.stringify({ type: 'chat:report_result', ok: false, error }));
-          if (!socketUser) {
-            fail('Not authenticated');
-            break;
-          }
-          if (isUserBanned(socketUser)) {
-            fail('Forbidden');
-            break;
-          }
-          const report_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
-          const reason = typeof body.reason === 'string' ? body.reason : '';
-          const details = typeof body.details === 'string' ? body.details : undefined;
-          if (!report_uuid || !reason) {
-            fail('Missing message_uuid or reason');
-            break;
-          }
-          const reported = await getMessageByUUID(report_uuid);
-          if (!reported) {
-            fail('Message not found');
-            break;
-          }
-          if (reported.ephemeral || reported.sender_uuid === 'nyx') {
-            fail('You are not allowed to report this message');
-            break;
-          }
-          if (reported.sender_uuid === socketUser.uuid) {
-            fail('You cannot report your own message');
-            break;
-          }
-          const reportedUser = await getUserByUUID(reported.sender_uuid);
-          if (!reportedUser) {
-            fail('Reported user not found');
-            break;
-          }
-          const category = getCategoryById(reason);
-          if (!category) {
-            fail('Invalid report reason');
-            break;
-          }
-          if (!category.id.startsWith('social')) {
-            fail('Report reason is not valid for social reports');
-            break;
-          }
-          if (hasRole(reportedUser.role, 'admin')) {
-            fail('Cannot report this message');
-            break;
-          }
-          const report: IReport = {
-            uuid: v4(),
-            reporter_uuid: socketUser.uuid,
-            message_uuid: report_uuid,
-            message_content: reported.content,
-            reported_uuid: reportedUser.uuid,
-            reason: category.id,
-            details,
-            status: 'pending',
-            time_reported: Date.now(),
-          };
-          await createReport(report);
-          ws.send(JSON.stringify({ type: 'chat:report_result', ok: true }));
-          break;
-        }
-        case 'ephemeral:dismiss': {
-          const body = msg as { message_uuid?: string };
-          const target = getAuthData(ws);
-          const socketUser = target.socketUser;
-          const fail = (error: string) =>
-            ws.send(JSON.stringify({ type: 'ephemeral:dismiss_result', ok: false, error }));
-          if (!socketUser) {
-            fail('Not authenticated');
-            break;
-          }
-          const message_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
-          const message = await getMessageByUUID(message_uuid || '');
-          if (!message) {
-            fail('Message not found');
-            break;
-          }
-          if (!message.ephemeral || message.ephemeral_user_uuid !== socketUser.uuid) {
-            fail('You are not allowed to dismiss this message');
-            break;
-          }
-          await deleteMessageByUUID(message.uuid);
-          ws.send(JSON.stringify({ type: 'ephemeral:dismiss_result', ok: true }));
-          if (message.room_uuid) {
-            const messages = await chatSnapshot(message.room_uuid);
-            if (messages) broadcast(`chat:${message.room_uuid}`, messages);
-          }
-          break;
-        }
+        break;
       }
-    } catch {
-      log.debug('Ignored malformed WebSocket message');
+      case 'chat:delete': {
+        const body = msg as { message_uuid?: string };
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        const fail = (error: string) =>
+          ws.send(JSON.stringify({ type: 'chat:delete_result', ok: false, error }));
+        if (!socketUser) {
+          fail('Not authenticated');
+          break;
+        }
+        if (isUserBanned(socketUser)) {
+          fail('Forbidden');
+          break;
+        }
+        const delete_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+        const deleteMessage = await getMessageByUUID(delete_uuid);
+        if (!deleteMessage) {
+          fail('Message not found');
+          break;
+        }
+        if (deleteMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
+          fail('You are not allowed to delete this message');
+          break;
+        }
+        const deleteRoom = await getRoomByUUID(deleteMessage.room_uuid);
+        if (!deleteRoom) {
+          fail('Room not found');
+          break;
+        }
+        if (deleteRoom.type === 'private' && !hasRole(socketUser.role, 'admin')) {
+          fail('You are not allowed to delete messages in this room');
+          break;
+        }
+        if (deleteRoom.restrict_send_to && !hasRole(socketUser.role, deleteRoom.restrict_send_to)) {
+          fail('You are not allowed to delete messages in this room');
+          break;
+        }
+        if (!deleteMessage.deleted) {
+          deleteMessage.deleted = true;
+          deleteMessage.content = '';
+          deleteMessage.edited = false;
+          deleteMessage.time_edited = Date.now();
+          await updateMessage(deleteMessage);
+        }
+        ws.send(JSON.stringify({ type: 'chat:delete_result', ok: true }));
+        if (deleteMessage.room_uuid) {
+          const messages = await chatSnapshot(deleteMessage.room_uuid);
+          if (messages) broadcast(`chat:${deleteMessage.room_uuid}`, messages);
+        }
+        break;
+      }
+      case 'chat:edit': {
+        const body = msg as { message_uuid?: string; content?: string };
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        const fail = (error: string) =>
+          ws.send(JSON.stringify({ type: 'chat:edit_result', ok: false, error }));
+        if (!socketUser) {
+          fail('Not authenticated');
+          break;
+        }
+        if (isUserBanned(socketUser)) {
+          fail('Forbidden');
+          break;
+        }
+        const edit_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+        const content = typeof body.content === 'string' ? body.content : '';
+        if (!content) {
+          fail('Missing content');
+          break;
+        }
+        const editMessage = await getMessageByUUID(edit_uuid);
+        if (!editMessage) {
+          fail('Message not found');
+          break;
+        }
+        if (editMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
+          fail('You are not allowed to edit this message');
+          break;
+        }
+        const editRoom = await getRoomByUUID(editMessage.room_uuid);
+        if (!editRoom) {
+          fail('Room not found');
+          break;
+        }
+        if (editRoom.type === 'private' && !hasRole(socketUser.role, 'admin')) {
+          fail('You are not allowed to edit messages in this room');
+          break;
+        }
+        if (editRoom.restrict_send_to && !hasRole(socketUser.role, editRoom.restrict_send_to)) {
+          fail('You are not allowed to edit messages in this room');
+          break;
+        }
+        if (content.trim() === '') {
+          fail('Message content cannot be empty');
+          break;
+        }
+        if (content.length > 300) {
+          fail('Message content is too long');
+          break;
+        }
+        const censoredContent = profanityFilter.censorText(content);
+        if (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '') {
+          fail('Message content cannot be only profanity');
+          break;
+        }
+        editMessage.content = censoredContent;
+        editMessage.edited = true;
+        editMessage.time_edited = Date.now();
+        await updateMessage(editMessage);
+        ws.send(JSON.stringify({ type: 'chat:edit_result', ok: true }));
+        if (editMessage.room_uuid) {
+          const messages = await chatSnapshot(editMessage.room_uuid);
+          if (messages) broadcast(`chat:${editMessage.room_uuid}`, messages);
+        }
+        break;
+      }
+      case 'chat:report': {
+        const body = msg as { message_uuid?: string; reason?: string; details?: string };
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        const fail = (error: string) =>
+          ws.send(JSON.stringify({ type: 'chat:report_result', ok: false, error }));
+        if (!socketUser) {
+          fail('Not authenticated');
+          break;
+        }
+        if (isUserBanned(socketUser)) {
+          fail('Forbidden');
+          break;
+        }
+        const report_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+        const reason = typeof body.reason === 'string' ? body.reason : '';
+        const details = typeof body.details === 'string' ? body.details : undefined;
+        if (!report_uuid || !reason) {
+          fail('Missing message_uuid or reason');
+          break;
+        }
+        const reported = await getMessageByUUID(report_uuid);
+        if (!reported) {
+          fail('Message not found');
+          break;
+        }
+        if (reported.ephemeral || reported.sender_uuid === 'nyx') {
+          fail('You are not allowed to report this message');
+          break;
+        }
+        if (reported.sender_uuid === socketUser.uuid) {
+          fail('You cannot report your own message');
+          break;
+        }
+        const reportedUser = await getUserByUUID(reported.sender_uuid);
+        if (!reportedUser) {
+          fail('Reported user not found');
+          break;
+        }
+        const category = getCategoryById(reason);
+        if (!category) {
+          fail('Invalid report reason');
+          break;
+        }
+        if (!category.id.startsWith('social')) {
+          fail('Report reason is not valid for social reports');
+          break;
+        }
+        if (hasRole(reportedUser.role, 'admin')) {
+          fail('Cannot report this message');
+          break;
+        }
+        const report: IReport = {
+          uuid: v4(),
+          reporter_uuid: socketUser.uuid,
+          message_uuid: report_uuid,
+          message_content: reported.content,
+          reported_uuid: reportedUser.uuid,
+          reason: category.id,
+          details,
+          status: 'pending',
+          time_reported: Date.now(),
+        };
+        await createReport(report);
+        ws.send(JSON.stringify({ type: 'chat:report_result', ok: true }));
+        break;
+      }
+      case 'ephemeral:dismiss': {
+        const body = msg as { message_uuid?: string };
+        const target = getAuthData(ws);
+        const socketUser = target.socketUser;
+        const fail = (error: string) =>
+          ws.send(JSON.stringify({ type: 'ephemeral:dismiss_result', ok: false, error }));
+        if (!socketUser) {
+          fail('Not authenticated');
+          break;
+        }
+        const message_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
+        const message = await getMessageByUUID(message_uuid || '');
+        if (!message) {
+          fail('Message not found');
+          break;
+        }
+        if (!message.ephemeral || message.ephemeral_user_uuid !== socketUser.uuid) {
+          fail('You are not allowed to dismiss this message');
+          break;
+        }
+        await deleteMessageByUUID(message.uuid);
+        ws.send(JSON.stringify({ type: 'ephemeral:dismiss_result', ok: true }));
+        if (message.room_uuid) {
+          const messages = await chatSnapshot(message.room_uuid);
+          if (messages) broadcast(`chat:${message.room_uuid}`, messages);
+        }
+        break;
+      }
     }
+  } catch {
+    log.debug('Ignored malformed WebSocket message');
+  }
 }
 
 export function attachSocketServer(server: Server | HttpsServer) {
   const wss = new WebSocketServer({ server, path: '/ws' });
   log.info('WebSocket server attached on /ws');
   wss.on('connection', rawWs => {
+    websocketConnections.inc();
     const ws = rawWs as unknown as WSSocket;
     ws.data = {
       remoteIp: (rawWs as { _socket?: { remoteAddress?: string } })._socket?.remoteAddress,
@@ -762,11 +791,10 @@ export function attachSocketServer(server: Server | HttpsServer) {
       // resolves before a following `user:get`/`subscribe` is processed. This
       // avoids initial snapshots/requests being dropped while auth is pending,
       // which otherwise delays the client's game hydration on load.
-      messageChain = messageChain
-        .then(() => handleSocketMessage(ws, text))
-        .catch(() => {});
+      messageChain = messageChain.then(() => handleSocketMessage(ws, text)).catch(() => {});
     });
     rawWs.on('close', () => {
+      websocketConnections.dec();
       log.debug('WebSocket client disconnected');
       const closingUser = getAuthData(ws).socketUser;
       if (closingUser?.uuid) {
@@ -781,8 +809,7 @@ export function attachSocketServer(server: Server | HttpsServer) {
               const fresh = await getUserByUUID(closingUser.uuid);
               if (!fresh) return;
               fresh.stats ??= DEFAULT_USER_STATS;
-              fresh.stats.playtime_ms =
-                (fresh.stats.playtime_ms || 0) + (Date.now() - connectedAt);
+              fresh.stats.playtime_ms = (fresh.stats.playtime_ms || 0) + (Date.now() - connectedAt);
               await updateUser(fresh);
             } catch {
               // Swallow errors on disconnect bookkeeping.
@@ -801,6 +828,7 @@ export function attachSocketServer(server: Server | HttpsServer) {
 }
 
 export function setupSocketPublishers() {
+  onUserChanged(publishUserSnapshot);
   startChatPublisher();
   startLeaderboardPublisher();
   startPetsPublisher();

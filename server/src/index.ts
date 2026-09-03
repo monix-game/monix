@@ -12,6 +12,7 @@ import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { attachSocketServer, setupSocketPublishers } from './socket';
 import { ensureValidCertificate } from './certs';
 import { logger, createLogger } from './logging';
+import { httpRequestDuration, httpRequestsTotal, metricsText } from './metrics';
 
 import pingRoutes from './routes/ping';
 import userRoutes from './routes/user';
@@ -33,7 +34,7 @@ const log = createLogger('server');
 const app = new Elysia()
   .use(
     cors({
-      origin: (request) => {
+      origin: request => {
         if (CORS_ORIGINS.includes('*')) return true;
         const origin = request.headers.get('origin');
         if (!origin) return true;
@@ -63,10 +64,22 @@ const app = new Elysia()
   .group('/api/push', app => app.use(pushRoutes))
   .compile();
 
+const MAX_HTTP_BODY_BYTES = 1024 * 1024;
+
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    let size = 0;
+    req.on('data', (chunk: Buffer) => {
+      if (size > MAX_HTTP_BODY_BYTES) return;
+      size += chunk.length;
+      if (size > MAX_HTTP_BODY_BYTES) {
+        req.destroy();
+        reject(new Error('Request body too large'));
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
@@ -80,7 +93,9 @@ async function writeResponse(res: ServerResponse, response: Response) {
   // happens here (at the Node HTTP boundary) rather than via an Elysia plugin
   // because this stack hand-rolls the Request/Response bridge in handleRequest.
   if (body.length > 512) {
-    const encodings = (headers.get('accept-encoding') || '').split(',').map(e => e.trim().toLowerCase());
+    const encodings = (headers.get('accept-encoding') || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase());
     if (encodings.includes('gzip')) {
       const compressed = gzipSync(body);
       if (compressed.length < body.length) {
@@ -98,8 +113,18 @@ async function writeResponse(res: ServerResponse, response: Response) {
 }
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+  const timer = httpRequestDuration.startTimer();
+  let status = 500;
+  let route = req.url?.split('?')[0] || '/';
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    route = url.pathname;
+    if (url.pathname === '/metrics') {
+      status = 200;
+      res.writeHead(status, { 'Content-Type': 'text/plain; version=0.0.4' });
+      res.end(await metricsText());
+      return;
+    }
     const headers = new Headers();
     for (const [key, value] of Object.entries(req.headers)) {
       if (typeof value === 'string') headers.set(key, value);
@@ -118,6 +143,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       headers.set('x-real-ip', String(req.socket.remoteAddress).replace(/^::ffff:/, ''));
     }
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+    if (hasBody && Number(req.headers['content-length'] || 0) > MAX_HTTP_BODY_BYTES) {
+      status = 413;
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Request body too large' }));
+      return;
+    }
     const body = hasBody ? (await readBody(req)).toString('utf8') : undefined;
     const request = new Request(url, {
       method: req.method,
@@ -125,11 +156,18 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       ...(hasBody ? { body } : {}),
     });
     const response = await app.fetch(request);
+    status = response.status;
     await writeResponse(res, response);
   } catch (err) {
     log.error({ err }, 'Request handler error');
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Internal Server Error' }));
+    status = err instanceof Error && err.message === 'Request body too large' ? 413 : 500;
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({ error: status === 413 ? 'Request body too large' : 'Internal Server Error' })
+    );
+  } finally {
+    httpRequestsTotal.inc({ method: req.method || 'UNKNOWN', route, status: String(status) });
+    timer();
   }
 }
 

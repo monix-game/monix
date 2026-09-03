@@ -1,17 +1,21 @@
-# syntax=docker/dockerfile:1
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY src ./src
+COPY common ./common
+COPY tsconfig.json tsconfig.build.json ./
+RUN npm run build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install dependencies (sharp/esbuild ship native/postinstall binaries for musl)
 COPY package.json package-lock.json ./
-RUN npm ci
-
-# Copy the server source (src/ and common/) and run it with tsx under Node
-COPY src ./src
-COPY common ./common
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
 
 EXPOSE 6200
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["node", "dist/src/index.js"]

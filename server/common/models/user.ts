@@ -96,6 +96,8 @@ export interface IUser {
     sailors?: {
       levels: number[];
       last_collected_at?: number;
+      pending_coins?: number;
+      fatigue?: number[];
     };
   };
   stats?: IUserStats;
@@ -222,7 +224,10 @@ export interface ClientPasskey {
   counter: number;
 }
 
-export interface ClientUser extends Omit<ReturnType<typeof userToDoc>, 'passkeys' | 'recovery_codes'> {
+export interface ClientUser extends Omit<
+  ReturnType<typeof userToDoc>,
+  'passkeys' | 'recovery_codes'
+> {
   passkeys: ClientPasskey[];
   recovery_codes: undefined;
 }

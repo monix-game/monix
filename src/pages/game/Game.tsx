@@ -60,12 +60,14 @@ import {
   getAquariumUpgradeCost,
   getCurrentFishingEvent,
   getFishValue,
+  type FishingResult,
+} from '../../../server/common/fishing/fishing';
+import {
   getSailorFleetRatePerSec,
   getSailorHireCost,
   getSailorLevelUpCost,
   SAILOR_MAX_LEVEL,
-  type FishingResult,
-} from '../../../server/common/fishing/fishing';
+} from '../../../server/common/fishing/sailors';
 import {
   buyBait,
   buyRod,
@@ -74,6 +76,7 @@ import {
   getEventPreview,
   goFishing,
   hireSailor,
+  collectSailorEarnings,
   levelUpSailor,
   sellAllFish,
   sellFish,
@@ -1041,8 +1044,7 @@ export default function Game() {
       return (
         (fishingBaits.find(b => b.id === paymentModalBaitId)?.price || 0) * paymentModalBaitQty
       );
-    if (paymentModalAquarium)
-      return getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1);
+    if (paymentModalAquarium) return getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1);
     if (paymentModalEventPreview) return 10;
     return cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0;
   })();
@@ -1241,9 +1243,7 @@ export default function Game() {
                   <div className={styles['market-panel']}>
                     <div className={styles['market-panel-header']}>
                       <h2>
-                        <EmojiText>
-                          {getResourceById(marketResourceDetails)?.icon}
-                        </EmojiText>{' '}
+                        <EmojiText>{getResourceById(marketResourceDetails)?.icon}</EmojiText>{' '}
                         {getResourceById(marketResourceDetails)?.name}
                       </h2>
                       <span className={`${styles['market-panel-price']} mono`}>
@@ -1314,894 +1314,938 @@ export default function Game() {
                   </button>
                 </div>
                 {fishingSubview === 'fishing' && (
-                <>
-                <div className={styles['fishing-container']}>
-                  <div className={styles['fishing-hgrid']}>
-                    <div className={styles['fishing-left']}>
-                      <div className={styles['fishing-card']}>
-                        <h2>
-                          <EmojiText>🐟</EmojiText> Go Fishing!
-                        </h2>
-                        <div className={styles['fishing-card-actions']}>
-                          <Checkbox
-                            label="Auto-sell fish"
-                            checked={autoSellEnabled}
-                            onClick={setAutoSellEnabled}
-                          />
-                          <Button
-                            onClickAsync={async () => {
-                              const result = await goFishing(autoSellEnabled);
-
-                              if (result) {
-                                setIsShowingFishingResults(true);
-                                setLastCatch(result);
-                                if (isTutorialOpen) {
-                                  setTutorialProgress(prev => ({
-                                    ...prev,
-                                    caughtFish: true,
-                                  }));
-                                }
-
-                                if (autoSellEnabled) {
-                                  setWasLastCatchAutoSold(true);
-                                } else {
-                                  setWasLastCatchAutoSold(false);
-                                }
-
-                                await updateEverything();
-                              }
-                            }}
-                            disabled={
-                              (user?.fishing?.last_fished_at || 0) + fishingCooldownMs >
-                                fishingNow ||
-                              ((user?.fishing?.aquarium.fish.length || 0) >=
-                                (user?.fishing?.aquarium.capacity || 0) &&
-                                !autoSellEnabled)
-                            }
-                          >
-                            {(() => {
-                              if (
-                                (user?.fishing?.last_fished_at || 0) + fishingCooldownMs >
-                                fishingNow
-                              ) {
-                                return `Wait ${formatRemainingMilliseconds(
-                                  (user?.fishing?.last_fished_at || 0) +
-                                    fishingCooldownMs -
-                                    fishingNow
-                                )}`;
-                              }
-                              const isAquariumFull =
-                                (user?.fishing?.aquarium.fish.length || 0) >=
-                                  (user?.fishing?.aquarium.capacity || 0) && !autoSellEnabled;
-                              return isAquariumFull ? 'Aquarium Full' : 'Cast a Line!';
-                            })()}
-                          </Button>
-                        </div>
-                        {isShowingFishingResults && lastCatch && (
-                          <div className={styles['fishing-results']}>
-                            <h3>
-                              You Caught{' '}
-                              {['a', 'e', 'i', 'o', 'u'].includes(
-                                fishTypes
-                                  .find(f => f.id === lastCatch.fishCaught.type)
-                                  ?.name[0].toLowerCase() || ''
-                              )
-                                ? 'an'
-                                : 'a'}{' '}
-                              <EmojiText>
-                                {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.icon}
-                              </EmojiText>{' '}
-                              {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.name}
-                            </h3>
-                            <p className={styles['fishing-result-weight']}>
-                              Weight:{' '}
-                              {lastCatch.fishCaught.weight >= 1000 ? (
-                                <span className="mono">
-                                  {smartFormatNumber(lastCatch.fishCaught.weight / 1000, false)}{' '}
-                                  tonnes
-                                </span>
-                              ) : (
-                                <span className="mono">
-                                  {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
-                                </span>
-                              )}
-                            </p>
-                            <p className={styles['fishing-result-value']}>
-                              Value:{' '}
-                              <span className="mono">
-                                {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
-                              </span>
-                            </p>
-                            <div className={styles['fishing-result-modifiers']}>
-                              <span className={styles['fishing-result-modifiers-label']}>
-                                Modifiers:
-                              </span>
-                              {lastCatch.fishCaught.modifiers?.length ? (
-                                <div className={styles['fishing-result-modifier-list']}>
-                                  {lastCatch.fishCaught.modifiers.map(mod => {
-                                    const modifier = fishModifiers.find(fm => fm.id === mod);
-                                    if (!modifier) return null;
-                                    return (
-                                      <span
-                                        key={modifier.id}
-                                        className={styles['fishing-result-modifier']}
-                                      >
-                                        <EmojiText>{modifier.icon}</EmojiText> {modifier.name}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <span className={styles['fishing-result-none']}>None</span>
-                              )}
-                            </div>
-
-                            <div className={styles['fishing-result-buttons']}>
+                  <>
+                    <div className={styles['fishing-container']}>
+                      <div className={styles['fishing-hgrid']}>
+                        <div className={styles['fishing-left']}>
+                          <div className={styles['fishing-card']}>
+                            <h2>
+                              <EmojiText>🐟</EmojiText> Go Fishing!
+                            </h2>
+                            <div className={styles['fishing-card-actions']}>
+                              <Checkbox
+                                label="Auto-sell fish"
+                                checked={autoSellEnabled}
+                                onClick={setAutoSellEnabled}
+                              />
                               <Button
-                                secondary
-                                onClick={() => {
-                                  setIsShowingFishingResults(false);
-                                  setLastCatch(null);
+                                onClickAsync={async () => {
+                                  const result = await goFishing(autoSellEnabled);
+
+                                  if (result) {
+                                    setIsShowingFishingResults(true);
+                                    setLastCatch(result);
+                                    if (isTutorialOpen) {
+                                      setTutorialProgress(prev => ({
+                                        ...prev,
+                                        caughtFish: true,
+                                      }));
+                                    }
+
+                                    if (autoSellEnabled) {
+                                      setWasLastCatchAutoSold(true);
+                                    } else {
+                                      setWasLastCatchAutoSold(false);
+                                    }
+
+                                    await updateEverything();
+                                  }
                                 }}
+                                disabled={
+                                  (user?.fishing?.last_fished_at || 0) + fishingCooldownMs >
+                                    fishingNow ||
+                                  ((user?.fishing?.aquarium.fish.length || 0) >=
+                                    (user?.fishing?.aquarium.capacity || 0) &&
+                                    !autoSellEnabled)
+                                }
                               >
-                                Dismiss
+                                {(() => {
+                                  if (
+                                    (user?.fishing?.last_fished_at || 0) + fishingCooldownMs >
+                                    fishingNow
+                                  ) {
+                                    return `Wait ${formatRemainingMilliseconds(
+                                      (user?.fishing?.last_fished_at || 0) +
+                                        fishingCooldownMs -
+                                        fishingNow
+                                    )}`;
+                                  }
+                                  const isAquariumFull =
+                                    (user?.fishing?.aquarium.fish.length || 0) >=
+                                      (user?.fishing?.aquarium.capacity || 0) && !autoSellEnabled;
+                                  return isAquariumFull ? 'Aquarium Full' : 'Cast a Line!';
+                                })()}
                               </Button>
-                              {!wasLastCatchAutoSold ? (
-                                <Button
-                                  onClickAsync={async () => {
-                                    await sellFish(lastCatch.fishCaught.uuid);
-                                    await updateEverything();
-                                    setIsShowingFishingResults(false);
-                                    setLastCatch(null);
-                                  }}
-                                >
-                                  Sell
-                                </Button>
-                              ) : (
-                                <span className={styles['auto-sold']}>Auto-sold</span>
-                              )}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="fishing-right">
-                      <div className={styles['fishing-vgrid']}>
-                        <div className="fishing-top">
-                          <div className={styles['fishing-card']}>
-                            <div className={styles['fishing-card-header']}>
-                              <h2>
-                                <EmojiText>🎣</EmojiText> Rods
-                              </h2>
-                              <Button onClick={() => setIsRodsModalOpen(true)}>Buy Rods</Button>
-                            </div>
-                            <div className={styles['fishing-grid']}>
-                              {(() => {
-                                const ownedRods = [...(user?.fishing?.rods_owned || [])].sort(
-                                  (a, b) => {
-                                    const rodA = fishingRods.find(r => r.id === a);
-                                    const rodB = fishingRods.find(r => r.id === b);
-                                    if (!rodA || !rodB) return 0;
-                                    return rodB.multiplier - rodA.multiplier;
-                                  }
-                                );
-                                if (ownedRods.length === 0) {
-                                  return <p>You don't own any rods yet.</p>;
-                                }
-                                return ownedRods.map(rodId => {
-                                  const rodInfo = fishingRods.find(r => r.id === rodId);
-
-                                  if (!rodInfo) return null;
-
-                                  const isEquipped = user?.fishing?.equipped_rod === rodId;
-                                  const tier = getRodTierInfo(rodInfo.price);
-
-                                  return (
-                                    <div
-                                      key={rodId}
-                                      className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
-                                    >
-                                      <div className={styles['fishing-item-top']}>
-                                        <span className={styles['fishing-item-type-badge']}>
-                                          <EmojiText>{tier.emoji}</EmojiText> {tier.title}
-                                        </span>
-                                        {isEquipped && (
-                                          <span className={styles['fishing-item-equipped-badge']}>
-                                            <EmojiText>✓</EmojiText> Equipped
-                                          </span>
-                                        )}
-                                      </div>
-                                      <h3>{rodInfo.name}</h3>
-                                      <span className={styles['rod-multiplier']}>
-                                        x{rodInfo.multiplier} Multiplier
-                                      </span>
-                                      <div className="spacer"></div>
-                                      <div className={styles['fishing-item-actions']}>
-                                        {!isEquipped && (
-                                          <Button
-                                            onClickAsync={async () => {
-                                              await equipRod(rodId);
-                                              await updateEverything();
-                                            }}
-                                          >
-                                            Equip
-                                          </Button>
-                                        )}
-                                        {isEquipped && <Button disabled>Equipped</Button>}
-                                        {rodInfo.buyable && rodInfo.price > 0 && (
-                                          <Button
-                                            color="red"
-                                            secondary
-                                            onClick={() => {
-                                              setPaymentModalCosmeticId(null);
-                                              setPaymentModalUpgradeId(null);
-                                              setPaymentModalBaitId(null);
-                                              setPaymentModalAquarium(false);
-                                              setPaymentModalRodId(null);
-                                              setPaymentModalEventPreview(false);
-                                              setPaymentModalSellRodId(rodId);
-                                              setIsPaymentModalOpen(true);
-                                            }}
-                                          >
-                                            Sell
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                        <div className={styles['fishing-bottom']}>
-                          <div className={styles['fishing-card']}>
-                            <span className={styles['fishing-card-header']}>
-                              <h2>
-                                <EmojiText>🪱</EmojiText> Bait
-                              </h2>
-                              <span className={styles['fishing-card-actions-row']}>
-                                <Button
-                                  disabled={!user?.fishing?.equipped_bait}
-                                  onClickAsync={async () => {
-                                    await unequipBait();
-                                    await updateEverything();
-                                  }}
-                                >
-                                  {user?.fishing?.equipped_bait
-                                    ? 'De-equip bait'
-                                    : 'No bait equipped'}
-                                </Button>
-                                <Button onClick={() => setIsBaitModalOpen(true)}>Buy Bait</Button>
-                              </span>
-                            </span>
-
-                            <div className={styles['fishing-grid']}>
-                              {(() => {
-                                const ownedBaits = fishingBaits
-                                  .filter(b => (user?.fishing?.bait_owned?.[b.id] || 0) > 0)
-                                  .sort(
-                                    (a, b) =>
-                                      (user?.fishing?.bait_owned?.[b.id] || 0) -
-                                      (user?.fishing?.bait_owned?.[a.id] || 0)
-                                  );
-                                if (ownedBaits.length === 0) {
-                                  return <p>You don't own any bait yet.</p>;
-                                }
-                                return ownedBaits.map(bait => {
-                                  const quantity = user?.fishing?.bait_owned?.[bait.id] || 0;
-                                  const isEquipped = user?.fishing?.equipped_bait === bait.id;
-                                  return (
-                                    <div
-                                      key={bait.id}
-                                      className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
-                                    >
-                                      <h3>{bait.name}</h3>
-                                      <div className={styles['bait-pills']}>
-                                        {bait.fish_types_boosted.map(typeId => {
-                                          const typeInfo = fishTypes.find(t => t.id === typeId);
-                                          if (!typeInfo) return null;
-                                          return (
-                                            <span key={typeId} className={styles['bait-pill']}>
-                                              <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                      <span className={styles['bait-price']}>
-                                        x{quantity} Owned
-                                      </span>
-                                      <div className="spacer"></div>
-                                      {!isEquipped && (
-                                        <Button
-                                          onClickAsync={async () => {
-                                            await equipBait(bait.id);
-                                            await updateEverything();
-                                          }}
-                                        >
-                                          Equip
-                                        </Button>
-                                      )}
-                                      {isEquipped && <Button disabled>Equipped</Button>}
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Modal
-                  isOpen={isRodsModalOpen}
-                  onClose={() => setIsRodsModalOpen(false)}
-                  width={700}
-                >
-                  <div className={styles['fishing-modal']}>
-                    <h2>
-                      <EmojiText>🎣</EmojiText> Rods Shop
-                    </h2>
-                    {rodSections.map(section => (
-                      <div key={section.id} className={styles['fishing-modal-section']}>
-                        <div className={styles['fishing-modal-section-header']}>
-                          <h3>{section.title}</h3>
-                          <div className={styles['fishing-modal-section-meta']}>
-                            <span className={styles['fishing-modal-section-subtitle']}>
-                              {section.subtitle}
-                            </span>
-                            <button
-                              className={styles['fishing-modal-section-toggle']}
-                              type="button"
-                              aria-expanded={!!openRodSections[section.id]}
-                              onClick={() => toggleRodSection(section.id)}
-                            >
-                              {openRodSections[section.id] ? 'Hide' : 'Show'}
-                            </button>
-                          </div>
-                        </div>
-                        {openRodSections[section.id] && (
-                          <div className={styles['fishing-modal-grid']}>
-                            {section.rods.map(rod => (
-                              <div key={rod.id} className={styles['fishing-modal-card']}>
-                                <h3>{rod.name}</h3>
-                                <p>
-                                  Price:{' '}
-                                  <span className="mono">{smartFormatNumber(rod.price)}</span>
+                            {isShowingFishingResults && lastCatch && (
+                              <div className={styles['fishing-results']}>
+                                <h3>
+                                  You Caught{' '}
+                                  {['a', 'e', 'i', 'o', 'u'].includes(
+                                    fishTypes
+                                      .find(f => f.id === lastCatch.fishCaught.type)
+                                      ?.name[0].toLowerCase() || ''
+                                  )
+                                    ? 'an'
+                                    : 'a'}{' '}
+                                  <EmojiText>
+                                    {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.icon}
+                                  </EmojiText>{' '}
+                                  {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.name}
+                                </h3>
+                                <p className={styles['fishing-result-weight']}>
+                                  Weight:{' '}
+                                  {lastCatch.fishCaught.weight >= 1000 ? (
+                                    <span className="mono">
+                                      {smartFormatNumber(lastCatch.fishCaught.weight / 1000, false)}{' '}
+                                      tonnes
+                                    </span>
+                                  ) : (
+                                    <span className="mono">
+                                      {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
+                                    </span>
+                                  )}
                                 </p>
-                                <span>{rod.multiplier}x Multiplier</span>
-
-                                <Button
-                                  disabled={
-                                    !user ||
-                                    (user.money || 0) < rod.price ||
-                                    (user.fishing?.rods_owned || []).includes(rod.id)
-                                  }
-                                  onClick={() => {
-                                    if ((user?.fishing?.rods_owned || []).includes(rod.id)) return;
-                                    setPaymentModalCosmeticId(null);
-                                    setPaymentModalUpgradeId(null);
-                                    setPaymentModalBaitId(null);
-                                    setPaymentModalAquarium(false);
-                                    setPaymentModalSellRodId(null);
-                                    setPaymentModalEventPreview(false);
-                                    setPaymentModalRodId(rod.id);
-                                    setIsPaymentModalOpen(true);
-                                  }}
-                                >
-                                  {(user?.fishing?.rods_owned || []).includes(rod.id)
-                                    ? 'Owned'
-                                    : 'Buy'}
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Modal>
-
-                <Modal
-                  isOpen={isBaitModalOpen}
-                  onClose={() => setIsBaitModalOpen(false)}
-                  width={700}
-                >
-                  <div className={styles['fishing-modal']}>
-                    <h2>
-                      <EmojiText>🪱</EmojiText> Bait Shop
-                    </h2>
-                    {baitSections.map(section => (
-                      <div key={section.id} className={styles['fishing-modal-section']}>
-                        <div className={styles['fishing-modal-section-header']}>
-                          <h3>{section.title}</h3>
-                          <div className={styles['fishing-modal-section-meta']}>
-                            <span className={styles['fishing-modal-section-subtitle']}>
-                              {section.subtitle}
-                            </span>
-                            <button
-                              className={styles['fishing-modal-section-toggle']}
-                              type="button"
-                              aria-expanded={!!openBaitSections[section.id]}
-                              onClick={() => toggleBaitSection(section.id)}
-                            >
-                              {openBaitSections[section.id] ? 'Hide' : 'Show'}
-                            </button>
-                          </div>
-                        </div>
-                        {openBaitSections[section.id] && (
-                          <div className={styles['fishing-modal-grid']}>
-                            {section.baits.map(bait => (
-                              <div key={bait.id} className={styles['fishing-modal-card']}>
-                                <h3>{bait.name}</h3>
-                                <div className={styles['bait-pills']}>
-                                  {bait.fish_types_boosted.map(typeId => {
-                                    const typeInfo = fishTypes.find(t => t.id === typeId);
-                                    if (!typeInfo) return null;
-                                    return (
-                                      <span key={typeId} className={styles['bait-pill']}>
-                                        <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                                <p>
-                                  Cost:{' '}
+                                <p className={styles['fishing-result-value']}>
+                                  Value:{' '}
                                   <span className="mono">
-                                    {smartFormatNumber(bait.price * (baitQuantities[bait.id] || 1))}
+                                    {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
                                   </span>
                                 </p>
-                                <div className={styles['bait-quantity-control']}>
-                                  <button
-                                    type="button"
-                                    className={styles['bait-quantity-button']}
-                                    onClick={() =>
-                                      setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) - 1)
-                                    }
-                                  >
-                                    -
-                                  </button>
-                                  <input
-                                    className={styles['bait-quantity-input']}
-                                    type="number"
-                                    min={1}
-                                    value={baitQuantities[bait.id] || 1}
-                                    onChange={event =>
-                                      setBaitQuantity(bait.id, Number(event.target.value))
-                                    }
-                                  />
-                                  <button
-                                    type="button"
-                                    className={styles['bait-quantity-button']}
-                                    onClick={() =>
-                                      setBaitQuantity(bait.id, (baitQuantities[bait.id] || 1) + 1)
-                                    }
-                                  >
-                                    +
-                                  </button>
+                                <div className={styles['fishing-result-modifiers']}>
+                                  <span className={styles['fishing-result-modifiers-label']}>
+                                    Modifiers:
+                                  </span>
+                                  {lastCatch.fishCaught.modifiers?.length ? (
+                                    <div className={styles['fishing-result-modifier-list']}>
+                                      {lastCatch.fishCaught.modifiers.map(mod => {
+                                        const modifier = fishModifiers.find(fm => fm.id === mod);
+                                        if (!modifier) return null;
+                                        return (
+                                          <span
+                                            key={modifier.id}
+                                            className={styles['fishing-result-modifier']}
+                                          >
+                                            <EmojiText>{modifier.icon}</EmojiText> {modifier.name}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <span className={styles['fishing-result-none']}>None</span>
+                                  )}
                                 </div>
-                                <Button
-                                  disabled={
-                                    !user ||
-                                    (user.money || 0) < bait.price * (baitQuantities[bait.id] || 1)
-                                  }
-                                  onClick={() => {
-                                    setPaymentModalCosmeticId(null);
-                                    setPaymentModalUpgradeId(null);
-                                    setPaymentModalRodId(null);
-                                    setPaymentModalAquarium(false);
-                                    setPaymentModalSellRodId(null);
-                                    setPaymentModalEventPreview(false);
-                                    setPaymentModalBaitId(bait.id);
-                                    setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
-                                    setIsPaymentModalOpen(true);
-                                  }}
+
+                                <div className={styles['fishing-result-buttons']}>
+                                  <Button
+                                    secondary
+                                    onClick={() => {
+                                      setIsShowingFishingResults(false);
+                                      setLastCatch(null);
+                                    }}
+                                  >
+                                    Dismiss
+                                  </Button>
+                                  {!wasLastCatchAutoSold ? (
+                                    <Button
+                                      onClickAsync={async () => {
+                                        await sellFish(lastCatch.fishCaught.uuid);
+                                        await updateEverything();
+                                        setIsShowingFishingResults(false);
+                                        setLastCatch(null);
+                                      }}
+                                    >
+                                      Sell
+                                    </Button>
+                                  ) : (
+                                    <span className={styles['auto-sold']}>Auto-sold</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="fishing-right">
+                          <div className={styles['fishing-vgrid']}>
+                            <div className="fishing-top">
+                              <div className={styles['fishing-card']}>
+                                <div className={styles['fishing-card-header']}>
+                                  <h2>
+                                    <EmojiText>🎣</EmojiText> Rods
+                                  </h2>
+                                  <Button onClick={() => setIsRodsModalOpen(true)}>Buy Rods</Button>
+                                </div>
+                                <div className={styles['fishing-grid']}>
+                                  {(() => {
+                                    const ownedRods = [...(user?.fishing?.rods_owned || [])].sort(
+                                      (a, b) => {
+                                        const rodA = fishingRods.find(r => r.id === a);
+                                        const rodB = fishingRods.find(r => r.id === b);
+                                        if (!rodA || !rodB) return 0;
+                                        return rodB.multiplier - rodA.multiplier;
+                                      }
+                                    );
+                                    if (ownedRods.length === 0) {
+                                      return <p>You don't own any rods yet.</p>;
+                                    }
+                                    return ownedRods.map(rodId => {
+                                      const rodInfo = fishingRods.find(r => r.id === rodId);
+
+                                      if (!rodInfo) return null;
+
+                                      const isEquipped = user?.fishing?.equipped_rod === rodId;
+                                      const tier = getRodTierInfo(rodInfo.price);
+
+                                      return (
+                                        <div
+                                          key={rodId}
+                                          className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
+                                        >
+                                          <div className={styles['fishing-item-top']}>
+                                            <span className={styles['fishing-item-type-badge']}>
+                                              <EmojiText>{tier.emoji}</EmojiText> {tier.title}
+                                            </span>
+                                            {isEquipped && (
+                                              <span
+                                                className={styles['fishing-item-equipped-badge']}
+                                              >
+                                                <EmojiText>✓</EmojiText> Equipped
+                                              </span>
+                                            )}
+                                          </div>
+                                          <h3>{rodInfo.name}</h3>
+                                          <span className={styles['rod-multiplier']}>
+                                            x{rodInfo.multiplier} Multiplier
+                                          </span>
+                                          <div className="spacer"></div>
+                                          <div className={styles['fishing-item-actions']}>
+                                            {!isEquipped && (
+                                              <Button
+                                                onClickAsync={async () => {
+                                                  await equipRod(rodId);
+                                                  await updateEverything();
+                                                }}
+                                              >
+                                                Equip
+                                              </Button>
+                                            )}
+                                            {isEquipped && <Button disabled>Equipped</Button>}
+                                            {rodInfo.buyable && rodInfo.price > 0 && (
+                                              <Button
+                                                color="red"
+                                                secondary
+                                                onClick={() => {
+                                                  setPaymentModalCosmeticId(null);
+                                                  setPaymentModalUpgradeId(null);
+                                                  setPaymentModalBaitId(null);
+                                                  setPaymentModalAquarium(false);
+                                                  setPaymentModalRodId(null);
+                                                  setPaymentModalEventPreview(false);
+                                                  setPaymentModalSellRodId(rodId);
+                                                  setIsPaymentModalOpen(true);
+                                                }}
+                                              >
+                                                Sell
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    });
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className={styles['fishing-bottom']}>
+                              <div className={styles['fishing-card']}>
+                                <span className={styles['fishing-card-header']}>
+                                  <h2>
+                                    <EmojiText>🪱</EmojiText> Bait
+                                  </h2>
+                                  <span className={styles['fishing-card-actions-row']}>
+                                    <Button
+                                      disabled={!user?.fishing?.equipped_bait}
+                                      onClickAsync={async () => {
+                                        await unequipBait();
+                                        await updateEverything();
+                                      }}
+                                    >
+                                      {user?.fishing?.equipped_bait
+                                        ? 'De-equip bait'
+                                        : 'No bait equipped'}
+                                    </Button>
+                                    <Button onClick={() => setIsBaitModalOpen(true)}>
+                                      Buy Bait
+                                    </Button>
+                                  </span>
+                                </span>
+
+                                <div className={styles['fishing-grid']}>
+                                  {(() => {
+                                    const ownedBaits = fishingBaits
+                                      .filter(b => (user?.fishing?.bait_owned?.[b.id] || 0) > 0)
+                                      .sort(
+                                        (a, b) =>
+                                          (user?.fishing?.bait_owned?.[b.id] || 0) -
+                                          (user?.fishing?.bait_owned?.[a.id] || 0)
+                                      );
+                                    if (ownedBaits.length === 0) {
+                                      return <p>You don't own any bait yet.</p>;
+                                    }
+                                    return ownedBaits.map(bait => {
+                                      const quantity = user?.fishing?.bait_owned?.[bait.id] || 0;
+                                      const isEquipped = user?.fishing?.equipped_bait === bait.id;
+                                      return (
+                                        <div
+                                          key={bait.id}
+                                          className={`${styles['fishing-grid-item']} ${isEquipped ? 'equipped' : ''}`}
+                                        >
+                                          <h3>{bait.name}</h3>
+                                          <div className={styles['bait-pills']}>
+                                            {bait.fish_types_boosted.map(typeId => {
+                                              const typeInfo = fishTypes.find(t => t.id === typeId);
+                                              if (!typeInfo) return null;
+                                              return (
+                                                <span key={typeId} className={styles['bait-pill']}>
+                                                  <EmojiText>{typeInfo.icon}</EmojiText>{' '}
+                                                  {typeInfo.name}
+                                                </span>
+                                              );
+                                            })}
+                                          </div>
+                                          <span className={styles['bait-price']}>
+                                            x{quantity} Owned
+                                          </span>
+                                          <div className="spacer"></div>
+                                          {!isEquipped && (
+                                            <Button
+                                              onClickAsync={async () => {
+                                                await equipBait(bait.id);
+                                                await updateEverything();
+                                              }}
+                                            >
+                                              Equip
+                                            </Button>
+                                          )}
+                                          {isEquipped && <Button disabled>Equipped</Button>}
+                                        </div>
+                                      );
+                                    });
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Modal
+                      isOpen={isRodsModalOpen}
+                      onClose={() => setIsRodsModalOpen(false)}
+                      width={700}
+                    >
+                      <div className={styles['fishing-modal']}>
+                        <h2>
+                          <EmojiText>🎣</EmojiText> Rods Shop
+                        </h2>
+                        {rodSections.map(section => (
+                          <div key={section.id} className={styles['fishing-modal-section']}>
+                            <div className={styles['fishing-modal-section-header']}>
+                              <h3>{section.title}</h3>
+                              <div className={styles['fishing-modal-section-meta']}>
+                                <span className={styles['fishing-modal-section-subtitle']}>
+                                  {section.subtitle}
+                                </span>
+                                <button
+                                  className={styles['fishing-modal-section-toggle']}
+                                  type="button"
+                                  aria-expanded={!!openRodSections[section.id]}
+                                  onClick={() => toggleRodSection(section.id)}
                                 >
-                                  Buy
-                                </Button>
+                                  {openRodSections[section.id] ? 'Hide' : 'Show'}
+                                </button>
+                              </div>
+                            </div>
+                            {openRodSections[section.id] && (
+                              <div className={styles['fishing-modal-grid']}>
+                                {section.rods.map(rod => (
+                                  <div key={rod.id} className={styles['fishing-modal-card']}>
+                                    <h3>{rod.name}</h3>
+                                    <p>
+                                      Price:{' '}
+                                      <span className="mono">{smartFormatNumber(rod.price)}</span>
+                                    </p>
+                                    <span>{rod.multiplier}x Multiplier</span>
+
+                                    <Button
+                                      disabled={
+                                        !user ||
+                                        (user.money || 0) < rod.price ||
+                                        (user.fishing?.rods_owned || []).includes(rod.id)
+                                      }
+                                      onClick={() => {
+                                        if ((user?.fishing?.rods_owned || []).includes(rod.id))
+                                          return;
+                                        setPaymentModalCosmeticId(null);
+                                        setPaymentModalUpgradeId(null);
+                                        setPaymentModalBaitId(null);
+                                        setPaymentModalAquarium(false);
+                                        setPaymentModalSellRodId(null);
+                                        setPaymentModalEventPreview(false);
+                                        setPaymentModalRodId(rod.id);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                    >
+                                      {(user?.fishing?.rods_owned || []).includes(rod.id)
+                                        ? 'Owned'
+                                        : 'Buy'}
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </Modal>
+
+                    <Modal
+                      isOpen={isBaitModalOpen}
+                      onClose={() => setIsBaitModalOpen(false)}
+                      width={700}
+                    >
+                      <div className={styles['fishing-modal']}>
+                        <h2>
+                          <EmojiText>🪱</EmojiText> Bait Shop
+                        </h2>
+                        {baitSections.map(section => (
+                          <div key={section.id} className={styles['fishing-modal-section']}>
+                            <div className={styles['fishing-modal-section-header']}>
+                              <h3>{section.title}</h3>
+                              <div className={styles['fishing-modal-section-meta']}>
+                                <span className={styles['fishing-modal-section-subtitle']}>
+                                  {section.subtitle}
+                                </span>
+                                <button
+                                  className={styles['fishing-modal-section-toggle']}
+                                  type="button"
+                                  aria-expanded={!!openBaitSections[section.id]}
+                                  onClick={() => toggleBaitSection(section.id)}
+                                >
+                                  {openBaitSections[section.id] ? 'Hide' : 'Show'}
+                                </button>
+                              </div>
+                            </div>
+                            {openBaitSections[section.id] && (
+                              <div className={styles['fishing-modal-grid']}>
+                                {section.baits.map(bait => (
+                                  <div key={bait.id} className={styles['fishing-modal-card']}>
+                                    <h3>{bait.name}</h3>
+                                    <div className={styles['bait-pills']}>
+                                      {bait.fish_types_boosted.map(typeId => {
+                                        const typeInfo = fishTypes.find(t => t.id === typeId);
+                                        if (!typeInfo) return null;
+                                        return (
+                                          <span key={typeId} className={styles['bait-pill']}>
+                                            <EmojiText>{typeInfo.icon}</EmojiText> {typeInfo.name}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                    <p>
+                                      Cost:{' '}
+                                      <span className="mono">
+                                        {smartFormatNumber(
+                                          bait.price * (baitQuantities[bait.id] || 1)
+                                        )}
+                                      </span>
+                                    </p>
+                                    <div className={styles['bait-quantity-control']}>
+                                      <button
+                                        type="button"
+                                        className={styles['bait-quantity-button']}
+                                        onClick={() =>
+                                          setBaitQuantity(
+                                            bait.id,
+                                            (baitQuantities[bait.id] || 1) - 1
+                                          )
+                                        }
+                                      >
+                                        -
+                                      </button>
+                                      <input
+                                        className={styles['bait-quantity-input']}
+                                        type="number"
+                                        min={1}
+                                        value={baitQuantities[bait.id] || 1}
+                                        onChange={event =>
+                                          setBaitQuantity(bait.id, Number(event.target.value))
+                                        }
+                                      />
+                                      <button
+                                        type="button"
+                                        className={styles['bait-quantity-button']}
+                                        onClick={() =>
+                                          setBaitQuantity(
+                                            bait.id,
+                                            (baitQuantities[bait.id] || 1) + 1
+                                          )
+                                        }
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                    <Button
+                                      disabled={
+                                        !user ||
+                                        (user.money || 0) <
+                                          bait.price * (baitQuantities[bait.id] || 1)
+                                      }
+                                      onClick={() => {
+                                        setPaymentModalCosmeticId(null);
+                                        setPaymentModalUpgradeId(null);
+                                        setPaymentModalRodId(null);
+                                        setPaymentModalAquarium(false);
+                                        setPaymentModalSellRodId(null);
+                                        setPaymentModalEventPreview(false);
+                                        setPaymentModalBaitId(bait.id);
+                                        setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                    >
+                                      Buy
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </Modal>
+                  </>
+                )}
+                {fishingSubview === 'aquarium' && (
+                  <>
+                    <div className={styles['aquarium-tab']}>
+                      <div className={styles['aquarium-banner']}>
+                        <span className={styles['aquarium-banner-subtitle']}>
+                          CURRENT FISHING EVENT
+                        </span>
+                        <h3 className={styles['aquarium-banner-title']}>
+                          {currentFishingEvent.event ? (
+                            <>
+                              <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
+                              {currentFishingEvent.event.name}
+                            </>
+                          ) : (
+                            'No active event'
+                          )}
+                        </h3>
+                        <span className={styles['aquarium-banner-remaining']}>
+                          {formatRemainingTime(
+                            Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
+                          )}{' '}
+                          {currentFishingEvent.event ? 'remaining' : 'until next event'}
+                        </span>
+                      </div>
+                      <div className={styles['aquarium-info']}>
+                        {(() => {
+                          const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
+                          const capacity = user?.fishing?.aquarium.capacity ?? 0;
+
+                          if (fishLength === 0) {
+                            return (
+                              <>
+                                Your aquarium is empty. Catch some fish to display them here!{' '}
+                                <span className={styles['aquarium-data']}>
+                                  {fishLength}/{capacity}
+                                </span>{' '}
+                                fish in aquarium.
+                              </>
+                            );
+                          }
+
+                          if (fishLength !== capacity) {
+                            return (
+                              <>
+                                You are using{' '}
+                                <span className={styles['aquarium-data']}>{fishLength}</span> out of{' '}
+                                <span className={styles['aquarium-data']}>{capacity}</span> capacity
+                                in your aquarium.
+                              </>
+                            );
+                          }
+
+                          return (
+                            <>
+                              Your aquarium is at full capacity! Try upgrading your aquarium to fit
+                              more fish.{' '}
+                              <span className={styles['aquarium-data']}>
+                                {fishLength}/{capacity}
+                              </span>{' '}
+                              fish in aquarium.
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div className={styles['aquarium-action-row']}>
+                        <div className={styles['aquarium-buttons']}>
+                          <Button
+                            onClick={() => {
+                              setPaymentModalCosmeticId(null);
+                              setPaymentModalUpgradeId(null);
+                              setPaymentModalRodId(null);
+                              setPaymentModalBaitId(null);
+                              setPaymentModalSellRodId(null);
+                              setPaymentModalEventPreview(false);
+                              setPaymentModalAquarium(true);
+                              setIsPaymentModalOpen(true);
+                            }}
+                            disabled={
+                              !user ||
+                              (user.money || 0) <
+                                getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                            }
+                          >
+                            Upgrade Aquarium for{' '}
+                            {smartFormatNumber(
+                              getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                            )}
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              const res = await getEventPreview();
+                              if (res?.unlocked) {
+                                setEventPreview(res);
+                                setIsEventPreviewModalOpen(true);
+                                return;
+                              }
+                              if (res) {
+                                setEventPreview(res);
+                                setPaymentModalCosmeticId(null);
+                                setPaymentModalUpgradeId(null);
+                                setPaymentModalRodId(null);
+                                setPaymentModalBaitId(null);
+                                setPaymentModalSellRodId(null);
+                                setPaymentModalAquarium(false);
+                                setPaymentModalEventPreview(true);
+                                setIsPaymentModalOpen(true);
+                              }
+                            }}
+                          >
+                            Upcoming Events
+                          </Button>
+                          <Button
+                            onClick={() => setIsFishSellAllModalOpen(true)}
+                            disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
+                          >
+                            Sell All
+                          </Button>
+                        </div>
+                        <div className={styles['aquarium-controls']}>
+                          <div className={styles['aquarium-control-group']}>
+                            <span className={styles['aquarium-control-label']}>Sort</span>
+                            <Select
+                              value={aquariumSort}
+                              onChange={value =>
+                                setAquariumSort(value as 'value-desc' | 'value-asc')
+                              }
+                              options={[
+                                { label: 'Value: High to Low', value: 'value-desc' },
+                                { label: 'Value: Low to High', value: 'value-asc' },
+                              ]}
+                              disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
+                            />
+                          </div>
+                          <div className={styles['aquarium-control-group']}>
+                            <span className={styles['aquarium-control-label']}>Filter</span>
+                            <Select
+                              value={aquariumModifierFilter}
+                              onChange={value =>
+                                setAquariumModifierFilter(value as 'all' | 'with' | 'without')
+                              }
+                              options={[
+                                { label: 'All Fish', value: 'all' },
+                                { label: 'Has Modifiers', value: 'with' },
+                                { label: 'No Modifiers', value: 'without' },
+                              ]}
+                              disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {aquariumFishView.length === 0 &&
+                        (user?.fishing?.aquarium.fish.length || 0) > 0 && (
+                          <div className={styles['aquarium-empty']}>
+                            No fish match those filters.
+                          </div>
+                        )}
+                      <div className={styles['aquarium-grid']}>
+                        {aquariumFishView.map(fish => (
+                          <div key={fish.uuid} className={styles['aquarium-fish-card']}>
+                            <h3>
+                              <EmojiText>
+                                {fishTypes.find(ft => ft.id === fish.type)?.icon}
+                              </EmojiText>{' '}
+                              {fishTypes.find(ft => ft.id === fish.type)?.name}
+                            </h3>
+                            <span className={styles['aquarium-fish-weight']}>
+                              {fish.weight >= 1000 ? (
+                                <span className="mono">
+                                  {smartFormatNumber(fish.weight / 1000, false)} tonnes
+                                </span>
+                              ) : (
+                                <span className="mono">
+                                  {smartFormatNumber(fish.weight, false)} kg
+                                </span>
+                              )}
+                            </span>
+                            <div className={styles['aquarium-fish-modifiers']}>
+                              {fish.modifiers?.map(mod => (
+                                <span
+                                  key={fishModifiers.find(fm => fm.id === mod)?.id}
+                                  className={styles['aquarium-fish-modifier']}
+                                >
+                                  <EmojiText>
+                                    {fishModifiers.find(fm => fm.id === mod)?.icon}
+                                  </EmojiText>{' '}
+                                  {fishModifiers.find(fm => fm.id === mod)?.name}
+                                </span>
+                              ))}
+                            </div>
+                            <span>
+                              VALUE:{' '}
+                              <span className={`${styles['aquarium-fish-value']} mono`}>
+                                {smartFormatNumber(getFishValue(fish))}
+                              </span>
+                            </span>
+                            <Button
+                              className={styles['aquarium-fish-sell-button']}
+                              onClick={() => {
+                                setAquariumFishToSell(fish.uuid);
+                                setIsFishSellModalOpen(true);
+                              }}
+                            >
+                              Sell
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <Modal
+                        isOpen={isFishSellAllModalOpen}
+                        onClose={() => setIsFishSellAllModalOpen(false)}
+                      >
+                        <div className={styles['fish-sell-modal']}>
+                          <h2>Sell All Fish</h2>
+                          <p>
+                            Are you sure you want to sell all your fish for{' '}
+                            <span className="mono">
+                              {smartFormatNumber(
+                                (user?.fishing?.aquarium.fish ?? []).reduce(
+                                  (total, fish) => total + getFishValue(fish),
+                                  0
+                                )
+                              )}
+                            </span>
+                            ?
+                          </p>
+                          <div className={styles['fish-sell-modal-buttons']}>
+                            <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
+                              Cancel
+                            </Button>
+                            <Button
+                              onClickAsync={async () => {
+                                await sellAllFish();
+                                setIsFishSellAllModalOpen(false);
+                                await updateEverything();
+                              }}
+                            >
+                              Sell All
+                            </Button>
+                          </div>
+                        </div>
+                      </Modal>
+
+                      <Modal
+                        isOpen={isFishSellModalOpen}
+                        onClose={() => setIsFishSellModalOpen(false)}
+                      >
+                        <div className={styles['fish-sell-modal']}>
+                          <h2>Sell Fish</h2>
+                          <p>
+                            Are you sure you want to sell this fish for{' '}
+                            <span className="mono">
+                              {smartFormatNumber(
+                                user?.fishing?.aquarium.fish.find(
+                                  f => f.uuid === aquariumFishToSell
+                                )
+                                  ? getFishValue(
+                                      user.fishing.aquarium.fish.find(
+                                        f => f.uuid === aquariumFishToSell
+                                      )!
+                                    )
+                                  : 0
+                              )}
+                            </span>
+                            ?
+                          </p>
+                          <div className={styles['fish-sell-modal-buttons']}>
+                            <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
+                              Cancel
+                            </Button>
+                            <Button
+                              onClickAsync={async () => {
+                                await sellFish(aquariumFishToSell!);
+                                setIsFishSellModalOpen(false);
+                                setAquariumFishToSell(null);
+                                await updateEverything();
+                              }}
+                            >
+                              Sell
+                            </Button>
+                          </div>
+                        </div>
+                      </Modal>
+
+                      <Modal
+                        isOpen={isEventPreviewModalOpen}
+                        onClose={() => setIsEventPreviewModalOpen(false)}
+                      >
+                        <div className={styles['event-preview-modal']}>
+                          <h2>Upcoming Fishing Events</h2>
+                          <div className={styles['event-preview-list']}>
+                            {eventPreview?.events?.map((event, idx) => (
+                              <div
+                                key={`${event.event?.id ?? 'unknown'}-${event.startAt}-${idx}`}
+                                className={styles['event-preview-item']}
+                              >
+                                <EmojiText>{event.event?.icon}</EmojiText>
+                                <div className={styles['event-preview-item-info']}>
+                                  <span className={styles['event-preview-item-name']}>
+                                    {event.event?.name ?? 'No event'}
+                                  </span>
+                                  <span className={styles['event-preview-item-time']}>
+                                    {new Date(event.startAt).toLocaleString(undefined, {
+                                      weekday: 'short',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
                               </div>
                             ))}
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Modal>
-                </>
-                )}
-                {fishingSubview === 'aquarium' && (
-                <>
-                <div className={styles['aquarium-tab']}>
-                  <div className={styles['aquarium-banner']}>
-                    <span className={styles['aquarium-banner-subtitle']}>CURRENT FISHING EVENT</span>
-                    <h3 className={styles['aquarium-banner-title']}>
-                    {currentFishingEvent.event ? (
-                      <>
-                        <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
-                        {currentFishingEvent.event.name}
-                      </>
-                    ) : (
-                      'No active event'
-                    )}
-                  </h3>
-                  <span className={styles['aquarium-banner-remaining']}>
-                    {formatRemainingTime(
-                      Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
-                    )}{' '}
-                    {currentFishingEvent.event ? 'remaining' : 'until next event'}
-                  </span>
-                </div>
-                <div className={styles['aquarium-info']}>
-                  {(() => {
-                    const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
-                    const capacity = user?.fishing?.aquarium.capacity ?? 0;
-
-                    if (fishLength === 0) {
-                      return (
-                        <>
-                          Your aquarium is empty. Catch some fish to display them here!{' '}
-                          <span className={styles['aquarium-data']}>
-                            {fishLength}/{capacity}
-                          </span>{' '}
-                          fish in aquarium.
-                        </>
-                      );
-                    }
-
-                    if (fishLength !== capacity) {
-                      return (
-                        <>
-                          You are using{' '}
-                          <span className={styles['aquarium-data']}>{fishLength}</span> out of{' '}
-                          <span className={styles['aquarium-data']}>{capacity}</span> capacity in
-                          your aquarium.
-                        </>
-                      );
-                    }
-
-                    return (
-                      <>
-                        Your aquarium is at full capacity! Try upgrading your aquarium to fit more
-                        fish.{' '}
-                        <span className={styles['aquarium-data']}>
-                          {fishLength}/{capacity}
-                        </span>{' '}
-                        fish in aquarium.
-                      </>
-                    );
-                  })()}
-                </div>
-                <div className={styles['aquarium-action-row']}>
-                  <div className={styles['aquarium-buttons']}>
-                    <Button
-                      onClick={() => {
-                        setPaymentModalCosmeticId(null);
-                        setPaymentModalUpgradeId(null);
-                        setPaymentModalRodId(null);
-                        setPaymentModalBaitId(null);
-                        setPaymentModalSellRodId(null);
-                        setPaymentModalEventPreview(false);
-                        setPaymentModalAquarium(true);
-                        setIsPaymentModalOpen(true);
-                      }}
-                      disabled={
-                        !user ||
-                        (user.money || 0) <
-                          getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
-                      }
-                    >
-                      Upgrade Aquarium for{' '}
-                      {smartFormatNumber(
-                        getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
-                      )}
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        const res = await getEventPreview();
-                        if (res?.unlocked) {
-                          setEventPreview(res);
-                          setIsEventPreviewModalOpen(true);
-                          return;
-                        }
-                        if (res) {
-                          setEventPreview(res);
-                          setPaymentModalCosmeticId(null);
-                          setPaymentModalUpgradeId(null);
-                          setPaymentModalRodId(null);
-                          setPaymentModalBaitId(null);
-                          setPaymentModalSellRodId(null);
-                          setPaymentModalAquarium(false);
-                          setPaymentModalEventPreview(true);
-                          setIsPaymentModalOpen(true);
-                        }
-                      }}
-                    >
-                      Upcoming Events
-                    </Button>
-                    <Button
-                      onClick={() => setIsFishSellAllModalOpen(true)}
-                      disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
-                    >
-                      Sell All
-                    </Button>
-                  </div>
-                  <div className={styles['aquarium-controls']}>
-                    <div className={styles['aquarium-control-group']}>
-                      <span className={styles['aquarium-control-label']}>Sort</span>
-                      <Select
-                        value={aquariumSort}
-                        onChange={value => setAquariumSort(value as 'value-desc' | 'value-asc')}
-                        options={[
-                          { label: 'Value: High to Low', value: 'value-desc' },
-                          { label: 'Value: Low to High', value: 'value-asc' },
-                        ]}
-                        disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
-                      />
-                    </div>
-                    <div className={styles['aquarium-control-group']}>
-                      <span className={styles['aquarium-control-label']}>Filter</span>
-                      <Select
-                        value={aquariumModifierFilter}
-                        onChange={value =>
-                          setAquariumModifierFilter(value as 'all' | 'with' | 'without')
-                        }
-                        options={[
-                          { label: 'All Fish', value: 'all' },
-                          { label: 'Has Modifiers', value: 'with' },
-                          { label: 'No Modifiers', value: 'without' },
-                        ]}
-                        disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {aquariumFishView.length === 0 &&
-                  (user?.fishing?.aquarium.fish.length || 0) > 0 && (
-                    <div className={styles['aquarium-empty']}>No fish match those filters.</div>
-                  )}
-                <div className={styles['aquarium-grid']}>
-                  {aquariumFishView.map(fish => (
-                    <div key={fish.uuid} className={styles['aquarium-fish-card']}>
-                      <h3>
-                        <EmojiText>{fishTypes.find(ft => ft.id === fish.type)?.icon}</EmojiText>{' '}
-                        {fishTypes.find(ft => ft.id === fish.type)?.name}
-                      </h3>
-                      <span className={styles['aquarium-fish-weight']}>
-                        {fish.weight >= 1000 ? (
-                          <span className="mono">
-                            {smartFormatNumber(fish.weight / 1000, false)} tonnes
-                          </span>
-                        ) : (
-                          <span className="mono">{smartFormatNumber(fish.weight, false)} kg</span>
-                        )}
-                      </span>
-                      <div className={styles['aquarium-fish-modifiers']}>
-                        {fish.modifiers?.map(mod => (
-                          <span
-                            key={fishModifiers.find(fm => fm.id === mod)?.id}
-                            className={styles['aquarium-fish-modifier']}
-                          >
-                            <EmojiText>{fishModifiers.find(fm => fm.id === mod)?.icon}</EmojiText>{' '}
-                            {fishModifiers.find(fm => fm.id === mod)?.name}
-                          </span>
-                        ))}
-                      </div>
-                      <span>
-                        VALUE:{' '}
-                        <span className={`${styles['aquarium-fish-value']} mono`}>
-                          {smartFormatNumber(getFishValue(fish))}
-                        </span>
-                      </span>
-                      <Button
-                        className={styles['aquarium-fish-sell-button']}
-                        onClick={() => {
-                          setAquariumFishToSell(fish.uuid);
-                          setIsFishSellModalOpen(true);
-                        }}
-                      >
-                        Sell
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                <Modal
-                  isOpen={isFishSellAllModalOpen}
-                  onClose={() => setIsFishSellAllModalOpen(false)}
-                >
-                  <div className={styles['fish-sell-modal']}>
-                    <h2>Sell All Fish</h2>
-                    <p>
-                      Are you sure you want to sell all your fish for{' '}
-                      <span className="mono">
-                        {smartFormatNumber(
-                          (user?.fishing?.aquarium.fish ?? []).reduce(
-                            (total, fish) => total + getFishValue(fish),
-                            0
-                          )
-                        )}
-                      </span>
-                      ?
-                    </p>
-                    <div className={styles['fish-sell-modal-buttons']}>
-                      <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
-                        Cancel
-                      </Button>
-                      <Button
-                        onClickAsync={async () => {
-                          await sellAllFish();
-                          setIsFishSellAllModalOpen(false);
-                          await updateEverything();
-                        }}
-                      >
-                        Sell All
-                      </Button>
-                    </div>
-                  </div>
-                </Modal>
-
-                <Modal isOpen={isFishSellModalOpen} onClose={() => setIsFishSellModalOpen(false)}>
-                  <div className={styles['fish-sell-modal']}>
-                    <h2>Sell Fish</h2>
-                    <p>
-                      Are you sure you want to sell this fish for{' '}
-                      <span className="mono">
-                        {smartFormatNumber(
-                          user?.fishing?.aquarium.fish.find(f => f.uuid === aquariumFishToSell)
-                            ? getFishValue(
-                                user.fishing.aquarium.fish.find(f => f.uuid === aquariumFishToSell)!
-                              )
-                            : 0
-                        )}
-                      </span>
-                      ?
-                    </p>
-                    <div className={styles['fish-sell-modal-buttons']}>
-                      <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
-                        Cancel
-                      </Button>
-                      <Button
-                        onClickAsync={async () => {
-                          await sellFish(aquariumFishToSell!);
-                          setIsFishSellModalOpen(false);
-                          setAquariumFishToSell(null);
-                          await updateEverything();
-                        }}
-                      >
-                        Sell
-                      </Button>
-                    </div>
-                  </div>
-                </Modal>
-
-                <Modal
-                  isOpen={isEventPreviewModalOpen}
-                  onClose={() => setIsEventPreviewModalOpen(false)}
-                >
-                  <div className={styles['event-preview-modal']}>
-                    <h2>Upcoming Fishing Events</h2>
-                    <div className={styles['event-preview-list']}>
-                      {eventPreview?.events?.map((event, idx) => (
-                        <div
-                          key={`${event.event?.id ?? 'unknown'}-${event.startAt}-${idx}`}
-                          className={styles['event-preview-item']}
-                        >
-                          <EmojiText>{event.event?.icon}</EmojiText>
-                          <div className={styles['event-preview-item-info']}>
-                            <span className={styles['event-preview-item-name']}>
-                              {event.event?.name ?? 'No event'}
-                            </span>
-                            <span className={styles['event-preview-item-time']}>
-                              {new Date(event.startAt).toLocaleString(undefined, {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
                         </div>
-                      ))}
+                      </Modal>
                     </div>
-                  </div>
-                </Modal>
-              </div>
-              </>
-              )}
-              {fishingSubview === 'sailors' && (
-              <>
-              <div className={styles['sailors-tab']}>
-                <div className={styles['sailors-banner']}>
-                  <span className={styles['sailors-banner-subtitle']}>PASSIVE FISHING CREW</span>
-                  <h3 className={styles['sailors-banner-title']}>
-                    <EmojiText>⛵</EmojiText> Sailors
-                  </h3>
-                  <span className={styles['sailors-banner-remaining']}>
-                    {(() => {
-                      const levels = user?.fishing?.sailors?.levels ?? [];
-                      return `Earning ${smartFormatNumber(
-                        getSailorFleetRatePerSec(levels)
-                      )}/sec while online or offline`;
-                    })()}
-                  </span>
-                </div>
-
-                <div className={styles['sailors-action-row']}>
-                  <div className={styles['sailors-buttons']}>
-                    <Button
-                      onClickAsync={async () => {
-                        await hireSailor();
-                        setFishingSubview('sailors');
-                        await updateEverything();
-                      }}
-                      disabled={
-                        !user ||
-                        (user?.fishing?.sailors?.levels?.length ?? 0) >= SAILOR_MAX_LEVEL ||
-                        (user.money || 0) <
-                          getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
-                      }
-                    >
-                      Hire Sailor for {smartFormatNumber(getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0))}
-                    </Button>
-                  </div>
-                  <span className={styles['sailors-count']}>
-                    {user?.fishing?.sailors?.levels?.length ?? 0} / {SAILOR_MAX_LEVEL} hired
-                  </span>
-                </div>
-
-                {(() => {
-                  const levels = user?.fishing?.sailors?.levels ?? [];
-                  if (levels.length === 0) {
-                    return (
-                      <div className={styles['sailors-empty']}>
-                        <EmojiText>🧑‍✈️</EmojiText> You have no sailors yet. Hire a sailor to start
-                        passively fishing for you while you're online or away!
+                  </>
+                )}
+                {fishingSubview === 'sailors' && (
+                  <>
+                    <div className={styles['sailors-tab']}>
+                      <div className={styles['sailors-banner']}>
+                        <span className={styles['sailors-banner-subtitle']}>
+                          PASSIVE FISHING CREW
+                        </span>
+                        <h3 className={styles['sailors-banner-title']}>
+                          <EmojiText>⛵</EmojiText> Sailors
+                        </h3>
+                        <span className={styles['sailors-banner-remaining']}>
+                          {(() => {
+                            const levels = user?.fishing?.sailors?.levels ?? [];
+                            return `Earning ${smartFormatNumber(
+                              getSailorFleetRatePerSec(levels)
+                            )}/sec, held until collected`;
+                          })()}
+                        </span>
                       </div>
-                    );
-                  }
-                  return (
-                    <div className={styles['sailors-grid']}>
-                      {levels.map((level, index) => {
-                        const atMax = level >= SAILOR_MAX_LEVEL;
-                        const cost = getSailorLevelUpCost(level);
-                        const rate = getSailorFleetRatePerSec([level]);
+
+                      <div className={styles['sailors-action-row']}>
+                        <div className={styles['sailors-buttons']}>
+                          <Button
+                            onClickAsync={async () => {
+                              await collectSailorEarnings();
+                              await updateEverything();
+                            }}
+                            disabled={!user || (user.fishing?.sailors?.pending_coins ?? 0) <= 0}
+                          >
+                            Collect {smartFormatNumber(user?.fishing?.sailors?.pending_coins ?? 0)}
+                          </Button>
+                          <Button
+                            onClickAsync={async () => {
+                              await hireSailor();
+                              setFishingSubview('sailors');
+                              await updateEverything();
+                            }}
+                            disabled={
+                              !user ||
+                              (user?.fishing?.sailors?.levels?.length ?? 0) >= SAILOR_MAX_LEVEL ||
+                              (user.money || 0) <
+                                getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
+                            }
+                          >
+                            Hire Sailor for{' '}
+                            {smartFormatNumber(
+                              getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
+                            )}
+                          </Button>
+                        </div>
+                        <span className={styles['sailors-count']}>
+                          {user?.fishing?.sailors?.levels?.length ?? 0} / {SAILOR_MAX_LEVEL} hired
+                        </span>
+                      </div>
+
+                      {(() => {
+                        const levels = user?.fishing?.sailors?.levels ?? [];
+                        if (levels.length === 0) {
+                          return (
+                            <div className={styles['sailors-empty']}>
+                              <EmojiText>🧑‍✈️</EmojiText> You have no sailors yet. Hire a sailor to
+                              start passively fishing for you while you're online or away!
+                            </div>
+                          );
+                        }
                         return (
-                          <div key={index} className={styles['sailor-card']}>
-                            <h3>
-                              <EmojiText>🧑‍✈️</EmojiText> Sailor {index + 1}
-                            </h3>
-                            <span className={styles['sailor-level']}>Level {level}</span>
-                            <span className={styles['sailor-rate']}>
-                              <span className="mono">{smartFormatNumber(rate)}</span>/sec
-                            </span>
-                            <Button
-                              onClickAsync={async () => {
-                                await levelUpSailor(index);
-                                await updateEverything();
-                              }}
-                              disabled={
-                                atMax ||
-                                !user ||
-                                (user.money || 0) < cost
-                              }
-                            >
-                              {atMax
-                                ? `Max Level ${SAILOR_MAX_LEVEL}`
-                                : `Level Up for ${smartFormatNumber(cost)}`}
-                            </Button>
+                          <div className={styles['sailors-grid']}>
+                            {levels.map((level, index) => {
+                              const atMax = level >= SAILOR_MAX_LEVEL;
+                              const cost = getSailorLevelUpCost(level);
+                              const rate = getSailorFleetRatePerSec([level]);
+                              return (
+                                <div key={index} className={styles['sailor-card']}>
+                                  <h3>
+                                    <EmojiText>🧑‍✈️</EmojiText> Sailor {index + 1}
+                                  </h3>
+                                  <span className={styles['sailor-level']}>Level {level}</span>
+                                  <span className={styles['sailor-rate']}>
+                                    <span className="mono">{smartFormatNumber(rate)}</span>/sec
+                                  </span>
+                                  <Button
+                                    onClickAsync={async () => {
+                                      await levelUpSailor(index);
+                                      await updateEverything();
+                                    }}
+                                    disabled={atMax || !user || (user.money || 0) < cost}
+                                  >
+                                    {atMax
+                                      ? `Max Level ${SAILOR_MAX_LEVEL}`
+                                      : `Level Up for ${smartFormatNumber(cost)}`}
+                                  </Button>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
-                      })}
+                      })()}
                     </div>
-                  );
-                })()}
+                  </>
+                )}
               </div>
-              </>
-              )}
-            </div>
             ))}
           {tab === 'pets' &&
             (petsDisabled ? (
@@ -2572,7 +2616,7 @@ export default function Game() {
                 const fishCaughtByType = user?.fishing?.fish_caught;
                 const totalFishCaught = fishCaughtByType
                   ? Object.values(fishCaughtByType).reduce((sum, count) => sum + (count || 0), 0)
-                  : stats?.fish_caught ?? 0;
+                  : (stats?.fish_caught ?? 0);
                 const playtimeSeconds = Math.floor((stats?.playtime_ms ?? 0) / 1000);
                 const playtimeDays = Math.floor(playtimeSeconds / 86400);
                 const playtimeHours = Math.floor((playtimeSeconds % 86400) / 3600);
@@ -2586,9 +2630,18 @@ export default function Game() {
                 const rows: { label: string; value: string | number }[] = [
                   { label: 'Playtime', value: playtimeLabel },
                   { label: 'Messages Sent', value: stats?.messages_sent ?? 0 },
-                  { label: 'Resources Bought', value: `${stats?.resource_buys ?? 0} (${stats?.resources_bought ?? 0} total)` },
-                  { label: 'Resources Sold', value: `${stats?.resource_sells ?? 0} (${stats?.resources_sold ?? 0} total)` },
-                  { label: 'Fish Caught', value: `${stats?.fish_caught ?? 0} (${totalFishCaught} total)` },
+                  {
+                    label: 'Resources Bought',
+                    value: `${stats?.resource_buys ?? 0} (${stats?.resources_bought ?? 0} total)`,
+                  },
+                  {
+                    label: 'Resources Sold',
+                    value: `${stats?.resource_sells ?? 0} (${stats?.resources_sold ?? 0} total)`,
+                  },
+                  {
+                    label: 'Fish Caught',
+                    value: `${stats?.fish_caught ?? 0} (${totalFishCaught} total)`,
+                  },
                   { label: 'Fish Sold', value: stats?.fish_sold ?? 0 },
                   { label: 'Bait Used', value: stats?.bait_used ?? 0 },
                   { label: 'Pets Adopted', value: stats?.pets_adopted ?? 0 },
@@ -2674,7 +2727,6 @@ export default function Game() {
             </div>
           )}
         </main>
-
       </div>
       {isTutorialOpen && (
         <div className={styles['tutorial-dock']} role="status" aria-live="polite">

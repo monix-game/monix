@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { REDIS_URL } from './constants';
 import { createLogger } from './logging';
+import { redisOperationsTotal } from './metrics';
 
 const log = createLogger('redis');
 
@@ -51,7 +52,11 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   if (!client) return null;
   try {
     const raw = await client.get(key);
-    if (!raw) return null;
+    if (!raw) {
+      redisOperationsTotal.inc({ operation: 'get', result: 'miss' });
+      return null;
+    }
+    redisOperationsTotal.inc({ operation: 'get', result: 'hit' });
     return JSON.parse(raw) as T;
   } catch {
     return null;
@@ -62,6 +67,7 @@ export async function cacheSet(key: string, value: unknown, ttlSeconds: number):
   if (!client) return;
   try {
     await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    redisOperationsTotal.inc({ operation: 'set', result: 'success' });
   } catch {
     // Non-critical; ignore.
   }
@@ -71,6 +77,7 @@ export async function cacheDel(key: string): Promise<void> {
   if (!client) return;
   try {
     await client.del(key);
+    redisOperationsTotal.inc({ operation: 'del', result: 'success' });
   } catch {
     // Non-critical; ignore.
   }

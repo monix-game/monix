@@ -5,7 +5,8 @@ import {
   clampSailorLevel,
   getSailorLevelUpCost,
   SAILOR_MAX_LEVEL,
-} from '../../../common/fishing/fishing';
+} from '../../../common/fishing/sailors';
+import { accrueSailorEarnings } from '../../helpers/sailors';
 
 type LevelUpOutcome =
   | { ok: 'error'; status: number; error: string }
@@ -30,47 +31,58 @@ export const levelUpSailor = new Elysia()
         return { error: 'Invalid sailor index' };
       }
 
-      const result = await mutateUserAndSave<LevelUpOutcome>(
-        user_uuid,
-        async fetchedUser => {
-          fetchedUser.fishing ??= {
-            aquarium: { capacity: 10, level: 1, fish: [] },
-            bait_owned: {},
-            fish_caught: {},
-            rods_owned: [],
-          };
-          fetchedUser.fishing.sailors ??= { levels: [], last_collected_at: Date.now() };
+      const result = await mutateUserAndSave<LevelUpOutcome>(user_uuid, async fetchedUser => {
+        fetchedUser.fishing ??= {
+          aquarium: { capacity: 10, level: 1, fish: [] },
+          bait_owned: {},
+          fish_caught: {},
+          rods_owned: [],
+        };
+        fetchedUser.fishing.sailors ??= { levels: [], last_collected_at: Date.now() };
+        accrueSailorEarnings(fetchedUser);
 
-          const levels = fetchedUser.fishing.sailors.levels;
-          if (sailorIndex >= levels.length) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Invalid sailor index' } };
-          }
-
-          const currentLevel = clampSailorLevel(levels[sailorIndex]);
-          if (currentLevel >= SAILOR_MAX_LEVEL) {
-            return { changed: false, value: { ok: 'error', status: 400, error: `Sailor is already at max level ${SAILOR_MAX_LEVEL}.` } };
-          }
-
-          const cost = getSailorLevelUpCost(currentLevel);
-          if (fetchedUser.money < cost) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds' } };
-          }
-
-          fetchedUser.money -= cost;
-          levels[sailorIndex] = currentLevel + 1;
-
+        const levels = fetchedUser.fishing.sailors.levels;
+        if (sailorIndex >= levels.length) {
           return {
-            changed: true,
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Invalid sailor index' },
+          };
+        }
+
+        const currentLevel = clampSailorLevel(levels[sailorIndex]);
+        if (currentLevel >= SAILOR_MAX_LEVEL) {
+          return {
+            changed: false,
             value: {
-              ok: 'success' as const,
-              message: 'Sailor leveled up successfully',
-              money: fetchedUser.money,
-              sailor_level: levels[sailorIndex],
-              sailors: fetchedUser.fishing.sailors,
+              ok: 'error',
+              status: 400,
+              error: `Sailor is already at max level ${SAILOR_MAX_LEVEL}.`,
             },
           };
         }
-      );
+
+        const cost = getSailorLevelUpCost(currentLevel);
+        if (fetchedUser.money < cost) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient funds' },
+          };
+        }
+
+        fetchedUser.money -= cost;
+        levels[sailorIndex] = currentLevel + 1;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Sailor leveled up successfully',
+            money: fetchedUser.money,
+            sailor_level: levels[sailorIndex],
+            sailors: fetchedUser.fishing.sailors,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

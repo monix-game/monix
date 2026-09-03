@@ -5,7 +5,7 @@ import {
   getMessagesByRoomUUID,
   getRoomByUUID,
   getUsersByUUID,
-  mutateUserAndSave,
+  getUserByUUID,
 } from '../db';
 import { generatePrice } from './market';
 import { buildMarketNewsFeed } from '../../common/market/news';
@@ -19,10 +19,10 @@ import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrad
 import { hasRole } from '../../common/roles';
 import { updatePlayersPets } from '../routes/pets/helpers';
 import { resources } from '../../common/resources';
-import { getCurrentFishingEvent, applyAquariumEventModifiers, getFishValue } from '../../common/fishing/fishing';
+import { getFishValue } from '../../common/fishing/fishing';
 import { fishingRods } from '../../common/fishing/fishingRods';
 import { fishingBaits } from '../../common/fishing/fishingBait';
-import { applySailorEarnings } from './sailors';
+import { getPendingSailorEarnings } from './sailors';
 
 type Role = 'owner' | 'admin' | 'mod' | 'helper' | 'user';
 
@@ -112,9 +112,7 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
   const rankable = allUsers
     .filter(
       u =>
-        !isUserBanned(u) &&
-        (u.money || 0) > 0 &&
-        (!u.last_seen || now - u.last_seen <= SIX_MONTHS)
+        !isUserBanned(u) && (u.money || 0) > 0 && (!u.last_seen || now - u.last_seen <= SIX_MONTHS)
     )
     .map(u => ({ user: u, netWorth: computeNetWorth(u, now) }))
     .filter(x => x.netWorth > 0)
@@ -231,8 +229,7 @@ export async function buildPlaytimeLeaderboard(): Promise<LeaderboardSet> {
 }
 
 export type RoomMessagesResult =
-  | { messages: ReturnType<typeof messageToDoc>[] }
-  | { error: 'room_not_found' | 'forbidden' };
+  { messages: ReturnType<typeof messageToDoc>[] } | { error: 'room_not_found' | 'forbidden' };
 
 export async function buildRoomMessages(
   roomUuid: string,
@@ -365,27 +362,10 @@ export async function buildRooms(viewer?: { uuid: string; role: string } | null)
 export async function buildUserSnapshot(user: {
   uuid: string;
 }): Promise<{ user: ReturnType<typeof userToDoc> } | null> {
-  // Serialize per-user so this periodic snapshot never clobbers concurrent
-  // money/resource transactions (which otherwise briefly revert user state).
-  const freshUser = await mutateUserAndSave(
-    user.uuid,
-    async freshUser => {
-      const currentEvent = getCurrentFishingEvent();
-      const aquariumFish = freshUser.fishing?.aquarium?.fish ?? [];
-      const aquariumChanged = applyAquariumEventModifiers(aquariumFish, currentEvent);
-
-      // Credit passive sailor earnings (online + offline) persistently. The
-      // baseline-first call returns earned 0 and leaves money untouched, so we
-      // only persist when something actually changed.
-      const moneyBefore = freshUser.money;
-      const earned = applySailorEarnings(freshUser);
-      const sailorsChanged = earned > 0 || freshUser.money !== moneyBefore;
-
-      const changed = aquariumChanged || sailorsChanged;
-      return { changed, value: freshUser };
-    }
-  );
-
+  const freshUser = await getUserByUUID(user.uuid);
   if (!freshUser) return null;
+  if (freshUser.fishing?.sailors) {
+    freshUser.fishing.sailors.pending_coins = getPendingSailorEarnings(freshUser);
+  }
   return { user: userToDoc(freshUser) };
 }
