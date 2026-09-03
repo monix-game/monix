@@ -5,14 +5,15 @@ import fs from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { Elysia } from 'elysia';
 import cors from '@elysiajs/cors';
-import { connectDB } from './db';
+import { connectDB, getAllAppeals, getAllReports, getAllUsers } from './db';
 import { connectRedis, disconnectRedis } from './redis';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { attachSocketServer, setupSocketPublishers } from './socket';
 import { ensureValidCertificate } from './certs';
 import { logger, createLogger } from './logging';
-import { httpRequestDuration, httpRequestsTotal, metricsText } from './metrics';
+import { dashboardStats, httpRequestDuration, httpRequestsTotal, metricsText } from './metrics';
+import { getActivePunishments } from '../common/punishx/punishx';
 
 import pingRoutes from './routes/ping';
 import userRoutes from './routes/user';
@@ -67,6 +68,30 @@ const app = new Elysia()
   .compile();
 
 const MAX_HTTP_BODY_BYTES = 1024 * 1024;
+
+async function refreshDashboardMetrics() {
+  const [users, reports, appeals] = await Promise.all([
+    getAllUsers(),
+    getAllReports(),
+    getAllAppeals(),
+  ]);
+  const punishments = users.flatMap(user => getActivePunishments(user));
+  const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+  const stats = {
+    total_users: users.length,
+    active_punishments: punishments.length,
+    punishments_last_24h: punishments.filter(p => p.issued_at >= twentyFourHoursAgo).length,
+    open_reports: reports.filter(report => report.status === 'pending').length,
+    reports_last_24h: reports.filter(report => report.time_reported >= twentyFourHoursAgo).length,
+    open_appeals: appeals.filter(appeal => appeal.status === 'pending').length,
+    appeals_last_24h: appeals.filter(appeal => appeal.time_submitted >= twentyFourHoursAgo).length,
+  };
+
+  for (const [stat, value] of Object.entries(stats)) {
+    dashboardStats.set({ stat }, value);
+  }
+}
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -170,6 +195,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 async function start() {
   await connectDB(MONGO_URI);
   await connectRedis();
+  await refreshDashboardMetrics();
+  const dashboardMetricsInterval = setInterval(() => {
+    void refreshDashboardMetrics().catch(err =>
+      log.warn({ err }, 'Dashboard metrics refresh failed')
+    );
+  }, 30_000);
 
   const certConfig = await ensureValidCertificate();
   let server: ReturnType<typeof createServer>;
@@ -197,6 +228,7 @@ async function start() {
 
   const shutdown = async () => {
     log.info('Shutting down...');
+    clearInterval(dashboardMetricsInterval);
     server.close();
     await disconnectRedis();
     process.exit(0);

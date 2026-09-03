@@ -64,6 +64,13 @@ export const userMutationQueue = new Gauge({
   registers: [registry],
 });
 
+export const dashboardStats = new Gauge({
+  name: 'monix_dashboard_stats',
+  help: 'Business statistics shown on the staff dashboard.',
+  labelNames: ['stat'],
+  registers: [registry],
+});
+
 export async function metricsText(): Promise<string> {
   return registry.metrics();
 }
