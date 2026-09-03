@@ -10,7 +10,7 @@ interface BuySellPanelProps {
   quantity: number;
   resourcePrice: number;
   money: number;
-  onBuySell: () => void;
+  onBuySell: (mode: 'buy' | 'sell') => void;
 }
 
 export const BuySellPanel: React.FC<BuySellPanelProps> = ({
@@ -27,14 +27,14 @@ export const BuySellPanel: React.FC<BuySellPanelProps> = ({
     await buyResource(resource.id, marketQuantity);
     setMarketMode('buy');
     setMarketQuantity(0);
-    onBuySell();
+    onBuySell('buy');
   };
 
   const onSellButtonClick = async () => {
     await sellResource(resource.id, marketQuantity);
     setMarketMode('buy');
     setMarketQuantity(0);
-    onBuySell();
+    onBuySell('sell');
   };
 
   return (
@@ -182,7 +182,9 @@ export const BuySellPanel: React.FC<BuySellPanelProps> = ({
                 {marketQuantity > 0 && (
                   <p className={styles['total-cost']}>
                     Total Value:{' '}
-                    <span className="mono">{smartFormatNumber(resourcePrice * marketQuantity)}</span>{' '}
+                    <span className="mono">
+                      {smartFormatNumber(resourcePrice * marketQuantity)}
+                    </span>{' '}
                     for {smartFormatNumber(marketQuantity, false)}{' '}
                     {resource.unit.endsWith('s') && marketQuantity == 1
                       ? resource.unit.slice(0, -1)

@@ -167,7 +167,7 @@ export default function Game() {
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [tutorialStep, setTutorialStep] = useState<number>(0);
   const [tutorialProgress, setTutorialProgress] = useState({
-    openedResourceModal: false,
+    boughtResource: false,
     caughtFish: false,
     visitedAquarium: false,
     visitedPets: false,
@@ -193,16 +193,16 @@ export default function Game() {
         tab: 'money',
       },
       {
-        title: 'Track Your Net Worth',
-        body: 'The Money tab shows your total value across money, resources, and your aquarium.',
+        title: 'Start With Some Cash',
+        body: 'Your balance is your toolkit. You will spend a little of it to build your first holding.',
         tab: 'money',
-        task: 'Check the Money tab totals.',
+        task: 'Look over your starting balance.',
       },
       {
-        title: 'Collect Resources',
-        body: 'Visit the Resources tab to review holdings and open the market for any resource.',
+        title: 'Buy Your First Holding',
+        body: 'Open Resources, choose a market, and buy at least one unit. Holdings add to your net worth.',
         tab: 'resources',
-        task: 'Open a resource card.',
+        task: 'Buy at least one resource.',
       },
       {
         title: 'Go Fishing',
@@ -246,7 +246,7 @@ export default function Game() {
       case 1:
         return tab === 'money';
       case 2:
-        return tab === 'resources' && tutorialProgress.openedResourceModal;
+        return tab === 'resources' && tutorialProgress.boughtResource;
       case 3: {
         return tab === 'fishing' && tutorialProgress.caughtFish;
       }
@@ -261,7 +261,7 @@ export default function Game() {
     currentTutorialStep,
     tutorialStep,
     tab,
-    tutorialProgress.openedResourceModal,
+    tutorialProgress.boughtResource,
     tutorialProgress.caughtFish,
     tutorialProgress.visitedAquarium,
     tutorialProgress.visitedPets,
@@ -695,7 +695,7 @@ export default function Game() {
     setTutorialStep(0);
     setIsTutorialOpen(true);
     setTutorialProgress({
-      openedResourceModal: false,
+      boughtResource: false,
       caughtFish: false,
       visitedAquarium: false,
       visitedPets: false,
@@ -759,13 +759,6 @@ export default function Game() {
     if (!isTutorialOpen) return;
 
     startTransition(() => {
-      if (tab === 'resources') {
-        setTutorialProgress(prev => ({
-          ...prev,
-          openedResourceModal: true,
-        }));
-      }
-
       if (tab === 'fishing' && fishingSubview === 'aquarium') {
         setTutorialProgress(prev => ({
           ...prev,
@@ -1261,7 +1254,10 @@ export default function Game() {
                       quantity={resourceQuantities[marketResourceDetails] || 0}
                       resourcePrice={resourcePrices[marketResourceDetails] || 0}
                       money={user ? user.money || 0 : 0}
-                      onBuySell={() => {
+                      onBuySell={mode => {
+                        if (mode === 'buy' && isTutorialOpen && tab === 'resources') {
+                          setTutorialProgress(prev => ({ ...prev, boughtResource: true }));
+                        }
                         void updateEverything();
                         const fetchQuantity = async () => {
                           const qty = await getResourceQuantity(marketResourceDetails);
