@@ -91,3 +91,12 @@ export function getEligibleAchievementIds(user: {
     .filter(([, eligible]) => eligible)
     .map(([id]) => id);
 }
+
+export function unlockEligibleAchievements(
+  user: Parameters<typeof getEligibleAchievementIds>[0],
+  earned: string[] = []
+): string[] {
+  const known = new Set(earned);
+  const newlyEligible = getEligibleAchievementIds(user).filter(id => !known.has(id));
+  return newlyEligible.length > 0 ? [...known, ...newlyEligible] : earned;
+}

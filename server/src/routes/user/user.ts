@@ -3,7 +3,7 @@ import { getPetsByOwnerUUID, getUserByUUID, updateUser } from '../../db';
 import { userToClient } from '../../../common/models/user';
 import { deriveAuth, onlyAuth } from '../../middleware';
 import { getPendingSailorEarnings } from '../../helpers/sailors';
-import { getEligibleAchievementIds } from '../../../common/achievements';
+import { unlockEligibleAchievements } from '../../../common/achievements';
 
 export const getUser = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -28,11 +28,12 @@ export const getUser = new Elysia()
     }
 
     const pets = await getPetsByOwnerUUID(fresh.uuid);
-    const eligible = getEligibleAchievementIds({ ...fresh, petsOwned: pets.length });
-    const earned = new Set(fresh.achievements || []);
-    const newlyEarned = eligible.filter(id => !earned.has(id));
-    if (newlyEarned.length > 0) {
-      fresh.achievements = [...earned, ...newlyEarned];
+    const achievements = unlockEligibleAchievements(
+      { ...fresh, petsOwned: pets.length },
+      fresh.achievements
+    );
+    if (achievements.length !== (fresh.achievements || []).length) {
+      fresh.achievements = achievements;
       await updateUser(fresh);
     }
 

@@ -2415,7 +2415,7 @@ export default function Game() {
                       >
                         {level >= upgrade.maxLevel
                           ? 'Maxed'
-                          : `Upgrade for ${cost} star${cost === 1 ? '' : 's'}`}
+                          : `Upgrade for ${cost} shard${cost === 1 ? '' : 's'}`}
                       </Button>
                     </div>
                   );

@@ -6,6 +6,8 @@ import {
   getRoomByUUID,
   getUsersByUUID,
   getUserByUUID,
+  getPetsByOwnerUUID,
+  updateUser,
 } from '../db';
 import { generatePrice } from './market';
 import { buildMarketNewsFeed } from '../../common/market/news';
@@ -23,6 +25,7 @@ import { getFishValue } from '../../common/fishing/fishing';
 import { fishingRods } from '../../common/fishing/fishingRods';
 import { fishingBaits } from '../../common/fishing/fishingBait';
 import { getPendingSailorEarnings } from './sailors';
+import { unlockEligibleAchievements } from '../../common/achievements';
 
 type Role = 'owner' | 'admin' | 'mod' | 'helper' | 'user';
 
@@ -366,6 +369,15 @@ export async function buildUserSnapshot(user: {
   if (!freshUser) return null;
   if (freshUser.fishing?.sailors) {
     freshUser.fishing.sailors.pending_coins = getPendingSailorEarnings(freshUser);
+  }
+  const pets = await getPetsByOwnerUUID(freshUser.uuid);
+  const achievements = unlockEligibleAchievements(
+    { ...freshUser, petsOwned: pets.length },
+    freshUser.achievements
+  );
+  if (achievements.length !== (freshUser.achievements || []).length) {
+    freshUser.achievements = achievements;
+    await updateUser(freshUser);
   }
   return { user: userToDoc(freshUser) };
 }
