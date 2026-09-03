@@ -93,6 +93,10 @@ export interface IUser {
       fish: IFish[];
     };
     last_fished_at?: number;
+    sailors?: {
+      levels: number[];
+      last_collected_at?: number;
+    };
   };
   stats?: IUserStats;
   punishments?: IPunishment[];

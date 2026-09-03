@@ -12,6 +12,8 @@ import equipBait from './equip-bait';
 import unequipBait from './unequip-bait';
 import fish from './fish';
 import eventsPreview from './events-preview';
+import hireSailor from './sailors-hire';
+import levelUpSailor from './sailors-levelup';
 
 export const fishingRoutes = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -27,6 +29,8 @@ export const fishingRoutes = new Elysia()
   .use(equipBait)
   .use(unequipBait)
   .use(fish)
-  .use(eventsPreview);
+  .use(eventsPreview)
+  .use(hireSailor)
+  .use(levelUpSailor);
 
 export default fishingRoutes;

@@ -206,3 +206,65 @@ export async function goFishing(autoSell: boolean = false): Promise<{
 
   return null;
 }
+
+export interface SailorFleet {
+  levels: number[];
+  last_collected_at?: number;
+}
+
+export async function hireSailor(): Promise<{
+  success: boolean;
+  money?: number;
+  sailors?: SailorFleet;
+  message?: string;
+}> {
+  try {
+    const resp = await api.post<{
+      message?: string;
+      money?: number;
+      sailors?: SailorFleet;
+    }>('/fishing/sailors/hire');
+    if (resp?.success) {
+      return {
+        success: true,
+        money: resp.data?.money,
+        sailors: resp.data?.sailors,
+        message: resp.data?.message,
+      };
+    }
+    return { success: false, message: resp?.data?.message };
+  } catch (error) {
+    console.error('Error hiring sailor:', error);
+    throw error;
+  }
+}
+
+export async function levelUpSailor(sailorIndex: number): Promise<{
+  success: boolean;
+  money?: number;
+  sailor_level?: number;
+  sailors?: SailorFleet;
+  message?: string;
+}> {
+  try {
+    const resp = await api.post<{
+      message?: string;
+      money?: number;
+      sailor_level?: number;
+      sailors?: SailorFleet;
+    }>('/fishing/sailors/levelup', { sailor_index: sailorIndex });
+    if (resp?.success) {
+      return {
+        success: true,
+        money: resp.data?.money,
+        sailor_level: resp.data?.sailor_level,
+        sailors: resp.data?.sailors,
+        message: resp.data?.message,
+      };
+    }
+    return { success: false, message: resp?.data?.message };
+  } catch (error) {
+    console.error('Error leveling up sailor:', error);
+    throw error;
+  }
+}

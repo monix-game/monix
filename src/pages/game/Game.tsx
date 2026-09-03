@@ -60,6 +60,10 @@ import {
   getAquariumUpgradeCost,
   getCurrentFishingEvent,
   getFishValue,
+  getSailorFleetRatePerSec,
+  getSailorHireCost,
+  getSailorLevelUpCost,
+  SAILOR_MAX_LEVEL,
   type FishingResult,
 } from '../../../server/common/fishing/fishing';
 import {
@@ -69,6 +73,8 @@ import {
   equipRod,
   getEventPreview,
   goFishing,
+  hireSailor,
+  levelUpSailor,
   sellAllFish,
   sellFish,
   sellRod,
@@ -126,7 +132,9 @@ export default function Game() {
     | 'jail'
     | 'appeals'
   >('money');
-  const [fishingSubview, setFishingSubview] = useState<'fishing' | 'aquarium'>('fishing');
+  const [fishingSubview, setFishingSubview] = useState<'fishing' | 'aquarium' | 'sailors'>(
+    'fishing'
+  );
   const [banned, setBanned] = useState<boolean>(false);
 
   const setTabTo = useCallback(
@@ -1295,6 +1303,15 @@ export default function Game() {
                   >
                     <EmojiText>🐠 Aquarium</EmojiText>
                   </button>
+                  <button
+                    type="button"
+                    className={`${styles['fishing-subview-tab']} ${
+                      fishingSubview === 'sailors' ? 'active' : ''
+                    }`}
+                    onClick={() => setFishingSubview('sailors')}
+                  >
+                    <EmojiText>⛵ Sailors</EmojiText>
+                  </button>
                 </div>
                 {fishingSubview === 'fishing' && (
                 <>
@@ -2091,6 +2108,96 @@ export default function Game() {
                     </div>
                   </div>
                 </Modal>
+              </div>
+              </>
+              )}
+              {fishingSubview === 'sailors' && (
+              <>
+              <div className={styles['sailors-tab']}>
+                <div className={styles['sailors-banner']}>
+                  <span className={styles['sailors-banner-subtitle']}>PASSIVE FISHING CREW</span>
+                  <h3 className={styles['sailors-banner-title']}>
+                    <EmojiText>⛵</EmojiText> Sailors
+                  </h3>
+                  <span className={styles['sailors-banner-remaining']}>
+                    {(() => {
+                      const levels = user?.fishing?.sailors?.levels ?? [];
+                      return `Earning ${smartFormatNumber(
+                        getSailorFleetRatePerSec(levels)
+                      )}/sec while online or offline`;
+                    })()}
+                  </span>
+                </div>
+
+                <div className={styles['sailors-action-row']}>
+                  <div className={styles['sailors-buttons']}>
+                    <Button
+                      onClickAsync={async () => {
+                        await hireSailor();
+                        setFishingSubview('sailors');
+                        await updateEverything();
+                      }}
+                      disabled={
+                        !user ||
+                        (user?.fishing?.sailors?.levels?.length ?? 0) >= SAILOR_MAX_LEVEL ||
+                        (user.money || 0) <
+                          getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
+                      }
+                    >
+                      Hire Sailor for {smartFormatNumber(getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0))}
+                    </Button>
+                  </div>
+                  <span className={styles['sailors-count']}>
+                    {user?.fishing?.sailors?.levels?.length ?? 0} / {SAILOR_MAX_LEVEL} hired
+                  </span>
+                </div>
+
+                {(() => {
+                  const levels = user?.fishing?.sailors?.levels ?? [];
+                  if (levels.length === 0) {
+                    return (
+                      <div className={styles['sailors-empty']}>
+                        <EmojiText>🧑‍✈️</EmojiText> You have no sailors yet. Hire a sailor to start
+                        passively fishing for you while you're online or away!
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={styles['sailors-grid']}>
+                      {levels.map((level, index) => {
+                        const atMax = level >= SAILOR_MAX_LEVEL;
+                        const cost = getSailorLevelUpCost(level);
+                        const rate = getSailorFleetRatePerSec([level]);
+                        return (
+                          <div key={index} className={styles['sailor-card']}>
+                            <h3>
+                              <EmojiText>🧑‍✈️</EmojiText> Sailor {index + 1}
+                            </h3>
+                            <span className={styles['sailor-level']}>Level {level}</span>
+                            <span className={styles['sailor-rate']}>
+                              <span className="mono">{smartFormatNumber(rate)}</span>/sec
+                            </span>
+                            <Button
+                              onClickAsync={async () => {
+                                await levelUpSailor(index);
+                                await updateEverything();
+                              }}
+                              disabled={
+                                atMax ||
+                                !user ||
+                                (user.money || 0) < cost
+                              }
+                            >
+                              {atMax
+                                ? `Max Level ${SAILOR_MAX_LEVEL}`
+                                : `Level Up for ${smartFormatNumber(cost)}`}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
               </>
               )}

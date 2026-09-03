@@ -21,6 +21,7 @@ import { hasRole } from '../../common/roles';
 import { updatePlayersPets } from '../routes/pets/helpers';
 import { resources } from '../../common/resources';
 import { getCurrentFishingEvent, applyAquariumEventModifiers } from '../../common/fishing/fishing';
+import { applySailorEarnings } from './sailors';
 
 type Role = 'owner' | 'admin' | 'mod' | 'helper' | 'user';
 
@@ -300,6 +301,14 @@ export async function buildUserSnapshot(user: {
   const currentEvent = getCurrentFishingEvent();
   const aquariumFish = freshUser.fishing?.aquarium?.fish ?? [];
   if (applyAquariumEventModifiers(aquariumFish, currentEvent)) {
+    await updateUser(freshUser);
+  }
+
+  // Credit passive sailor earnings (online + offline) and persist if anything
+  // changed (money credited or the sailors fleet was first initialized).
+  const moneyBefore = freshUser.money;
+  const earned = applySailorEarnings(freshUser);
+  if (earned > 0 || freshUser.money !== moneyBefore) {
     await updateUser(freshUser);
   }
 
