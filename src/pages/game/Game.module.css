@@ -1499,9 +1499,10 @@
 
 .upgrades-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 360px));
   gap: 20px;
   margin-top: 20px;
+  justify-content: start;
 }
 
 .upgrade-card {
@@ -1513,7 +1514,7 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  max-width: 400px;
+  width: 100%;
 }
 
 .upgrade-card:global(.active) {
@@ -1587,6 +1588,10 @@
 }
 
 @media (max-width: 640px) {
+  .upgrades-grid {
+    grid-template-columns: minmax(0, 360px);
+  }
+
   .poll-option-row {
     grid-template-columns: 1fr;
   }

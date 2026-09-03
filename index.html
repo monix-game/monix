@@ -5,6 +5,20 @@
     <meta charset="UTF-8" />
     <script>
       (function () {
+        try {
+          var settings = JSON.parse(localStorage.getItem('monix-do-not-touch-settings') || '{}');
+          var theme = settings.theme || 'light';
+          if (theme === 'system') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <script>
+      (function () {
         const originalGetOwnPropertyNames = Object.getOwnPropertyNames;
         const originalKeys = Object.keys;
         const originalGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
