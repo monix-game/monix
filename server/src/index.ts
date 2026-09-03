@@ -24,6 +24,7 @@ import resourcesRoutes from './routes/resources';
 import appealsRoutes from './routes/appeals';
 import hooksRoutes from './routes/hooks';
 import fishingRoutes from './routes/fishing';
+import casinoRoutes from './routes/casino';
 import petsRoutes from './routes/pets';
 import socialRoutes from './routes/social';
 import staffRoutes from './routes/staff';
@@ -58,6 +59,7 @@ const app = new Elysia()
   .group('/api/appeals', app => app.use(appealsRoutes))
   .group('/api/hooks', app => app.use(hooksRoutes))
   .group('/api/fishing', app => app.use(fishingRoutes))
+  .group('/api/casino', app => app.use(casinoRoutes))
   .group('/api/pets', app => app.use(petsRoutes))
   .group('/api/social', app => app.use(socialRoutes))
   .group('/api/staff', app => app.use(staffRoutes))
@@ -89,9 +91,6 @@ async function writeResponse(res: ServerResponse, response: Response) {
   const headers = new Headers(response.headers);
   const body = Buffer.from(await response.arrayBuffer());
 
-  // Gzip-compress JSON/text responses when the client accepts it. Compression
-  // happens here (at the Node HTTP boundary) rather than via an Elysia plugin
-  // because this stack hand-rolls the Request/Response bridge in handleRequest.
   if (body.length > 512) {
     const encodings = (headers.get('accept-encoding') || '')
       .split(',')
@@ -130,10 +129,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       if (typeof value === 'string') headers.set(key, value);
       else if (Array.isArray(value)) headers.set(key, value.join(', '));
     }
-    // The client's real IP is available from the socket, but the `Request` we
-    // build below has no way to carry it. When no reverse proxy already set a
-    // forwarding header, inject the socket address as `x-real-ip` so the auth
-    // middleware can record it in the user's IP history.
+
     if (
       !req.headers['x-forwarded-for'] &&
       !req.headers['x-real-ip'] &&

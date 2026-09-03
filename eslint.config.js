@@ -10,9 +10,8 @@ import reactDom from 'eslint-plugin-react-dom';
 export default defineConfig([
   globalIgnores(['dist', 'node_modules']),
   {
-    // frontend / app files
     files: ['**/*.{ts,tsx,js,jsx}'],
-    ignores: ['public/**/*'],
+    ignores: ['public/**/*', 'dist/**/*', 'node_modules/**/*'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommendedTypeChecked,

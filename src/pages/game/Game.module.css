@@ -8,6 +8,187 @@
   color: var(--text-muted);
 }
 
+.casino-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: calc(100vh - 180px);
+}
+
+.casino-hero,
+.casino-layout {
+  display: flex;
+  gap: 20px;
+}
+
+.casino-hero {
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(115deg, var(--dark-bg), #2a1b2d);
+  border: 2px solid #d69e36;
+  border-radius: var(--border-radius);
+}
+
+.casino-kicker {
+  color: #d69e36;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.casino-hero h2 {
+  margin: 6px 0;
+  font-size: 2.2rem;
+}
+
+.casino-hero p,
+.casino-odds {
+  color: var(--text-muted);
+}
+
+.casino-session {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.casino-session span,
+.casino-session small {
+  color: var(--text-muted);
+}
+
+.casino-session strong {
+  font-size: 1.5rem;
+}
+
+.casino-positive {
+  color: #66c174;
+}
+
+.casino-negative {
+  color: #e47b72;
+}
+
+.casino-board,
+.casino-controls {
+  background: var(--dark-bg);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  padding: 22px;
+}
+
+.casino-board {
+  flex: 1;
+}
+
+.casino-controls {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vault-rooms {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.vault-room {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed var(--primary-2);
+  color: var(--text-muted);
+  background: var(--bg);
+}
+
+.vault-room span {
+  font-size: 2rem;
+}
+
+.vault-room small {
+  font-size: 0.7rem;
+}
+
+.vault-cleared {
+  border-style: solid;
+  border-color: #66c174;
+  color: #66c174;
+  background: rgba(102, 193, 116, 0.12);
+}
+
+.vault-trap {
+  border-style: solid;
+  border-color: #e47b72;
+  color: #e47b72;
+  background: rgba(228, 123, 114, 0.12);
+}
+
+.casino-message {
+  min-height: 24px;
+  margin: 24px 0 8px;
+  font-size: 1.1rem;
+}
+
+.casino-payout {
+  margin: 0;
+  color: #d69e36;
+}
+
+.casino-controls label {
+  font-weight: 700;
+}
+
+.casino-controls input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  font: inherit;
+}
+
+.casino-quick-stakes {
+  display: flex;
+  gap: 6px;
+}
+
+.casino-quick-stakes button {
+  flex: 1;
+  padding: 7px 4px;
+  background: var(--bg);
+  border: 1px solid var(--primary-2);
+  color: var(--text);
+  cursor: pointer;
+  border-radius: var(--border-radius);
+}
+
+.casino-odds {
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .casino-hero,
+  .casino-layout {
+    flex-direction: column;
+  }
+  .casino-session {
+    align-items: flex-start;
+  }
+  .casino-controls {
+    width: auto;
+  }
+}
+
 .money-tab-content {
   position: relative;
   z-index: 1;
@@ -24,7 +205,7 @@
   user-select: none;
 }
 
-.money-tab-content h1>* {
+.money-tab-content h1 > * {
   vertical-align: middle;
 }
 
@@ -81,7 +262,7 @@
   min-height: 0;
 }
 
-.fishing-hgrid>* {
+.fishing-hgrid > * {
   flex: 1 1 0;
   min-width: 0;
   height: 100%;
@@ -97,7 +278,7 @@
   min-width: 0;
 }
 
-.fishing-vgrid>* {
+.fishing-vgrid > * {
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -364,7 +545,7 @@
   gap: 10px;
 }
 
-.fish-sell-modal-buttons>* {
+.fish-sell-modal-buttons > * {
   flex: 1;
 }
 
@@ -524,7 +705,7 @@
   gap: 12px;
 }
 
-.fishing-modal-section+.fishing-modal-section {
+.fishing-modal-section + .fishing-modal-section {
   margin-top: 6px;
   padding-top: 12px;
   border-top: 2px dashed var(--primary-2);
@@ -648,7 +829,10 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .fishing-grid-item:hover {
@@ -770,7 +954,9 @@
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: background-color 0.18s ease, border-color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .store-subtab:hover {
@@ -911,7 +1097,7 @@
   gap: 12px;
 }
 
-.daily-reward-header>div {
+.daily-reward-header > div {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1134,7 +1320,9 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .cosmetic-card:hover {
@@ -1338,7 +1526,9 @@
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .poll-option-button:disabled {

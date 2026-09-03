@@ -98,6 +98,7 @@ import {
 import { UPGRADES } from '../../../server/common/upgrades';
 import { useSocket } from '../../providers/socket';
 import { useChatNotifications } from '../../hooks/useChatNotifications';
+import { playCasino, type CasinoPlayResult } from '../../helpers/casino';
 
 const getRodTierInfo = (price: number) => {
   if (price <= 10000) return { emoji: '🟢', title: 'Starter' };
@@ -121,9 +122,8 @@ export default function Game() {
     | 'money'
     | 'resources'
     | 'fishing'
+    | 'casino'
     | 'pets'
-    | 'relics'
-    | 'council'
     | 'social'
     | 'radio'
     | 'upgrades'
@@ -138,6 +138,11 @@ export default function Game() {
   const [fishingSubview, setFishingSubview] = useState<'fishing' | 'aquarium' | 'sailors'>(
     'fishing'
   );
+  const [casinoStake, setCasinoStake] = useState(100);
+  const [casinoResult, setCasinoResult] = useState<CasinoPlayResult | null>(null);
+  const [casinoBusy, setCasinoBusy] = useState(false);
+  const [casinoSession, setCasinoSession] = useState({ played: 0, net: 0 });
+  const [casinoMessage, setCasinoMessage] = useState('Choose a stake and test your nerve.');
   const [banned, setBanned] = useState<boolean>(false);
 
   const setTabTo = useCallback(
@@ -922,6 +927,30 @@ export default function Game() {
     </div>
   );
 
+  const runCasino = async () => {
+    if (casinoBusy || !user || casinoStake < 10 || casinoStake > user.money) return;
+    setCasinoBusy(true);
+    setCasinoResult(null);
+    setCasinoMessage('The vault is turning...');
+    const result = await playCasino(casinoStake);
+    if (result) {
+      setCasinoResult(result);
+      setCasinoSession(prev => ({
+        played: prev.played + 1,
+        net: prev.net + result.payout - result.stake,
+      }));
+      setCasinoMessage(
+        result.payout > 0
+          ? `You cleared ${result.roomsCleared} room${result.roomsCleared === 1 ? '' : 's'} and found a ${result.multiplier}x vault.`
+          : 'The trapdoor opened. The vault keeps this stake.'
+      );
+      await updateEverything();
+    } else {
+      setCasinoMessage('The vault could not start. Check your balance and try again.');
+    }
+    setCasinoBusy(false);
+  };
+
   const renderCosmeticPreview = (cosmetic: Cosmetic) => {
     if (cosmetic.type === 'nameplate') {
       return (
@@ -1096,6 +1125,7 @@ export default function Game() {
                     { key: 'money', label: '💰 Money' },
                     { key: 'resources', label: '🪙 Resources' },
                     { key: 'fishing', label: '🎣 Fishing' },
+                    { key: 'casino', label: '🎲 Casino' },
                     { key: 'pets', label: '🐶 Pets' },
                     { key: 'social', label: '💬 Social' },
                     { key: 'radio', label: '📻 Radio' },
@@ -2262,16 +2292,95 @@ export default function Game() {
                 />
               </div>
             ))}
-          {tab === 'relics' && (
-            <div className="tab-content">
-              <h2>Relics Tab</h2>
-              <p>Content for Relics will go here.</p>
-            </div>
-          )}
-          {tab === 'council' && (
-            <div className="tab-content">
-              <h2>Council Tab</h2>
-              <p>Content for Council will go here.</p>
+          {tab === 'casino' && (
+            <div className={`tab-content ${styles['casino-tab']}`}>
+              <div className={styles['casino-hero']}>
+                <div>
+                  <span className={styles['casino-kicker']}>THE HOUSE ALWAYS REMEMBERS</span>
+                  <h2>
+                    <EmojiText>🎲</EmojiText> Vault Run
+                  </h2>
+                  <p>
+                    Pick your stake, enter the vault, and walk away before the trapdoor finds you.
+                  </p>
+                </div>
+                <div className={styles['casino-session']}>
+                  <span>Session net</span>
+                  <strong
+                    className={`mono ${casinoSession.net >= 0 ? styles['casino-positive'] : styles['casino-negative']}`}
+                  >
+                    {casinoSession.net >= 0 ? '+' : ''}
+                    {smartFormatNumber(casinoSession.net)}
+                  </strong>
+                  <small>
+                    {casinoSession.played} run{casinoSession.played === 1 ? '' : 's'}
+                  </small>
+                </div>
+              </div>
+              <div className={styles['casino-layout']}>
+                <section className={styles['casino-board']}>
+                  <div className={styles['vault-rooms']}>
+                    {Array.from({ length: 5 }, (_, index) => {
+                      const cleared = casinoResult ? index < casinoResult.roomsCleared : false;
+                      const trap =
+                        casinoResult &&
+                        index === casinoResult.roomsCleared &&
+                        casinoResult.payout === 0;
+                      return (
+                        <div
+                          className={`${styles['vault-room']} ${cleared ? styles['vault-cleared'] : ''} ${trap ? styles['vault-trap'] : ''}`}
+                          key={index}
+                        >
+                          <span>{cleared ? '✦' : trap ? '×' : '?'}</span>
+                          <small>ROOM {index + 1}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className={styles['casino-message']}>{casinoMessage}</p>
+                  {casinoResult && (
+                    <p className={styles['casino-payout']}>
+                      <EmojiText>💰</EmojiText> Payout:{' '}
+                      <strong className="mono">{smartFormatNumber(casinoResult.payout)}</strong>
+                    </p>
+                  )}
+                </section>
+                <aside className={styles['casino-controls']}>
+                  <label htmlFor="casino-stake">Stake</label>
+                  <input
+                    id="casino-stake"
+                    type="number"
+                    min="10"
+                    max={Math.max(10, user?.money || 10)}
+                    step="10"
+                    value={casinoStake}
+                    onChange={event =>
+                      setCasinoStake(Math.max(10, Math.floor(Number(event.target.value) || 0)))
+                    }
+                  />
+                  <div className={styles['casino-quick-stakes']}>
+                    {[100, 500, 1000].map(stake => (
+                      <button
+                        type="button"
+                        key={stake}
+                        onClick={() => setCasinoStake(Math.min(stake, user?.money || stake))}
+                      >
+                        {smartFormatNumber(stake)}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    onClickAsync={runCasino}
+                    disabled={casinoBusy || !user || casinoStake < 10 || casinoStake > user.money}
+                  >
+                    {casinoBusy ? 'Opening...' : 'Enter the Vault'}
+                  </Button>
+                  <p className={styles['casino-odds']}>
+                    Average return: 94%
+                    <br />A run can pay up to 10x.
+                  </p>
+                </aside>
+              </div>
             </div>
           )}
           {tab === 'social' &&
