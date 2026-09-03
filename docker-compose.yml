@@ -60,7 +60,13 @@ services:
     ports:
       - '6200:6200'
     healthcheck:
-      test: ['CMD-SHELL', "wget -q -O - http://127.0.0.1:6200/api/ping/ | grep -q 'true'"]
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 6200) +
+          '/api/ping/').then(r => { if (!r.ok) process.exit(1); return r.json();
+          }).then(body => { if (body.ok !== true) process.exit(1); }).catch(() =>
+          process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 5
