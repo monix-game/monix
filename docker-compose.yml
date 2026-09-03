@@ -63,10 +63,12 @@ services:
       test:
         - CMD-SHELL
         - >-
-          node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 6200) +
-          '/api/ping/').then(r => { if (!r.ok) process.exit(1); return r.json();
-          }).then(body => { if (body.ok !== true) process.exit(1); }).catch(() =>
-          process.exit(1))"
+          node -e "const p = process.env.ENABLE_TLS === 'true' ? require('https') :
+          require('http'); const req = p.get({hostname:'127.0.0.1', port:process.env.PORT ||
+          6200, path:'/api/ping/', rejectUnauthorized:false}, res => { let b='';
+          res.on('data', c => b += c); res.on('end', () => { try { if
+          (res.statusCode !== 200 || JSON.parse(b).ok !== true) process.exit(1);
+          } catch { process.exit(1); } }); }); req.on('error', () => process.exit(1));"
       interval: 10s
       timeout: 5s
       retries: 5
