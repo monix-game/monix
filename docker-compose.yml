@@ -102,6 +102,11 @@ services:
     depends_on:
       server:
         condition: service_healthy
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./monitoring/prometheus/prometheus.yml
+          target: /etc/prometheus/prometheus.yml
 
   grafana:
     image: grafana/grafana:12.1.1
@@ -119,6 +124,14 @@ services:
     depends_on:
       prometheus:
         condition: service_started
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./monitoring/grafana/provisioning
+          target: /etc/grafana/provisioning
+        - action: sync+restart
+          path: ./monitoring/grafana/dashboards
+          target: /var/lib/grafana/dashboards
 
 volumes:
   mongo_data: {}
