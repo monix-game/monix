@@ -3,6 +3,7 @@ import styles from './Leaderboard.module.css';
 import {
   type FishLeaderboardEntry,
   type LeaderboardEntry,
+  type PlaytimeLeaderboardEntry,
 } from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
 import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../../server/common/math';
@@ -13,9 +14,21 @@ import { EmojiText } from '../EmojiText';
 import { Nameplate } from '../nameplate/Nameplate';
 import { useSocket } from '../../providers/socket';
 
+type LeaderboardTab = 'money' | 'fish' | 'playtime';
+
+function formatPlaytime(ms: number): string {
+  const totalMinutes = Math.floor(ms / 60000);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export const Leaderboard: React.FC = () => {
-  const [hydrated, setHydrated] = React.useState<boolean>(false);
-  const [activeTab, setActiveTab] = React.useState<'money' | 'fish'>('money');
+  const [hydratedTab, setHydratedTab] = React.useState<LeaderboardTab | null>(null);
+  const [activeTab, setActiveTab] = React.useState<LeaderboardTab>('money');
   const [rawMoneyData, setRawMoneyData] = React.useState<{
     normal: LeaderboardEntry[];
     noStaff: LeaderboardEntry[];
@@ -24,16 +37,22 @@ export const Leaderboard: React.FC = () => {
     normal: FishLeaderboardEntry[];
     noStaff: FishLeaderboardEntry[];
   }>({ normal: [], noStaff: [] });
+  const [rawPlaytimeData, setRawPlaytimeData] = React.useState<{
+    normal: PlaytimeLeaderboardEntry[];
+    noStaff: PlaytimeLeaderboardEntry[];
+  }>({ normal: [], noStaff: [] });
   const [hideStaff, setHideStaff] = React.useState<boolean>(false);
 
   const { subscribe } = useSocket();
 
   const getLeaderboardData = () => {
-    const isMoney = activeTab === 'money';
-    if (hideStaff) {
-      return isMoney ? rawMoneyData.noStaff : rawFishData.noStaff;
+    if (activeTab === 'money') {
+      return hideStaff ? rawMoneyData.noStaff : rawMoneyData.normal;
     }
-    return isMoney ? rawMoneyData.normal : rawFishData.normal;
+    if (activeTab === 'fish') {
+      return hideStaff ? rawFishData.noStaff : rawFishData.normal;
+    }
+    return hideStaff ? rawPlaytimeData.noStaff : rawPlaytimeData.normal;
   };
 
   const currentData = getLeaderboardData();
@@ -41,22 +60,55 @@ export const Leaderboard: React.FC = () => {
   const listData = currentData.slice(3);
 
   useEffect(() => {
-    const markHydrated = () => setHydrated(true);
-
     const unsubMoney = subscribe('leaderboard:money', data => {
       setRawMoneyData(data as { normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] });
-      markHydrated();
     });
     const unsubFish = subscribe('leaderboard:fish', data => {
-      setRawFishData(data as { normal: FishLeaderboardEntry[]; noStaff: FishLeaderboardEntry[] });
-      markHydrated();
+      setRawFishData(data as {
+        normal: FishLeaderboardEntry[];
+        noStaff: FishLeaderboardEntry[];
+      });
+    });
+    const unsubPlaytime = subscribe('leaderboard:playtime', data => {
+      setRawPlaytimeData(data as {
+        normal: PlaytimeLeaderboardEntry[];
+        noStaff: PlaytimeLeaderboardEntry[];
+      });
     });
 
     return () => {
       unsubMoney();
       unsubFish();
+      unsubPlaytime();
     };
   }, [subscribe]);
+
+  useEffect(() => {
+    // Only consider the tab hydrated once its own channel has delivered data.
+    // This prevents the "No data" flash where one leaderboard channel (e.g.
+    // money) arrived before another (e.g. fish) on a fresh subscription.
+    if (activeTab === 'money' && rawMoneyData.normal.length > 0) {
+      setHydratedTab('money');
+    } else if (activeTab === 'fish' && rawFishData.normal.length > 0) {
+      setHydratedTab('fish');
+    } else if (activeTab === 'playtime' && rawPlaytimeData.normal.length > 0) {
+      setHydratedTab('playtime');
+    }
+  }, [activeTab, rawMoneyData, rawFishData, rawPlaytimeData]);
+
+  const hydrated = hydratedTab === activeTab;
+
+  // Resolve the value shown in the trailing column for the active tab.
+  const valueFor = (entry: LeaderboardEntry | FishLeaderboardEntry | PlaytimeLeaderboardEntry): string => {
+    if (activeTab === 'money') {
+      const net = (entry as LeaderboardEntry).netWorth;
+      return `$${(net ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    }
+    if (activeTab === 'fish') {
+      return `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`;
+    }
+    return formatPlaytime((entry as PlaytimeLeaderboardEntry).playtimeMs);
+  };
 
   const isMoneyTab = activeTab === 'money';
 
@@ -69,14 +121,21 @@ export const Leaderboard: React.FC = () => {
             className={`${styles['leaderboard-tab']} ${isMoneyTab ? styles.active : ''}`}
             onClick={() => setActiveTab('money')}
           >
-            Most Money
+            Net Worth
           </button>
           <button
             type="button"
-            className={`${styles['leaderboard-tab']} ${!isMoneyTab ? styles.active : ''}`}
+            className={`${styles['leaderboard-tab']} ${activeTab === 'fish' ? styles.active : ''}`}
             onClick={() => setActiveTab('fish')}
           >
             Fish Caught
+          </button>
+          <button
+            type="button"
+            className={`${styles['leaderboard-tab']} ${activeTab === 'playtime' ? styles.active : ''}`}
+            onClick={() => setActiveTab('playtime')}
+          >
+            Most Playtime
           </button>
         </div>
         <span className={styles['leaderboard-filters-label']}>Filters:</span>
@@ -124,11 +183,7 @@ export const Leaderboard: React.FC = () => {
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}
                 </span>
-                <span className={styles['podium-money']}>
-                  {isMoneyTab
-                    ? `$${(entry as LeaderboardEntry).money.toLocaleString()}`
-                    : `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`}
-                </span>
+                <span className={styles['podium-money']}>{valueFor(entry)}</span>
               </div>
             ))}
           </div>
@@ -165,11 +220,7 @@ export const Leaderboard: React.FC = () => {
                     <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
                   )}
                 </span>
-                <span className={styles['leaderboard-money']}>
-                  {isMoneyTab
-                    ? `$${(entry as LeaderboardEntry).money.toLocaleString()}`
-                    : `${(entry as FishLeaderboardEntry).fishCaught.toLocaleString()} fish`}
-                </span>
+                <span className={styles['leaderboard-money']}>{valueFor(entry)}</span>
               </div>
             ))}
           </div>

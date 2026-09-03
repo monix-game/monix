@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { updateUser } from '../../db';
+import { mutateUserAndSave } from '../../db';
 import { userToClient } from '../../../common/models/user';
 import { deriveAuth, onlyAuth } from '../../middleware';
 import { getCurrentFishingEvent, applyAquariumEventModifiers } from '../../../common/fishing/fishing';
@@ -8,7 +8,7 @@ import { applySailorEarnings } from '../../helpers/sailors';
 export const getUser = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
   .onBeforeHandle(onlyAuth)
-  .get('/user', ({ authUser, set }) => {
+  .get('/user', async ({ authUser, set }) => {
     const user = authUser;
 
     if (!user) {
@@ -17,18 +17,30 @@ export const getUser = new Elysia()
     }
 
     const currentEvent = getCurrentFishingEvent();
-    const aquariumFish = user.fishing?.aquarium?.fish ?? [];
-    if (applyAquariumEventModifiers(aquariumFish, currentEvent)) {
-      void updateUser(user);
+
+    const fresh = await mutateUserAndSave(user.uuid, async freshUser => {
+      let changed = false;
+
+      const aquariumFish = freshUser.fishing?.aquarium?.fish ?? [];
+      if (applyAquariumEventModifiers(aquariumFish, currentEvent)) {
+        changed = true;
+      }
+
+      const moneyBefore = freshUser.money;
+      const earned = applySailorEarnings(freshUser);
+      if (earned > 0 || freshUser.money !== moneyBefore) {
+        changed = true;
+      }
+
+      return { changed, value: freshUser };
+    });
+
+    if (!fresh) {
+      set.status = 404;
+      return { error: 'User not found' };
     }
 
-    const moneyBefore = user.money;
-    const earned = applySailorEarnings(user);
-    if (earned > 0 || user.money !== moneyBefore) {
-      void updateUser(user);
-    }
-
-    return { user: userToClient(user) };
+    return { user: userToClient(fresh) };
   });
 
 export default getUser;

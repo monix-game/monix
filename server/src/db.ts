@@ -227,6 +227,92 @@ export async function updateUser(user: IUser): Promise<void> {
   void cacheSet(userKey(user.uuid), user, USER_TTL);
 }
 
+/**
+ * Persist only the activity-tracking fields (last_seen, ip_history) for a user.
+ * Unlike `updateUser` (which rewrites the whole document from a possibly stale
+ * in-memory copy and can clobber concurrent money/resource transactions), this
+ * writes just these two fields via MongoDB $set, so it can never revert other
+ * parts of the user document. It also can't interfere with the per-user write
+ * lock used by `mutateUserAndSave` because it never re-reads or rewrites other
+ * fields.
+ */
+export async function updateUserActivity(
+  uuid: string,
+  activity: { last_seen: number; ip_history?: { ip: string; timestamp: number }[] }
+): Promise<void> {
+  const database = ensureDB();
+  const update: Record<string, unknown> = { last_seen: activity.last_seen };
+  if (activity.ip_history) {
+    update.ip_history = activity.ip_history;
+  }
+  await database.collection('users').updateOne({ uuid }, { $set: update as never });
+  void cacheDel(userKey(uuid));
+}
+
+// ---------------------------------------------------------------------------
+// Per-user write serialization
+// ---------------------------------------------------------------------------
+// Many handlers perform a read-modify-write on a single user document (e.g.
+// money/resource transactions). Without coordination those can interleave, and
+// because writes are full-document $set, the last writer clobbers earlier
+// deltas — briefly reverting money/resources to a stale value. A per-user
+// chain ensures each transaction reads the latest committed state and writes
+// back atomically, so concurrent actions on the same account never lose updates.
+// ---------------------------------------------------------------------------
+
+const userLocks = new Map<string, Promise<void>>();
+
+/**
+ * Read the user document directly from MongoDB, bypassing the Redis cache so a
+ * mutation never operates on a stale snapshot left by an earlier transaction.
+ */
+async function getUserByUUIDFresh(uuid: string): Promise<IUser | null> {
+  const database = ensureDB();
+  const doc = await database.collection('users').findOne({ uuid });
+  if (!doc) return null;
+  return userFromDoc(doc);
+}
+
+/**
+ * Run `fn` while holding an exclusive, per-user lock. `fn` receives a freshly
+ * read (Mongo, cache-bypassed) user document and returns an outcome. This
+ * serializes all read-modify-write operations on a single user. If the user is
+ * not found, returns `null`.
+ *
+ * When `changed` is true the (possibly mutated) user is persisted back to Mongo
+ * and its Redis cache entry refreshed. This wraps the standard
+ * "read, mutate, write" dance of the money/resource routes so concurrent
+ * actions on the same account never lose updates.
+ */
+export async function mutateUserAndSave<T>(
+  uuid: string,
+  fn: (user: IUser) => Promise<{ changed: boolean; value: T }>
+): Promise<T | null> {
+  const prev = userLocks.get(uuid) ?? Promise.resolve();
+  let release!: () => void;
+  const next = new Promise<void>(res => {
+    release = res;
+  });
+  userLocks.set(uuid, next);
+
+  try {
+    await prev;
+    const freshUser = await getUserByUUIDFresh(uuid);
+    if (!freshUser) return null;
+
+    const outcome = await fn(freshUser);
+    if (!outcome) return null;
+
+    if (outcome.changed) {
+      await updateUser(freshUser);
+    }
+    return outcome.value;
+  } finally {
+    release();
+    if (userLocks.get(uuid) === next) userLocks.delete(uuid);
+  }
+}
+
 export async function deleteUserByUUID(uuid: string): Promise<void> {
   const database = ensureDB();
   await database.collection('users').deleteOne({ uuid });

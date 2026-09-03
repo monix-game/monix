@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { v4 } from 'uuid';
 import { STRIPE_WEBHOOK_SECRET, stripe } from '../../constants';
-import { getUserByUsername, updateUser } from '../../db';
+import { getUserByUsername, mutateUserAndSave } from '../../db';
 import Stripe from 'stripe';
 import { buildRequestLogData, log } from '../../helpers/logging';
 import { GEMS_LOOKUP } from './config';
@@ -78,8 +78,15 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
         return 'Unknown gems product ID';
       }
 
-      user.gems += gemsAmount;
-      await updateUser(user);
+      const credited = await mutateUserAndSave<boolean>(user.uuid, async freshUser => {
+        freshUser.gems += gemsAmount;
+        return { changed: true, value: true };
+      });
+
+      if (!credited) {
+        set.status = 404;
+        return 'User not found';
+      }
 
       await log({
         uuid: v4(),

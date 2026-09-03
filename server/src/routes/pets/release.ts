@@ -1,6 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { deletePetByUUID, getPetByUUID, getUserByUUID, updateUser } from '../../db';
+import { deletePetByUUID, getPetByUUID, mutateUserAndSave } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+
+type ReleaseOutcome =
+  | { ok: 'error'; status: number; error: string }
+  | { ok: 'success'; message: string };
 
 export const releasePet = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -8,15 +12,8 @@ export const releasePet = new Elysia()
   .post(
     '/release',
     async ({ body, authUser, set }) => {
-      const user = authUser;
-      const user_uuid: string | undefined = user?.uuid;
-      const fetchedUser = await getUserByUUID(user_uuid as string);
+      const user_uuid = authUser?.uuid as string;
       const { pet_uuid } = body;
-
-      if (!fetchedUser) {
-        set.status = 404;
-        return { error: 'User not found' };
-      }
 
       if (!pet_uuid) {
         set.status = 400;
@@ -24,21 +21,43 @@ export const releasePet = new Elysia()
       }
 
       const pet = await getPetByUUID(pet_uuid);
-
       if (!pet) {
         set.status = 404;
         return { error: 'Pet not found' };
       }
 
-      // If the pet is dead, it costs 500 to release
+      // If the pet is dead, it costs 500 to release.
       if (pet.is_dead) {
-        const releaseCost = 500;
-        if ((fetchedUser.money || 0) < releaseCost) {
-          set.status = 400;
-          return { error: 'Insufficient funds to release the pet' };
+        const result = await mutateUserAndSave<ReleaseOutcome>(
+          user_uuid,
+          async fetchedUser => {
+            const releaseCost = 500;
+            if ((fetchedUser.money || 0) < releaseCost) {
+              return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to release the pet' } };
+            }
+            fetchedUser.money = (fetchedUser.money || 0) - releaseCost;
+            return { changed: true, value: { ok: 'success' as const, message: 'Pet released successfully' } };
+          }
+        );
+
+        if (!result) {
+          set.status = 404;
+          return { error: 'User not found' };
         }
-        fetchedUser.money = (fetchedUser.money || 0) - releaseCost;
-        await updateUser(fetchedUser);
+        if (result.ok === 'error') {
+          set.status = result.status;
+          return { error: result.error };
+        }
+      } else {
+        // Validate the user exists even when no deduction is needed.
+        const exists = await mutateUserAndSave<ReleaseOutcome>(
+          user_uuid,
+          async () => ({ changed: false, value: { ok: 'success' as const, message: 'Pet released successfully' } })
+        );
+        if (!exists) {
+          set.status = 404;
+          return { error: 'User not found' };
+        }
       }
 
       // Remove the pet from the database

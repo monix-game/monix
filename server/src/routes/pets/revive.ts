@@ -1,6 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { getPetByUUID, getUserByUUID, updatePet, updateUser } from '../../db';
+import { getPetByUUID, mutateUserAndSave, updatePet } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
+
+type ReviveOutcome =
+  | { ok: 'error'; status: number; error: string }
+  | { ok: 'success'; message: string };
 
 export const revivePet = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -8,15 +12,8 @@ export const revivePet = new Elysia()
   .post(
     '/revive',
     async ({ body, authUser, set }) => {
-      const user = authUser;
-      const user_uuid: string | undefined = user?.uuid;
-      const fetchedUser = await getUserByUUID(user_uuid as string);
+      const user_uuid = authUser?.uuid as string;
       const { pet_uuid } = body;
-
-      if (!fetchedUser) {
-        set.status = 404;
-        return { error: 'User not found' };
-      }
 
       if (!pet_uuid) {
         set.status = 400;
@@ -24,12 +21,10 @@ export const revivePet = new Elysia()
       }
 
       const pet = await getPetByUUID(pet_uuid);
-
       if (!pet) {
         set.status = 404;
         return { error: 'Pet not found' };
       }
-
       if (!pet.is_dead) {
         set.status = 400;
         return { error: 'Pet is not dead' };
@@ -37,12 +32,26 @@ export const revivePet = new Elysia()
 
       // It costs 100,000 to revive a pet
       const reviveCost = 100000;
-      if ((fetchedUser.money || 0) < reviveCost) {
-        set.status = 400;
-        return { error: 'Insufficient funds to revive the pet' };
+
+      const result = await mutateUserAndSave<ReviveOutcome>(
+        user_uuid,
+        async fetchedUser => {
+          if ((fetchedUser.money || 0) < reviveCost) {
+            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to revive the pet' } };
+          }
+          fetchedUser.money = (fetchedUser.money || 0) - reviveCost;
+          return { changed: true, value: { ok: 'success' as const, message: 'Pet revived successfully' } };
+        }
+      );
+
+      if (!result) {
+        set.status = 404;
+        return { error: 'User not found' };
       }
-      fetchedUser.money = (fetchedUser.money || 0) - reviveCost;
-      await updateUser(fetchedUser);
+      if (result.ok === 'error') {
+        set.status = result.status;
+        return { error: result.error };
+      }
 
       // Revive the pet
       pet.is_dead = false;
@@ -50,9 +59,7 @@ export const revivePet = new Elysia()
       pet.time_last_played = Date.now();
       await updatePet(pet);
 
-      return {
-        message: 'Pet revived successfully',
-      };
+      return result;
     },
     {
       body: t.Object({ pet_uuid: t.Optional(t.String()) }),

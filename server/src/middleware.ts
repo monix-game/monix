@@ -3,7 +3,7 @@ import {
   getGlobalSettings,
   getSessionByToken,
   getUserByUUID,
-  updateUser,
+  updateUserActivity,
 } from './db';
 import { hasRole } from '../common/roles';
 import { isUserBanned } from '../common/punishx/punishx';
@@ -36,15 +36,22 @@ export function applyActivityTracking(user: IUser, ip?: string): boolean {
 
   if (ip) {
     user.ip_history = user.ip_history || [];
-    // Only add if it's not the same as the last recorded IP to avoid duplicates
-    const last = user.ip_history[user.ip_history.length - 1];
-    if (!last || last.ip !== ip) {
+    // Deduplicate globally (not just against the last entry) so the same IP is
+    // never stored twice, even when the user alternates between addresses. If
+    // the IP already exists anywhere in the history, update it to the most
+    // recent timestamp and move it to the end so ordering reflects recency.
+    const existingIndex = user.ip_history.findIndex(entry => entry.ip === ip);
+    if (existingIndex !== -1) {
+      const [existing] = user.ip_history.splice(existingIndex, 1);
+      user.ip_history.push({ ip: existing.ip, timestamp: now });
+      dirty = existing.timestamp !== now;
+    } else {
       user.ip_history.push({ ip, timestamp: now });
-      // Keep only the last 10 IPs to prevent unbounded growth
-      if (user.ip_history.length > 10) {
-        user.ip_history.shift();
-      }
       dirty = true;
+    }
+    // Keep only the last 10 IPs to prevent unbounded growth
+    if (user.ip_history.length > 10) {
+      user.ip_history.shift();
     }
   }
 
@@ -81,7 +88,12 @@ async function authenticateRequest(headers: HeaderMap): Promise<AuthResult> {
 
   const ip = getRequestIp(headers);
   if (applyActivityTracking(user, ip)) {
-    await updateUser(user);
+    // Persist only activity fields (last_seen + ip_history), atomically, so a
+    // full-document rewrite never races with concurrent money transactions.
+    await updateUserActivity(user.uuid, {
+      last_seen: user.last_seen || Date.now(),
+      ip_history: user.ip_history,
+    });
   }
 
   return { user, session };

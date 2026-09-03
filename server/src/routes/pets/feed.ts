@@ -1,10 +1,14 @@
 import { Elysia, t } from 'elysia';
-import { getPetByUUID, getUserByUUID, updatePet, updateUser } from '../../db';
+import { getPetByUUID, mutateUserAndSave, updatePet } from '../../db';
 import { petToDoc } from '../../../common/models/pet';
 import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { canFeedPet, isPetAsleep } from '../../../common/pet';
 import { FEED_COSTS, FEED_EXP } from './helpers';
+
+type FeedOutcome =
+  | { ok: 'error'; status: number; error: string }
+  | { ok: 'success'; pet: ReturnType<typeof petToDoc> };
 
 export const feedPet = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -12,15 +16,8 @@ export const feedPet = new Elysia()
   .post(
     '/feed',
     async ({ body, authUser, set }) => {
-      const user = authUser;
-      const user_uuid: string | undefined = user?.uuid;
-      const fetchedUser = await getUserByUUID(user_uuid as string);
+      const user_uuid = authUser?.uuid as string;
       const { pet_uuid, feed_type } = body;
-
-      if (!fetchedUser) {
-        set.status = 404;
-        return { error: 'User not found' };
-      }
 
       if (!pet_uuid) {
         set.status = 400;
@@ -28,50 +25,55 @@ export const feedPet = new Elysia()
       }
 
       const pet = await getPetByUUID(pet_uuid);
-
       if (!pet) {
         set.status = 404;
         return { error: 'Pet not found' };
       }
 
-      // Check if the user has enough money to feed the pet
-      const feedCost =
-        feed_type && FEED_COSTS[feed_type] ? FEED_COSTS[feed_type] : FEED_COSTS['standard'];
-      if ((fetchedUser.money || 0) < feedCost) {
-        set.status = 400;
-        return { error: 'Insufficient funds to feed the pet' };
-      }
-
-      // Check if the pet has been fed in the last 5 minutes
+      // Check if the pet has been fed in the last 5 minutes / is asleep first
+      // (pet state, not user state, so it's safe to check outside the lock).
       if (!canFeedPet(pet)) {
         set.status = 400;
         return { error: 'You can only feed your pet once every 5 minutes' };
       }
-
-      // Check if the pet is asleep
       if (isPetAsleep(pet)) {
         set.status = 400;
         return { error: 'Cannot feed the pet while it is asleep' };
       }
 
-      // Deduct the money from the user
-      fetchedUser.money = (fetchedUser.money || 0) - feedCost;
-      fetchedUser.stats ??= DEFAULT_USER_STATS;
-      fetchedUser.stats.pets_fed = (fetchedUser.stats.pets_fed || 0) + 1;
-      await updateUser(fetchedUser);
+      const feedCost =
+        feed_type && FEED_COSTS[feed_type] ? FEED_COSTS[feed_type] : FEED_COSTS['standard'];
 
-      // Update the pet's last fed time
+      const result = await mutateUserAndSave<FeedOutcome>(
+        user_uuid,
+        async fetchedUser => {
+          if ((fetchedUser.money || 0) < feedCost) {
+            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to feed the pet' } };
+          }
+
+          fetchedUser.money = (fetchedUser.money || 0) - feedCost;
+          fetchedUser.stats ??= DEFAULT_USER_STATS;
+          fetchedUser.stats.pets_fed = (fetchedUser.stats.pets_fed || 0) + 1;
+
+          return { changed: true, value: { ok: 'success' as const, pet: petToDoc(pet) } };
+        }
+      );
+
+      if (!result) {
+        set.status = 404;
+        return { error: 'User not found' };
+      }
+      if (result.ok === 'error') {
+        set.status = result.status;
+        return { error: result.error };
+      }
+
+      // Update the pet's last fed time and add experience
       pet.time_last_fed = Date.now();
-
-      // Add experience points to the pet for being fed
       pet.exp += feed_type && FEED_EXP[feed_type] ? FEED_EXP[feed_type] : FEED_EXP['standard'];
-
       await updatePet(pet);
 
-      return {
-        message: 'Pet fed successfully',
-        pet: petToDoc(pet),
-      };
+      return result;
     },
     {
       body: t.Object({

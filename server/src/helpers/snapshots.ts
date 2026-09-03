@@ -4,9 +4,8 @@ import {
   getGlobalSettings,
   getMessagesByRoomUUID,
   getRoomByUUID,
-  getUserByUUID,
   getUsersByUUID,
-  updateUser,
+  mutateUserAndSave,
 } from '../db';
 import { generatePrice } from './market';
 import { buildMarketNewsFeed } from '../../common/market/news';
@@ -20,7 +19,9 @@ import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrad
 import { hasRole } from '../../common/roles';
 import { updatePlayersPets } from '../routes/pets/helpers';
 import { resources } from '../../common/resources';
-import { getCurrentFishingEvent, applyAquariumEventModifiers } from '../../common/fishing/fishing';
+import { getCurrentFishingEvent, applyAquariumEventModifiers, getFishValue } from '../../common/fishing/fishing';
+import { fishingRods } from '../../common/fishing/fishingRods';
+import { fishingBaits } from '../../common/fishing/fishingBait';
 import { applySailorEarnings } from './sailors';
 
 type Role = 'owner' | 'admin' | 'mod' | 'helper' | 'user';
@@ -32,6 +33,8 @@ export type LeaderboardEntry = {
   role: Role;
   money?: number;
   fishCaught?: number;
+  playtimeMs?: number;
+  netWorth?: number;
   magic_jellybean_active: boolean;
   cosmetics: {
     nameplate: string | undefined;
@@ -63,6 +66,7 @@ function ttlCache<T>(fn: () => Promise<T>, ttlMs: number): () => Promise<T> {
 
 export const buildMoneyLeaderboardCached = ttlCache(buildMoneyLeaderboard, 10_000);
 export const buildFishLeaderboardCached = ttlCache(buildFishLeaderboard, 10_000);
+export const buildPlaytimeLeaderboardCached = ttlCache(buildPlaytimeLeaderboard, 10_000);
 
 function isNotStaff(user: { role: string }, hideStaff: boolean): boolean {
   return !hideStaff || (user.role !== 'owner' && user.role !== 'admin' && user.role !== 'mod');
@@ -112,11 +116,14 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
         (u.money || 0) > 0 &&
         (!u.last_seen || now - u.last_seen <= SIX_MONTHS)
     )
-    .sort((a, b) => (b.money || 0) - (a.money || 0))
+    .map(u => ({ user: u, netWorth: computeNetWorth(u, now) }))
+    .filter(x => x.netWorth > 0)
+    .sort((a, b) => b.netWorth - a.netWorth)
     .slice(0, 15);
 
-  const entryFor = (u: IUser, index: number): LeaderboardEntry => ({
-    ...entryForUser(u, u.money || 0, 0),
+  const entryFor = (u: { user: IUser; netWorth: number }, index: number): LeaderboardEntry => ({
+    ...entryForUser(u.user, u.user.money || 0, 0),
+    netWorth: u.netWorth,
     rank: index,
   });
 
@@ -124,6 +131,40 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
   const noStaff = rankLeaderboard(rankable, entryFor, true);
 
   return { normal, noStaff };
+}
+
+/**
+ * Approximate a user's liquid net worth (bank cash + holdings valued at their
+ * current resale worth): resources at the live market price, owned rods/bait at
+ * purchase cost, and aquarium fish at their sell value. Gems are excluded since
+ * they are a premium/admin-issued currency with no defined exchange rate.
+ */
+function computeNetWorth(user: IUser, nowMs: number): number {
+  const nowSeconds = Math.floor(nowMs / 1000);
+
+  let total = user.money || 0;
+
+  for (const [resourceId, quantity] of Object.entries(user.resources || {})) {
+    if (quantity <= 0) continue;
+    total += generatePrice(resourceId, nowSeconds) * quantity;
+  }
+
+  for (const rodId of user.fishing?.rods_owned || []) {
+    const rod = fishingRods.find(r => r.id === rodId);
+    if (rod && rod.buyable !== false) total += rod.price;
+  }
+
+  for (const [baitId, quantity] of Object.entries(user.fishing?.bait_owned || {})) {
+    if (quantity <= 0) continue;
+    const bait = fishingBaits.find(b => b.id === baitId);
+    if (bait) total += bait.price * quantity;
+  }
+
+  for (const fish of user.fishing?.aquarium?.fish || []) {
+    total += getFishValue(fish);
+  }
+
+  return Math.floor(total * 100) / 100;
 }
 
 function getFishCaughtCount(fishCaught?: { [key: string]: number }): number {
@@ -151,6 +192,35 @@ export async function buildFishLeaderboard(): Promise<LeaderboardSet> {
 
   const entryFor = (u: { user: IUser; count: number }, index: number): LeaderboardEntry => ({
     ...entryForUser(u.user, u.user.money || 0, u.count),
+    rank: index,
+  });
+
+  const normal = rankLeaderboard(rankable, entryFor, false);
+  const noStaff = rankLeaderboard(rankable, entryFor, true);
+
+  return { normal, noStaff };
+}
+
+export async function buildPlaytimeLeaderboard(): Promise<LeaderboardSet> {
+  const allUsers = await getAllUsers();
+  const now = Date.now();
+  const counted = allUsers.map(u => {
+    const playtimeMs = u.stats?.playtime_ms || 0;
+    return { user: u, playtimeMs };
+  });
+  const rankable = counted
+    .filter(
+      u =>
+        !isUserBanned(u.user) &&
+        u.playtimeMs > 0 &&
+        (!u.user.last_seen || now - u.user.last_seen <= SIX_MONTHS)
+    )
+    .sort((a, b) => b.playtimeMs - a.playtimeMs)
+    .slice(0, 15);
+
+  const entryFor = (u: { user: IUser; playtimeMs: number }, index: number): LeaderboardEntry => ({
+    ...entryForUser(u.user, u.user.money || 0, 0),
+    playtimeMs: u.playtimeMs,
     rank: index,
   });
 
@@ -295,22 +365,27 @@ export async function buildRooms(viewer?: { uuid: string; role: string } | null)
 export async function buildUserSnapshot(user: {
   uuid: string;
 }): Promise<{ user: ReturnType<typeof userToDoc> } | null> {
-  const freshUser = await getUserByUUID(user.uuid);
+  // Serialize per-user so this periodic snapshot never clobbers concurrent
+  // money/resource transactions (which otherwise briefly revert user state).
+  const freshUser = await mutateUserAndSave(
+    user.uuid,
+    async freshUser => {
+      const currentEvent = getCurrentFishingEvent();
+      const aquariumFish = freshUser.fishing?.aquarium?.fish ?? [];
+      const aquariumChanged = applyAquariumEventModifiers(aquariumFish, currentEvent);
+
+      // Credit passive sailor earnings (online + offline) persistently. The
+      // baseline-first call returns earned 0 and leaves money untouched, so we
+      // only persist when something actually changed.
+      const moneyBefore = freshUser.money;
+      const earned = applySailorEarnings(freshUser);
+      const sailorsChanged = earned > 0 || freshUser.money !== moneyBefore;
+
+      const changed = aquariumChanged || sailorsChanged;
+      return { changed, value: freshUser };
+    }
+  );
+
   if (!freshUser) return null;
-
-  const currentEvent = getCurrentFishingEvent();
-  const aquariumFish = freshUser.fishing?.aquarium?.fish ?? [];
-  if (applyAquariumEventModifiers(aquariumFish, currentEvent)) {
-    await updateUser(freshUser);
-  }
-
-  // Credit passive sailor earnings (online + offline) and persist if anything
-  // changed (money credited or the sailors fleet was first initialized).
-  const moneyBefore = freshUser.money;
-  const earned = applySailorEarnings(freshUser);
-  if (earned > 0 || freshUser.money !== moneyBefore) {
-    await updateUser(freshUser);
-  }
-
   return { user: userToDoc(freshUser) };
 }

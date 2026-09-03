@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { getUserByUUID, updateUser } from '../../db';
+import { getUserByUUID, mutateUserAndSave } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { hasGems } from '../../../common/math';
 import { getUpcomingFishingEvents } from '../../../common/fishing/fishing';
@@ -14,9 +14,7 @@ export const eventsPreview = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
   .onBeforeHandle(onlyActive)
   .get('/events-preview', async ({ authUser, set }) => {
-    const user = authUser;
-    const user_uuid: string | undefined = user?.uuid;
-    const fetchedUser = await getUserByUUID(user_uuid as string);
+    const fetchedUser = await getUserByUUID(authUser?.uuid as string);
 
     if (!fetchedUser) {
       set.status = 404;
@@ -30,43 +28,57 @@ export const eventsPreview = new Elysia()
     };
   })
   .post('/events-preview/unlock', async ({ authUser, set }) => {
-    const user = authUser;
-    const user_uuid: string | undefined = user?.uuid;
-    const fetchedUser = await getUserByUUID(user_uuid as string);
+    const user_uuid = authUser?.uuid as string;
 
-    if (!fetchedUser) {
+    type UnlockOutcome =
+      | { ok: 'error'; status: number; error: string; gems?: number }
+      | { ok: 'success'; unlocked: true; events: UpcomingFishingEvent[]; gems?: number };
+
+    const result = await mutateUserAndSave<UnlockOutcome>(
+      user_uuid,
+      async fetchedUser => {
+        if (fetchedUser.fishing?.event_preview_unlocked) {
+          return {
+            changed: false,
+            value: { ok: 'success' as const, unlocked: true, events: buildPreview() },
+          };
+        }
+
+        if (!hasGems(fetchedUser.gems, EVENT_PREVIEW_COST)) {
+          return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient gems to unlock the event preview' } };
+        }
+
+        if (fetchedUser.gems !== -1) {
+          fetchedUser.gems = (fetchedUser.gems || 0) - EVENT_PREVIEW_COST;
+        }
+        fetchedUser.fishing ??= {
+          equipped_rod: 'damaged-rod',
+          rods_owned: ['damaged-rod'],
+          aquarium: { capacity: 10, level: 1, fish: [] },
+        };
+        fetchedUser.fishing.event_preview_unlocked = true;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            unlocked: true,
+            events: buildPreview(),
+            gems: fetchedUser.gems,
+          },
+        };
+      }
+    );
+
+    if (!result) {
       set.status = 404;
       return { error: 'User not found' };
     }
-
-    if (fetchedUser.fishing?.event_preview_unlocked) {
-      return {
-        unlocked: true,
-        events: buildPreview(),
-      };
+    if (result.ok === 'error') {
+      set.status = result.status;
+      return { error: result.error };
     }
-
-    if (!hasGems(fetchedUser.gems, EVENT_PREVIEW_COST)) {
-      set.status = 400;
-      return { error: 'Insufficient gems to unlock the event preview' };
-    }
-
-    if (fetchedUser.gems !== -1) {
-      fetchedUser.gems = (fetchedUser.gems || 0) - EVENT_PREVIEW_COST;
-    }
-    fetchedUser.fishing ??= {
-      equipped_rod: 'damaged-rod',
-      rods_owned: ['damaged-rod'],
-      aquarium: { capacity: 10, level: 1, fish: [] },
-    };
-    fetchedUser.fishing.event_preview_unlocked = true;
-    await updateUser(fetchedUser);
-
-    return {
-      unlocked: true,
-      events: buildPreview(),
-      gems: fetchedUser.gems,
-    };
+    return result;
   });
 
 export default eventsPreview;

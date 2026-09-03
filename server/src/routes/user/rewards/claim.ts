@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { updateUser } from '../../../db';
+import { mutateUserAndSave } from '../../../db';
 import { deriveAuth, onlyActive } from '../../../middleware';
 import { DAILY_REWARDS } from '../../../../common/rewards/dailyRewards';
 import { DEFAULT_USER_STATS } from '../../../../common/models/user';
@@ -10,40 +10,57 @@ export const claimDailyReward = new Elysia()
   .onBeforeHandle(onlyActive)
   .post('/daily-reward/claim', async ({ authUser, set }) => {
     const user = authUser;
-
     if (!user) {
       set.status = 404;
       return { error: 'User not found' };
     }
 
-    const currentDay = getTimeZoneDayIndex(Date.now(), SYDNEY_TIME_ZONE);
-    const dailyRewardsState = user.daily_rewards || { last_claimed_day: 0, streak: 0 };
-    const lastClaimedDay = dailyRewardsState.last_claimed_day || 0;
-    const lastStreak = dailyRewardsState.streak || 0;
+    type ClaimOutcome =
+      | { claimed: false; streak: number }
+      | { claimed: true; streak: number; reward: (typeof DAILY_REWARDS)[number] };
 
-    if (lastClaimedDay === currentDay) {
-      return { claimed: false, streak: lastStreak };
+    const result = await mutateUserAndSave<ClaimOutcome>(
+      user.uuid,
+      async fetchedUser => {
+        const currentDay = getTimeZoneDayIndex(Date.now(), SYDNEY_TIME_ZONE);
+        const dailyRewardsState = fetchedUser.daily_rewards || {
+          last_claimed_day: 0,
+          streak: 0,
+        };
+        const lastClaimedDay = dailyRewardsState.last_claimed_day || 0;
+        const lastStreak = dailyRewardsState.streak || 0;
+
+        if (lastClaimedDay === currentDay) {
+          return { changed: false, value: { claimed: false, streak: lastStreak } };
+        }
+
+        const isConsecutive = lastClaimedDay === currentDay - 1;
+        let newStreak = isConsecutive ? lastStreak + 1 : 1;
+        if (newStreak > DAILY_REWARDS.length) {
+          newStreak = 1;
+        }
+
+        const reward = DAILY_REWARDS[newStreak - 1];
+        if (reward.type === 'money') {
+          fetchedUser.money += reward.amount;
+        } else {
+          fetchedUser.gems += reward.amount;
+        }
+
+        fetchedUser.daily_rewards = { last_claimed_day: currentDay, streak: newStreak };
+        fetchedUser.stats ??= DEFAULT_USER_STATS;
+        fetchedUser.stats.daily_rewards_claimed =
+          (fetchedUser.stats.daily_rewards_claimed || 0) + 1;
+
+        return { changed: true, value: { claimed: true, streak: newStreak, reward } };
+      }
+    );
+
+    if (!result) {
+      set.status = 404;
+      return { error: 'User not found' };
     }
-
-    const isConsecutive = lastClaimedDay === currentDay - 1;
-    let newStreak = isConsecutive ? lastStreak + 1 : 1;
-    if (newStreak > DAILY_REWARDS.length) {
-      newStreak = 1;
-    }
-
-    const reward = DAILY_REWARDS[newStreak - 1];
-    if (reward.type === 'money') {
-      user.money += reward.amount;
-    } else {
-      user.gems += reward.amount;
-    }
-
-    user.daily_rewards = { last_claimed_day: currentDay, streak: newStreak };
-    user.stats ??= DEFAULT_USER_STATS;
-    user.stats.daily_rewards_claimed = (user.stats.daily_rewards_claimed || 0) + 1;
-    await updateUser(user);
-
-    return { claimed: true, streak: newStreak, reward };
+    return result;
   });
 
 export default claimDailyReward;

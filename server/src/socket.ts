@@ -15,6 +15,7 @@ import {
 import {
   buildFishLeaderboardCached,
   buildMoneyLeaderboardCached,
+  buildPlaytimeLeaderboardCached,
   buildNewsFeed,
   buildPets,
   buildResourceHistory,
@@ -199,6 +200,9 @@ function startLeaderboardPublisher() {
         if (isChannelActive('leaderboard:fish')) {
           broadcast('leaderboard:fish', await buildFishLeaderboardCached());
         }
+        if (isChannelActive('leaderboard:playtime')) {
+          broadcast('leaderboard:playtime', await buildPlaytimeLeaderboardCached());
+        }
       } catch {
         // Swallow errors.
       }
@@ -370,6 +374,8 @@ async function sendInitialSnapshot(channel: string, ws: WSSocket) {
     data = await buildMoneyLeaderboardCached();
   } else if (channel === 'leaderboard:fish') {
     data = await buildFishLeaderboardCached();
+  } else if (channel === 'leaderboard:playtime') {
+    data = await buildPlaytimeLeaderboardCached();
   } else if (channel.startsWith('pets:')) {
     data = await buildPets(channel.slice('pets:'.length));
   } else if (channel === 'resources:prices') {

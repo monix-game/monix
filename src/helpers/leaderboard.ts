@@ -4,6 +4,7 @@ export interface LeaderboardEntry {
   rank: number;
   username: string;
   money: number;
+  netWorth?: number;
   avatar?: string;
   role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
   magic_jellybean_active?: boolean;
@@ -26,6 +27,19 @@ export interface FishLeaderboardEntry {
   };
 }
 
+export interface PlaytimeLeaderboardEntry {
+  rank: number;
+  username: string;
+  playtimeMs: number;
+  avatar?: string;
+  role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
+  magic_jellybean_active?: boolean;
+  cosmetics: {
+    nameplate?: string;
+    user_tag?: string;
+  };
+}
+
 export async function fetchLeaderboard(): Promise<{
   normal: LeaderboardEntry[];
   noStaff: LeaderboardEntry[];
@@ -34,6 +48,28 @@ export async function fetchLeaderboard(): Promise<{
     const resp = await api.get<{ normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] }>(
       '/leaderboard'
     );
+    if (resp?.success) {
+      return {
+        normal: resp.data?.normal || [],
+        noStaff: resp.data?.noStaff || [],
+      };
+    } else {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPlaytimeLeaderboard(): Promise<{
+  normal: PlaytimeLeaderboardEntry[];
+  noStaff: PlaytimeLeaderboardEntry[];
+} | null> {
+  try {
+    const resp = await api.get<{
+      normal: PlaytimeLeaderboardEntry[];
+      noStaff: PlaytimeLeaderboardEntry[];
+    }>('/leaderboard/playtime');
     if (resp?.success) {
       return {
         normal: resp.data?.normal || [],
