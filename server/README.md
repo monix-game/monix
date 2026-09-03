@@ -15,5 +15,4 @@ From the repo root:
 docker compose up --build
 ```
 
-This builds the server image and starts both the `server` and `mongodb` services.
-Configuration is passed via environment variables (see `docker compose.yml` for the defaults).
+This builds the server image and starts the services. Configuration is passed via environment variables (see `.env.example` for the defaults).
