@@ -45,7 +45,11 @@ import {
   websocketBackpressureSkipsTotal,
   websocketConnections,
   websocketMessagesTotal,
+  clientActivityByCountry,
+  websocketConnectionsByCountry,
 } from './metrics';
+import { countryForIp, requestIpFromHeaders } from './helpers/geo';
+import type { HeaderMap } from './helpers/ip';
 
 const log = createLogger('ws');
 
@@ -63,6 +67,7 @@ type SocketAuthData = {
   socketUser?: IUser;
   socketAuthed?: boolean;
   remoteIp?: string;
+  country?: string;
   connectedAt?: number;
 };
 
@@ -779,12 +784,28 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
 export function attachSocketServer(server: Server | HttpsServer) {
   const wss = new WebSocketServer({ server, path: '/ws' });
   log.info('WebSocket server attached on /ws');
-  wss.on('connection', rawWs => {
+  wss.on('connection', (rawWs, request) => {
     websocketConnections.inc();
     const ws = rawWs as unknown as WSSocket;
+    let closed = false;
+    const headers: HeaderMap = {};
+    for (const [key, value] of Object.entries(request.headers)) {
+      if (typeof value === 'string') headers[key] = value;
+      else if (Array.isArray(value)) headers[key] = value.join(', ');
+    }
+    const remoteIp = requestIpFromHeaders(
+      headers,
+      (rawWs as { _socket?: { remoteAddress?: string } })._socket?.remoteAddress
+    );
     ws.data = {
-      remoteIp: (rawWs as { _socket?: { remoteAddress?: string } })._socket?.remoteAddress,
+      remoteIp,
     };
+    void countryForIp(getAuthData(ws).remoteIp).then(country => {
+      if (closed) return;
+      getAuthData(ws).country = country;
+      websocketConnectionsByCountry.inc({ country });
+      clientActivityByCountry.inc({ protocol: 'websocket', country });
+    });
     log.debug('WebSocket client connected');
     let messageChain: Promise<void> = Promise.resolve();
     rawWs.on('message', data => {
@@ -797,7 +818,10 @@ export function attachSocketServer(server: Server | HttpsServer) {
       messageChain = messageChain.then(() => handleSocketMessage(ws, text)).catch(() => {});
     });
     rawWs.on('close', () => {
+      closed = true;
       websocketConnections.dec();
+      const country = getAuthData(ws).country;
+      if (country) websocketConnectionsByCountry.dec({ country });
       log.debug('WebSocket client disconnected');
       const closingUser = getAuthData(ws).socketUser;
       if (closingUser?.uuid) {

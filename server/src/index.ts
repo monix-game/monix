@@ -12,8 +12,17 @@ import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { attachSocketServer, setupSocketPublishers } from './socket';
 import { ensureValidCertificate } from './certs';
 import { logger, createLogger } from './logging';
-import { dashboardStats, httpRequestDuration, httpRequestsTotal, metricsText } from './metrics';
+import {
+  clientActivityByCountry,
+  dashboardStats,
+  httpRequestDuration,
+  httpRequestsByCountry,
+  httpRequestsTotal,
+  metricsText,
+} from './metrics';
 import { getActivePunishments } from '../common/punishx/punishx';
+import { countryForIp, requestIpFromHeaders } from './helpers/geo';
+import type { HeaderMap } from './helpers/ip';
 
 import pingRoutes from './routes/ping';
 import userRoutes from './routes/user';
@@ -138,19 +147,29 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const timer = httpRequestDuration.startTimer();
   let status = 500;
   let route = req.url?.split('?')[0] || '/';
+  let clientIp: string | undefined;
+  let isMetricsEndpoint = false;
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     route = url.pathname;
     if (url.pathname === '/metrics') {
+      isMetricsEndpoint = true;
       status = 200;
       res.writeHead(status, { 'Content-Type': 'text/plain; version=0.0.4' });
       res.end(await metricsText());
       return;
     }
     const headers = new Headers();
+    const ipHeaders: HeaderMap = {};
     for (const [key, value] of Object.entries(req.headers)) {
-      if (typeof value === 'string') headers.set(key, value);
-      else if (Array.isArray(value)) headers.set(key, value.join(', '));
+      if (typeof value === 'string') {
+        headers.set(key, value);
+        ipHeaders[key] = value;
+      } else if (Array.isArray(value)) {
+        const joined = value.join(', ');
+        headers.set(key, joined);
+        ipHeaders[key] = joined;
+      }
     }
 
     if (
@@ -161,6 +180,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     ) {
       headers.set('x-real-ip', String(req.socket.remoteAddress).replace(/^::ffff:/, ''));
     }
+    clientIp = requestIpFromHeaders(ipHeaders, req.socket.remoteAddress);
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
     if (hasBody && Number(req.headers['content-length'] || 0) > MAX_HTTP_BODY_BYTES) {
       status = 413;
@@ -185,6 +205,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       JSON.stringify({ error: status === 413 ? 'Request body too large' : 'Internal Server Error' })
     );
   } finally {
+    if (!isMetricsEndpoint) {
+      const country = await countryForIp(clientIp);
+      httpRequestsByCountry.inc({ country });
+      clientActivityByCountry.inc({ protocol: 'http', country });
+    }
     httpRequestsTotal.inc({ method: req.method || 'UNKNOWN', route, status: String(status) });
     timer();
   }

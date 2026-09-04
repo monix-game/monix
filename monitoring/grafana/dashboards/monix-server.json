@@ -465,6 +465,73 @@
           "legendFormat": "Appeals"
         }
       ]
+    },
+    {
+      "type": "geomap",
+      "title": "Client activity by country",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "id": "zero",
+          "lat": 20,
+          "lon": 0,
+          "zoom": 1
+        },
+        "controls": {
+          "showZoom": true,
+          "showLegend": true,
+          "mouseWheelZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "Value",
+                  "fixed": "#5794F2",
+                  "mode": "continuous-GrYlRd"
+                },
+                "size": {
+                  "field": "Value",
+                  "fixed": 5,
+                  "max": 15,
+                  "min": 3,
+                  "mode": "fixed"
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg"
+                }
+              }
+            },
+            "location": {
+              "gazetteer": "public/gazetteer/world.json",
+              "lookup": "country",
+              "mode": "lookup"
+            },
+            "name": "Client activity",
+            "type": "markers"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(monix_client_activity_by_country_total[1h])) by (country)",
+          "legendFormat": "{{country}}",
+          "instant": true
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
