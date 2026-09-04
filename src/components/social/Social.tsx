@@ -463,8 +463,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
                       contextMenu.message.sender_uuid !== user.uuid &&
                       contextMenu.message.sender_uuid !== 'nyx' &&
                       !hasRole(
-                        contextMenu.message.sender_badge as
-                          'owner' | 'admin' | 'mod' | 'helper' | 'user',
+                        contextMenu.message.sender_badge as 'owner' | 'admin' | 'mod' | 'helper' | 'user' || 'user',
                         'admin'
                       );
                     return (
