@@ -495,8 +495,8 @@
         },
         "basemap": {
           "config": {},
-          "name": "OpenStreetMap",
-          "type": "osm-standard"
+          "name": "Default",
+          "type": "default"
         },
         "layers": [
           {
@@ -534,7 +534,8 @@
         {
           "expr": "sum(increase(monix_client_activity_by_country_total[1h])) by (country)",
           "legendFormat": "{{country}}",
-          "instant": true
+          "instant": true,
+          "format": "table"
         }
       ]
     }
