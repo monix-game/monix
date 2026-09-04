@@ -3,7 +3,7 @@ export const SAILOR_HIRE_BASE_COST = 1000;
 export const SAILOR_HIRE_GROWTH = 2;
 export const SAILOR_LEVELUP_BASE_COST = 500;
 export const SAILOR_LEVELUP_GROWTH = 2.2;
-export const SAILOR_RATE_PER_LEVEL_PER_SEC = 0.5;
+export const SAILOR_RATE_PER_LEVEL_PER_SEC = 0.75;
 export const SAILOR_OFFLINE_CAP_MS = 6 * 60 * 60 * 1000; // 6h max pending accrual
 export const SAILOR_MAX_FATIGUE = 100;
 
