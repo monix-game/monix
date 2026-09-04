@@ -74,6 +74,7 @@ import {
   equipBait,
   equipRod,
   getEventPreview,
+  activateFrenzy,
   goFishing,
   hireSailor,
   collectSailorEarnings,
@@ -85,9 +86,16 @@ import {
   unlockEventPreview,
   upgradeAquarium,
   type EventPreviewResult,
+  type FishingFrenzyStatus,
 } from '../../helpers/fishing';
 import { fishingBaits } from '../../../server/common/fishing/fishingBait';
 import { fishingRods } from '../../../server/common/fishing/fishingRods';
+import {
+  FRENZY_COOLDOWN_S,
+  FRENZY_GEM_COST,
+  FRENZY_MONEY_COST,
+  FRENZY_WEIGHT_MULTIPLIER,
+} from '../../../server/common/fishing/fishingFrenzy';
 import type { IFish } from '../../../server/common/models/fish';
 import { DAILY_REWARDS } from '../../../server/common/rewards/dailyRewards';
 import { rarityEmojis } from '../../../server/common/rarities';
@@ -197,6 +205,7 @@ export default function Game() {
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
 
   const currentFishingEvent = useMemo(() => getCurrentFishingEvent(eventNow), [eventNow]);
+  const [frenzyStatus, setFrenzyStatus] = useState<FishingFrenzyStatus | null>(null);
   const tutorialSteps = useMemo<TutorialStep[]>(
     () => [
       {
@@ -246,9 +255,12 @@ export default function Game() {
   const socialDisabled = !featureFlags.social;
   const gemPurchasesDisabled = !featureFlags.gemPurchases;
   const cosmeticPurchasesDisabled = !featureFlags.cosmeticPurchases;
-  const fishingCooldownMs = isUpgradeActive(user?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, fishingNow)
-    ? 2500
-    : 5000;
+  const frenzyActive = Boolean(frenzyStatus?.active && (frenzyStatus?.endsAt || 0) > fishingNow);
+  const fishingCooldownMs = frenzyActive
+    ? FRENZY_COOLDOWN_S * 1000
+    : isUpgradeActive(user?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, fishingNow)
+      ? 2500
+      : 5000;
   const isTutorialStepComplete = useMemo(() => {
     if (!currentTutorialStep) return true;
 
@@ -292,6 +304,15 @@ export default function Game() {
         setGlobalSettings(snapshot.settings);
       }
     });
+    return unsubscribe;
+  }, [subscribe]);
+
+  useEffect(() => {
+    const unsubscribe = subscribe('fishing:frenzy', data => {
+      setFrenzyStatus(data as FishingFrenzyStatus);
+    });
+    // The server sends the current frenzy status as an initial snapshot on
+    // subscribe, and pushes updates whenever it is activated or expires.
     return unsubscribe;
   }, [subscribe]);
 
@@ -1320,6 +1341,23 @@ export default function Game() {
                 </div>
                 {fishingSubview === 'fishing' && (
                   <>
+                    {frenzyActive && (
+                      <div className={styles['fishing-frenzy-banner']}>
+                        <span className={styles['fishing-frenzy-banner-icon']}>
+                          <EmojiText>🌊</EmojiText>
+                        </span>
+                        <div className={styles['fishing-frenzy-banner-text']}>
+                          <span className={styles['fishing-frenzy-banner-title']}>FRENZY!</span>
+                          <span className={styles['fishing-frenzy-banner-sub']}>
+                            {FRENZY_WEIGHT_MULTIPLIER}x fish weight • {FRENZY_COOLDOWN_S}s cooldown
+                            • {formatRemainingTime(
+                              Math.max(0, Math.floor(((frenzyStatus?.endsAt || 0) - eventNow) / 1000))
+                            )}{' '}
+                            left
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div className={styles['fishing-container']}>
                       <div className={styles['fishing-hgrid']}>
                         <div className={styles['fishing-left']}>
@@ -1835,25 +1873,101 @@ export default function Game() {
                   <>
                     <div className={styles['aquarium-tab']}>
                       <div className={styles['aquarium-banner']}>
-                        <span className={styles['aquarium-banner-subtitle']}>
-                          CURRENT FISHING EVENT
-                        </span>
-                        <h3 className={styles['aquarium-banner-title']}>
-                          {currentFishingEvent.event ? (
-                            <>
-                              <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
-                              {currentFishingEvent.event.name}
-                            </>
-                          ) : (
-                            'No active event'
-                          )}
-                        </h3>
-                        <span className={styles['aquarium-banner-remaining']}>
-                          {formatRemainingTime(
-                            Math.max(0, Math.floor((currentFishingEvent.endsAt - eventNow) / 1000))
-                          )}{' '}
-                          {currentFishingEvent.event ? 'remaining' : 'until next event'}
-                        </span>
+                        {frenzyActive ? (
+                          <>
+                            <span className={styles['aquarium-banner-subtitle']}>
+                              🌊 FISHING FRENZY ACTIVE
+                            </span>
+                            <h3 className={styles['aquarium-banner-title']}>
+                              <EmojiText>🌊</EmojiText> Fishing Frenzy
+                            </h3>
+                            <span className={styles['aquarium-banner-remaining']}>
+                              {formatRemainingTime(
+                                Math.max(0, Math.floor(((frenzyStatus?.endsAt || 0) - eventNow) / 1000))
+                              )}{' '}
+                              remaining • {FRENZY_WEIGHT_MULTIPLIER}x fish weight •{' '}
+                              {FRENZY_COOLDOWN_S}s cooldown
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className={styles['aquarium-banner-subtitle']}>
+                              CURRENT FISHING EVENT
+                            </span>
+                            <h3 className={styles['aquarium-banner-title']}>
+                              {currentFishingEvent.event ? (
+                                <>
+                                  <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
+                                  {currentFishingEvent.event.name}
+                                </>
+                              ) : (
+                                'No active event'
+                              )}
+                            </h3>
+                            <span className={styles['aquarium-banner-remaining']}>
+                              {formatRemainingTime(
+                                Math.max(
+                                  0,
+                                  Math.floor((currentFishingEvent.endsAt - eventNow) / 1000)
+                                )
+                              )}{' '}
+                              {currentFishingEvent.event ? 'remaining' : 'until next event'}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div className={styles['aquarium-frenzy']}>
+                        {frenzyActive ? (
+                          <span className={styles['aquarium-frenzy-active']}>
+                            <EmojiText>🌊</EmojiText> Everyone gets {FRENZY_WEIGHT_MULTIPLIER}x fish
+                            weight and {FRENZY_COOLDOWN_S}s fishing cooldown for 1 minute!
+                          </span>
+                        ) : (() => {
+                          const cooldownSecs = Math.ceil(
+                            (frenzyStatus?.cooldownRemainingMs || 0) / 1000
+                          );
+                          const canAffordGems =
+                            (user?.gems ?? 0) >= FRENZY_GEM_COST || user?.gems === -1;
+                          const canAffordMoney = (user?.money ?? 0) >= FRENZY_MONEY_COST;
+
+                          if (cooldownSecs > 0) {
+                            return (
+                              <div className={styles['aquarium-frenzy-cooldown']}>
+                                <span>
+                                  <EmojiText>⏳</EmojiText> Fishing Frenzy is on cooldown: restarts
+                                  in {formatRemainingTime(cooldownSecs)}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className={styles['aquarium-frenzy-actions']}>
+                              <span className={styles['aquarium-frenzy-label']}>
+                                <EmojiText>🌊</EmojiText> Activate Fishing Frenzy for everyone:
+                              </span>
+                              <Button
+                                disabled={!canAffordGems}
+                                onClickAsync={async () => {
+                                  const res = await activateFrenzy('gems');
+                                  if (res.status) setFrenzyStatus(res.status);
+                                }}
+                              >
+                                {FRENZY_GEM_COST} 💎
+                              </Button>
+                              <Button
+                                disabled={!canAffordMoney}
+                                onClickAsync={async () => {
+                                  const res = await activateFrenzy('money');
+                                  if (res.status) setFrenzyStatus(res.status);
+                                  await updateEverything();
+                                }}
+                              >
+                                {smartFormatNumber(FRENZY_MONEY_COST)}
+                              </Button>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className={styles['aquarium-info']}>
                         {(() => {

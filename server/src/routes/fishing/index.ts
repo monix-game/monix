@@ -15,6 +15,7 @@ import eventsPreview from './events-preview';
 import hireSailor from './sailors-hire';
 import levelUpSailor from './sailors-levelup';
 import collectSailorEarnings from './sailors-collect';
+import fishingFrenzy from './fishing-frenzy';
 
 export const fishingRoutes = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -33,6 +34,7 @@ export const fishingRoutes = new Elysia()
   .use(eventsPreview)
   .use(hireSailor)
   .use(levelUpSailor)
-  .use(collectSailorEarnings);
+  .use(collectSailorEarnings)
+  .use(fishingFrenzy);
 
 export default fishingRoutes;

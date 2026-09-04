@@ -3,6 +3,42 @@ import type { FishingResult } from '../../server/common/fishing/fishing';
 import type { UpcomingFishingEvent } from '../../server/common/fishing/fishingEvents';
 import { api } from './api';
 
+export interface FishingFrenzyStatus {
+  active: boolean;
+  endsAt: number;
+  cooldownRemainingMs: number;
+}
+
+export async function getFrenzyStatus(): Promise<FishingFrenzyStatus | null> {
+  try {
+    const resp = await api.get<FishingFrenzyStatus>('/fishing/frenzy');
+    if (resp?.success && resp.data) {
+      return resp.data;
+    }
+  } catch (error) {
+    console.error('Error fetching fishing frenzy status:', error);
+  }
+  return null;
+}
+
+export async function activateFrenzy(
+  paymentType: 'gems' | 'money'
+): Promise<{ ok: boolean; error?: string; status?: FishingFrenzyStatus }> {
+  try {
+    const resp = await api.post<{ error?: string; status?: 'activated' } & FishingFrenzyStatus>(
+      '/fishing/frenzy/activate',
+      { payment_type: paymentType }
+    );
+    if (resp?.success && resp.data) {
+      return { ok: true, status: resp.data };
+    }
+    return { ok: false, error: resp?.data?.error };
+  } catch (error) {
+    console.error('Error activating fishing frenzy:', error);
+    return { ok: false, error: 'Failed to activate fishing frenzy' };
+  }
+}
+
 export interface EventPreviewResult {
   unlocked: boolean;
   events: UpcomingFishingEvent[] | null;

@@ -11,6 +11,7 @@ import {
 import { fishingRods } from './fishingRods';
 import { fishModifiers } from './fishModifiers';
 import { fishTypes } from './fishTypes';
+import { getFrenzyEventInfo, isFishingFrenzyActive, FRENZY_WEIGHT_MULTIPLIER } from './fishingFrenzy';
 import {
   getTimeZoneDateUtc,
   getTimeZoneDayStartUtc,
@@ -76,6 +77,10 @@ export function calculateFishingResult(
   const event = getCurrentFishingEvent();
   const eventId = event.event?.id ?? 'none';
 
+  // During a global frenzy, override the active event so fish are tagged as
+  // frenzy catches and the schedule-based event is temporarily shadowed.
+  const frenzyActive = isFishingFrenzyActive();
+
   // Create a seed based on the current day, rod, bait, and event
   const now = new Date();
   const nowParts = getTimeZoneParts(now.getTime(), SYDNEY_TIME_ZONE);
@@ -139,7 +144,9 @@ export function calculateFishingResult(
   const permanentWeightMultiplier = 1 + (permanentUpgrades?.angler_instinct || 0) * 0.08;
   const upgradeWeightMultiplier =
     permanentWeightMultiplier * (isUpgradeActive(upgrades, HEAVY_LINE_UPGRADE_ID) ? 1.25 : 1);
-  const finalWeight = baseWeight * rodMultiplier * luckyBoost * upgradeWeightMultiplier;
+  const frenzyMultiplier = frenzyActive ? FRENZY_WEIGHT_MULTIPLIER : 1;
+  const finalWeight =
+    baseWeight * rodMultiplier * luckyBoost * upgradeWeightMultiplier * frenzyMultiplier;
 
   return {
     fish_type: fishType.id,
@@ -147,7 +154,7 @@ export function calculateFishingResult(
     modifiers: clampFishModifiers(modifier ? [modifier] : []),
     bait_used: bait ? bait.id : null,
     rod_used: rod ? rod.id : 'damaged-rod',
-    event_active: event.event,
+    event_active: frenzyActive ? getFrenzyEventInfo() : event.event,
     timestamp: now.getTime(),
   };
 }

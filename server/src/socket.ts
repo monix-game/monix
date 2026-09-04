@@ -40,6 +40,7 @@ import { isUserBanned } from '../common/punishx/punishx';
 import { getCategoryById } from '../common/punishx/categories';
 import type { IReport } from '../common/models/report';
 import { onUserChanged } from './helpers/userEvents';
+import { getFrenzyStatus } from '../common/fishing/fishingFrenzy';
 import {
   websocketBackpressureSkipsTotal,
   websocketConnections,
@@ -429,6 +430,9 @@ async function sendInitialSnapshot(channel: string, ws: WSSocket) {
     const auth = getAuthData(ws);
     const socketUser = auth.socketUser;
     data = await buildRooms(socketUser);
+  } else if (channel === 'fishing:frenzy') {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    data = getFrenzyStatus();
   } else {
     return;
   }

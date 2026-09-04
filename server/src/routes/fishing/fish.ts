@@ -4,6 +4,7 @@ import { deriveAuth, onlyActive } from '../../middleware';
 import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../../common/upgrades';
 import { calculateFishingResult, getFishValue } from '../../../common/fishing/fishing';
+import { FRENZY_COOLDOWN_S, isFishingFrenzyActive } from '../../../common/fishing/fishingFrenzy';
 import type { IFish } from '../../../common/models/fish';
 import { v4 } from 'uuid';
 
@@ -32,7 +33,12 @@ export const fish = new Elysia()
           MAGIC_JELLYBEAN_UPGRADE_ID,
           now
         );
-        const fishingCooldownMs = hasMagicJellybean ? 2500 : 5000;
+        const frenzyActive = isFishingFrenzyActive(now);
+        const fishingCooldownMs = frenzyActive
+          ? FRENZY_COOLDOWN_S * 1000
+          : hasMagicJellybean
+            ? 2500
+            : 5000;
 
         // Check cooldown to prevent spamming (safe under the per-user lock).
         if (

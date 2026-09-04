@@ -70,6 +70,55 @@
   min-height: 0;
 }
 
+.fishing-frenzy-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-radius: var(--border-radius);
+  background: linear-gradient(90deg, var(--primary-1), var(--primary-2));
+  color: var(--primary-1);
+  border: 2px solid var(--primary-2);
+  user-select: none;
+}
+
+.fishing-frenzy-banner-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 8px var(--primary-2));
+}
+
+.fishing-frenzy-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fishing-frenzy-banner-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-1);
+  animation: frenzy-pulse 1s ease-in-out infinite;
+}
+
+.fishing-frenzy-banner-sub {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+@keyframes frenzy-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 .fishing-hgrid {
   width: 100%;
   display: flex;
@@ -242,6 +291,44 @@
 .aquarium-banner-title {
   font-size: 1.5rem;
   font-weight: 700;
+  user-select: none;
+}
+
+.aquarium-frenzy {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.aquarium-frenzy-active {
+  display: inline-block;
+  padding: 12px 16px;
+  border-radius: var(--border-radius);
+  background: var(--primary-2);
+  color: var(--primary-1);
+  font-weight: 600;
+  user-select: none;
+}
+
+.aquarium-frenzy-cooldown {
+  display: inline-block;
+  padding: 12px 16px;
+  border-radius: var(--border-radius);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.aquarium-frenzy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.aquarium-frenzy-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
   user-select: none;
 }
 
