@@ -494,9 +494,12 @@
           "mouseWheelZoom": true
         },
         "basemap": {
-          "config": {},
-          "name": "Default",
-          "type": "default"
+          "config": {
+            "attribution": "OpenStreetMap contributors",
+            "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          },
+          "name": "OpenStreetMap",
+          "type": "xyz"
         },
         "layers": [
           {
@@ -532,7 +535,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(monix_client_activity_by_country_total[1h])) by (country)",
+          "expr": "sum(monix_client_activity_by_country_total) by (country)",
           "legendFormat": "{{country}}",
           "instant": true,
           "format": "table"
