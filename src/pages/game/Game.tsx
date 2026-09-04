@@ -2262,6 +2262,7 @@ export default function Game() {
                   money={user?.money || 0}
                   petSlots={user?.pet_slots}
                   userUuid={user?.uuid ?? ''}
+                  passiveIncomeBonus={(user?.permanent_upgrades?.deep_pockets || 0) * 0.05}
                   refreshUser={updateEverything}
                 />
               </div>

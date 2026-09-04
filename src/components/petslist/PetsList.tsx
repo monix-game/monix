@@ -4,6 +4,8 @@ import { Pet } from './pet/Pet';
 import type { IPet } from '../../../server/common/models/pet';
 import { PetModal } from './petmodal/PetModal';
 import { adoptPet, collectPetEarnings, getAllPets } from '../../helpers/pets';
+import { petPassiveRate } from '../../../server/common/pet';
+import { smartFormatNumber } from '../../../server/common/math';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
@@ -14,10 +16,17 @@ interface PetsListProps {
   money: number;
   petSlots?: number;
   userUuid: string;
+  passiveIncomeBonus?: number;
   refreshUser: () => Promise<void>;
 }
 
-export const PetsList: React.FC<PetsListProps> = ({ money, petSlots, userUuid, refreshUser }) => {
+export const PetsList: React.FC<PetsListProps> = ({
+  money,
+  petSlots,
+  userUuid,
+  passiveIncomeBonus = 0,
+  refreshUser,
+}) => {
   const [hydrated, setHydrated] = useState<boolean>(false);
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
@@ -33,6 +42,16 @@ export const PetsList: React.FC<PetsListProps> = ({ money, petSlots, userUuid, r
     const fetchedPets = await getAllPets();
     setPets(fetchedPets);
   };
+
+  const pendingEarnings = pets.reduce((sum, pet) => {
+    const now = Date.now();
+    const elapsedMinutes = Math.max(
+      0,
+      Math.floor((now - (pet.last_passive_collected || now)) / 60000)
+    );
+    const amount = pet.is_dead ? 0 : elapsedMinutes * petPassiveRate(pet, passiveIncomeBonus);
+    return sum + (pet.passive_earned || 0) + amount;
+  }, 0);
 
   useEffect(() => {
     const unsubscribe = subscribe(`pets:${userUuid}`, data => {
@@ -53,7 +72,7 @@ export const PetsList: React.FC<PetsListProps> = ({ money, petSlots, userUuid, r
           }}
           disabled={!hydrated || pets.length === 0}
         >
-          Collect ${pets.reduce((sum, pet) => sum + (pet.passive_earned || 0), 0)}
+          Collect ${smartFormatNumber(pendingEarnings)}
         </Button>
         <Button
           onClick={() => setIsBuyingPet(true)}
