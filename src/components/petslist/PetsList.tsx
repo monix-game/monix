@@ -53,7 +53,7 @@ export const PetsList: React.FC<PetsListProps> = ({ money, petSlots, userUuid, r
           }}
           disabled={!hydrated || pets.length === 0}
         >
-          Collect Pet Earnings
+          Collect ${pets.reduce((sum, pet) => sum + (pet.passive_earned || 0), 0)}
         </Button>
         <Button
           onClick={() => setIsBuyingPet(true)}

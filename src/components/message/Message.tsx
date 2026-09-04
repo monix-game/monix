@@ -292,6 +292,11 @@ export const Message: React.FC<MessageProps> = ({
             ''
           )}
           {message.edited ? <span className={styles['message-metadata']}>(Edited) </span> : ''}
+          {message.uuid?.startsWith('temp-') ? (
+            <span className={styles['message-metadata']}>sending... </span>
+          ) : (
+            ''
+          )}
           {message.time_sent && formatRelativeTime(new Date(message.time_sent))}
         </span>
       </div>
