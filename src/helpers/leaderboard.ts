@@ -40,66 +40,28 @@ export interface PlaytimeLeaderboardEntry {
   };
 }
 
-export async function fetchLeaderboard(): Promise<{
-  normal: LeaderboardEntry[];
-  noStaff: LeaderboardEntry[];
-} | null> {
+export async function fetchLeaderboard(): Promise<LeaderboardEntry[] | null> {
   try {
-    const resp = await api.get<{ normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] }>(
-      '/leaderboard'
-    );
-    if (resp?.success) {
-      return {
-        normal: resp.data?.normal || [],
-        noStaff: resp.data?.noStaff || [],
-      };
-    } else {
-      return null;
-    }
+    const resp = await api.get<LeaderboardEntry[]>('/leaderboard');
+    return resp?.success ? resp.data || [] : null;
   } catch {
     return null;
   }
 }
 
-export async function fetchPlaytimeLeaderboard(): Promise<{
-  normal: PlaytimeLeaderboardEntry[];
-  noStaff: PlaytimeLeaderboardEntry[];
-} | null> {
+export async function fetchPlaytimeLeaderboard(): Promise<PlaytimeLeaderboardEntry[] | null> {
   try {
-    const resp = await api.get<{
-      normal: PlaytimeLeaderboardEntry[];
-      noStaff: PlaytimeLeaderboardEntry[];
-    }>('/leaderboard/playtime');
-    if (resp?.success) {
-      return {
-        normal: resp.data?.normal || [],
-        noStaff: resp.data?.noStaff || [],
-      };
-    } else {
-      return null;
-    }
+    const resp = await api.get<PlaytimeLeaderboardEntry[]>('/leaderboard/playtime');
+    return resp?.success ? resp.data || [] : null;
   } catch {
     return null;
   }
 }
 
-export async function fetchFishLeaderboard(): Promise<{
-  normal: FishLeaderboardEntry[];
-  noStaff: FishLeaderboardEntry[];
-} | null> {
+export async function fetchFishLeaderboard(): Promise<FishLeaderboardEntry[] | null> {
   try {
-    const resp = await api.get<{
-      normal: FishLeaderboardEntry[];
-      noStaff: FishLeaderboardEntry[];
-    }>('/leaderboard/fish');
-    if (resp?.success) {
-      return {
-        normal: resp.data?.normal || [],
-        noStaff: resp.data?.noStaff || [],
-      };
-    } else {
-      return null;
-    }
+    const resp = await api.get<FishLeaderboardEntry[]>('/leaderboard/fish');
+    return resp?.success ? resp.data || [] : null;
   } catch {
     return null;
   }

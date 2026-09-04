@@ -45,7 +45,7 @@ export type LeaderboardEntry = {
   };
 };
 
-type LeaderboardSet = { normal: LeaderboardEntry[]; noStaff: LeaderboardEntry[] };
+type LeaderboardSet = LeaderboardEntry[];
 
 const SIX_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000;
 
@@ -71,12 +71,8 @@ export const buildMoneyLeaderboardCached = ttlCache(buildMoneyLeaderboard, 10_00
 export const buildFishLeaderboardCached = ttlCache(buildFishLeaderboard, 10_000);
 export const buildPlaytimeLeaderboardCached = ttlCache(buildPlaytimeLeaderboard, 10_000);
 
-function isNotStaff(user: { role: string }, hideStaff: boolean): boolean {
-  return !hideStaff || (user.role !== 'owner' && user.role !== 'admin' && user.role !== 'mod');
-}
-
 function finishLeaderboard(leaderboard: LeaderboardEntry[]): LeaderboardEntry[] {
-  const limited = leaderboard.slice(0, 15);
+  const limited = leaderboard.slice(0, 50);
   return [limited[1], limited[0], limited[2], ...limited.slice(3)].filter(
     (entry): entry is LeaderboardEntry => entry != null
   );
@@ -100,13 +96,9 @@ function entryForUser(user: IUser, money: number, fishCaught: number): Leaderboa
 
 function rankLeaderboard<T>(
   rankedUsers: T[],
-  entryFor: (user: T, index: number) => LeaderboardEntry,
-  hideStaff: boolean
+  entryFor: (user: T, index: number) => LeaderboardEntry
 ): LeaderboardEntry[] {
-  const filtered = hideStaff
-    ? rankedUsers.filter(u => isNotStaff(u as { role: string }, true))
-    : rankedUsers;
-  return finishLeaderboard(filtered.map((user, index) => entryFor(user, index + 1)));
+  return finishLeaderboard(rankedUsers.map((user, index) => entryFor(user, index + 1)));
 }
 
 export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
@@ -128,10 +120,7 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
     rank: index,
   });
 
-  const normal = rankLeaderboard(rankable, entryFor, false);
-  const noStaff = rankLeaderboard(rankable, entryFor, true);
-
-  return { normal, noStaff };
+  return rankLeaderboard(rankable, entryFor);
 }
 
 /**
@@ -196,10 +185,7 @@ export async function buildFishLeaderboard(): Promise<LeaderboardSet> {
     rank: index,
   });
 
-  const normal = rankLeaderboard(rankable, entryFor, false);
-  const noStaff = rankLeaderboard(rankable, entryFor, true);
-
-  return { normal, noStaff };
+  return rankLeaderboard(rankable, entryFor);
 }
 
 export async function buildPlaytimeLeaderboard(): Promise<LeaderboardSet> {
@@ -225,10 +211,7 @@ export async function buildPlaytimeLeaderboard(): Promise<LeaderboardSet> {
     rank: index,
   });
 
-  const normal = rankLeaderboard(rankable, entryFor, false);
-  const noStaff = rankLeaderboard(rankable, entryFor, true);
-
-  return { normal, noStaff };
+  return rankLeaderboard(rankable, entryFor);
 }
 
 export type RoomMessagesResult =
