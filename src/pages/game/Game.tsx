@@ -258,11 +258,11 @@ export default function Game() {
   const gemPurchasesDisabled = !featureFlags.gemPurchases;
   const cosmeticPurchasesDisabled = !featureFlags.cosmeticPurchases;
   const frenzyActive = Boolean(frenzyStatus?.active && (frenzyStatus?.endsAt || 0) > fishingNow);
-  const fishingCooldownMs = frenzyActive
-    ? FRENZY_COOLDOWN_S * 1000
-    : isUpgradeActive(user?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, fishingNow)
-      ? 2500
-      : 5000;
+  const fishingCooldownMs = (() => {
+    if (frenzyActive) return FRENZY_COOLDOWN_S * 1000;
+    if (isUpgradeActive(user?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, fishingNow)) return 2500;
+    return 5000;
+  })();
   const isTutorialStepComplete = useMemo(() => {
     if (!currentTutorialStep) return true;
 
@@ -985,6 +985,7 @@ export default function Game() {
               setPaymentModalAquarium(false);
               setPaymentModalSellRodId(null);
               setPaymentModalEventPreview(false);
+              setPaymentModalFrenzyType(null);
               setPaymentModalCosmeticId(cosmetic.id);
               setIsPaymentModalOpen(true);
             }}
@@ -1033,13 +1034,17 @@ export default function Game() {
   const [paymentModalAquarium, setPaymentModalAquarium] = useState<boolean>(false);
   const [paymentModalSellRodId, setPaymentModalSellRodId] = useState<string | null>(null);
   const [paymentModalEventPreview, setPaymentModalEventPreview] = useState<boolean>(false);
+  const [paymentModalFrenzyType, setPaymentModalFrenzyType] = useState<'gems' | 'money' | null>(
+    null
+  );
 
   const isMoneyPayment =
     paymentModalSellRodId ||
     paymentModalUpgradeId ||
     paymentModalRodId ||
     paymentModalBaitId ||
-    paymentModalAquarium;
+    paymentModalAquarium ||
+    paymentModalFrenzyType === 'money';
 
   const paymentModalAmount = (() => {
     if (paymentModalSellRodId)
@@ -1053,6 +1058,8 @@ export default function Game() {
       );
     if (paymentModalAquarium) return getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1);
     if (paymentModalEventPreview) return 10;
+    if (paymentModalFrenzyType === 'gems') return FRENZY_GEM_COST;
+    if (paymentModalFrenzyType === 'money') return FRENZY_MONEY_COST;
     return cosmetics.find(c => c.id === paymentModalCosmeticId)?.price || 0;
   })();
 
@@ -1067,6 +1074,7 @@ export default function Game() {
       return fishingBaits.find(b => b.id === paymentModalBaitId)?.name || 'Unknown Bait';
     if (paymentModalAquarium) return 'Aquarium Upgrade';
     if (paymentModalEventPreview) return 'Fishing Event Preview';
+    if (paymentModalFrenzyType) return 'Fishing Frenzy (for everyone)';
     return cosmetics.find(c => c.id === paymentModalCosmeticId)?.name || 'Unknown Cosmetic';
   })();
 
@@ -1193,6 +1201,14 @@ export default function Game() {
                   {smartFormatNumber(user?.gems || 0, false, true)}
                 </span>
               </div>
+              {user?.prestige?.shards && (
+                <div>
+                  <EmojiText>💠 </EmojiText>
+                  <span className="money-amount mono">
+                    {smartFormatNumber(user?.prestige.shards || 0, false, true)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -1335,8 +1351,12 @@ export default function Game() {
                           <span className={styles['fishing-frenzy-banner-title']}>FRENZY!</span>
                           <span className={styles['fishing-frenzy-banner-sub']}>
                             {FRENZY_WEIGHT_MULTIPLIER}x fish weight • {FRENZY_COOLDOWN_S}s cooldown
-                            • {formatRemainingTime(
-                              Math.max(0, Math.floor(((frenzyStatus?.endsAt || 0) - eventNow) / 1000))
+                            •{' '}
+                            {formatRemainingTime(
+                              Math.max(
+                                0,
+                                Math.floor(((frenzyStatus?.endsAt || 0) - eventNow) / 1000)
+                              )
                             )}{' '}
                             left
                           </span>
@@ -1569,6 +1589,7 @@ export default function Game() {
                                                   setPaymentModalAquarium(false);
                                                   setPaymentModalRodId(null);
                                                   setPaymentModalEventPreview(false);
+              setPaymentModalFrenzyType(null);
                                                   setPaymentModalSellRodId(rodId);
                                                   setIsPaymentModalOpen(true);
                                                 }}
@@ -1723,6 +1744,7 @@ export default function Game() {
                                         setPaymentModalAquarium(false);
                                         setPaymentModalSellRodId(null);
                                         setPaymentModalEventPreview(false);
+              setPaymentModalFrenzyType(null);
                                         setPaymentModalRodId(rod.id);
                                         setIsPaymentModalOpen(true);
                                       }}
@@ -1839,6 +1861,7 @@ export default function Game() {
                                         setPaymentModalAquarium(false);
                                         setPaymentModalSellRodId(null);
                                         setPaymentModalEventPreview(false);
+              setPaymentModalFrenzyType(null);
                                         setPaymentModalBaitId(bait.id);
                                         setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
                                         setIsPaymentModalOpen(true);
@@ -1857,58 +1880,57 @@ export default function Game() {
                   </>
                 )}
                 {fishingSubview === 'aquarium' && (
-                  <>
-                    <div className={styles['aquarium-tab']}>
-                      <div className={styles['aquarium-banner']}>
-                        {frenzyActive ? (
-                          <>
-                            <span className={styles['aquarium-banner-subtitle']}>
-                              🌊 FISHING FRENZY ACTIVE
-                            </span>
-                            <h3 className={styles['aquarium-banner-title']}>
-                              <EmojiText>🌊</EmojiText> Fishing Frenzy
-                            </h3>
-                            <span className={styles['aquarium-banner-remaining']}>
-                              {formatRemainingTime(
-                                Math.max(0, Math.floor(((frenzyStatus?.endsAt || 0) - eventNow) / 1000))
-                              )}{' '}
-                              remaining • {FRENZY_WEIGHT_MULTIPLIER}x fish weight •{' '}
-                              {FRENZY_COOLDOWN_S}s cooldown
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className={styles['aquarium-banner-subtitle']}>
-                              CURRENT FISHING EVENT
-                            </span>
-                            <h3 className={styles['aquarium-banner-title']}>
-                              {currentFishingEvent.event ? (
-                                <>
-                                  <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
-                                  {currentFishingEvent.event.name}
-                                </>
-                              ) : (
-                                'No active event'
-                              )}
-                            </h3>
-                            <span className={styles['aquarium-banner-remaining']}>
-                              {formatRemainingTime(
-                                Math.max(
-                                  0,
-                                  Math.floor((currentFishingEvent.endsAt - eventNow) / 1000)
-                                )
-                              )}{' '}
-                              {currentFishingEvent.event ? 'remaining' : 'until next event'}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <div className={styles['aquarium-frenzy']}>
-                        {frenzyActive ? (
-                          <span className={styles['aquarium-frenzy-active']}>
-                            <EmojiText>🌊</EmojiText> Fishing Frenzy is active!
+                  <div className={styles['aquarium-tab']}>
+                    <div className={styles['aquarium-banner']}>
+                      {frenzyActive ? (
+                        <>
+                          <span className={styles['aquarium-banner-subtitle']}>
+                            🌊 FISHING FRENZY ACTIVE
                           </span>
-                        ) : (() => {
+                          <h3 className={styles['aquarium-banner-title']}>
+                            <EmojiText>🌊</EmojiText> Fishing Frenzy
+                          </h3>
+                          <span className={styles['aquarium-banner-remaining']}>
+                            {formatRemainingTime(
+                              Math.max(
+                                0,
+                                Math.floor(((frenzyStatus?.endsAt || 0) - eventNow) / 1000)
+                              )
+                            )}{' '}
+                            remaining • {FRENZY_WEIGHT_MULTIPLIER}x fish weight •{' '}
+                            {FRENZY_COOLDOWN_S}s cooldown
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className={styles['aquarium-banner-subtitle']}>
+                            CURRENT FISHING EVENT
+                          </span>
+                          <h3 className={styles['aquarium-banner-title']}>
+                            {currentFishingEvent.event ? (
+                              <>
+                                <EmojiText>{currentFishingEvent.event.icon}</EmojiText>{' '}
+                                {currentFishingEvent.event.name}
+                              </>
+                            ) : (
+                              'No active event'
+                            )}
+                          </h3>
+                          <span className={styles['aquarium-banner-remaining']}>
+                            {formatRemainingTime(
+                              Math.max(
+                                0,
+                                Math.floor((currentFishingEvent.endsAt - eventNow) / 1000)
+                              )
+                            )}{' '}
+                            {currentFishingEvent.event ? 'remaining' : 'until next event'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className={styles['aquarium-frenzy']}>
+                      {!frenzyActive &&
+                        (() => {
                           const cooldownSecs = Math.ceil(
                             (frenzyStatus?.cooldownRemainingMs || 0) / 1000
                           );
@@ -1947,19 +1969,32 @@ export default function Game() {
                               </span>
                               <Button
                                 disabled={!canAffordGems}
-                                onClickAsync={async () => {
-                                  const res = await activateFrenzy('gems');
-                                  if (res.status) setFrenzyStatus(res.status);
+                                onClick={() => {
+                                  setPaymentModalUpgradeId(null);
+                                  setPaymentModalRodId(null);
+                                  setPaymentModalBaitId(null);
+                                  setPaymentModalAquarium(false);
+                                  setPaymentModalSellRodId(null);
+                                  setPaymentModalEventPreview(false);
+                                  setPaymentModalCosmeticId(null);
+                                  setPaymentModalFrenzyType('gems');
+                                  setIsPaymentModalOpen(true);
                                 }}
                               >
                                 {FRENZY_GEM_COST} 💎
                               </Button>
                               <Button
                                 disabled={!canAffordMoney}
-                                onClickAsync={async () => {
-                                  const res = await activateFrenzy('money');
-                                  if (res.status) setFrenzyStatus(res.status);
-                                  await updateEverything();
+                                onClick={() => {
+                                  setPaymentModalUpgradeId(null);
+                                  setPaymentModalRodId(null);
+                                  setPaymentModalBaitId(null);
+                                  setPaymentModalAquarium(false);
+                                  setPaymentModalSellRodId(null);
+                                  setPaymentModalEventPreview(false);
+                                  setPaymentModalCosmeticId(null);
+                                  setPaymentModalFrenzyType('money');
+                                  setIsPaymentModalOpen(true);
                                 }}
                               >
                                 {smartFormatNumber(FRENZY_MONEY_COST)}
@@ -1967,401 +2002,391 @@ export default function Game() {
                             </div>
                           );
                         })()}
-                      </div>
-                      <div className={styles['aquarium-info']}>
-                        {(() => {
-                          const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
-                          const capacity = user?.fishing?.aquarium.capacity ?? 0;
+                    </div>
+                    <div className={styles['aquarium-info']}>
+                      {(() => {
+                        const fishLength = user?.fishing?.aquarium.fish.length ?? 0;
+                        const capacity = user?.fishing?.aquarium.capacity ?? 0;
 
-                          if (fishLength === 0) {
-                            return (
-                              <>
-                                Your aquarium is empty. Catch some fish to display them here!{' '}
-                                <span className={styles['aquarium-data']}>
-                                  {fishLength}/{capacity}
-                                </span>{' '}
-                                fish in aquarium.
-                              </>
-                            );
-                          }
-
-                          if (fishLength !== capacity) {
-                            return (
-                              <>
-                                You are using{' '}
-                                <span className={styles['aquarium-data']}>{fishLength}</span> out of{' '}
-                                <span className={styles['aquarium-data']}>{capacity}</span> capacity
-                                in your aquarium.
-                              </>
-                            );
-                          }
-
+                        if (fishLength === 0) {
                           return (
                             <>
-                              Your aquarium is at full capacity! Try upgrading your aquarium to fit
-                              more fish.{' '}
+                              Your aquarium is empty. Catch some fish to display them here!{' '}
                               <span className={styles['aquarium-data']}>
                                 {fishLength}/{capacity}
                               </span>{' '}
                               fish in aquarium.
                             </>
                           );
-                        })()}
-                      </div>
-                      <div className={styles['aquarium-action-row']}>
-                        <div className={styles['aquarium-buttons']}>
-                          <Button
-                            onClick={() => {
+                        }
+
+                        if (fishLength !== capacity) {
+                          return (
+                            <>
+                              You are using{' '}
+                              <span className={styles['aquarium-data']}>{fishLength}</span> out of{' '}
+                              <span className={styles['aquarium-data']}>{capacity}</span> capacity
+                              in your aquarium.
+                            </>
+                          );
+                        }
+
+                        return (
+                          <>
+                            Your aquarium is at full capacity! Try upgrading your aquarium to fit
+                            more fish.{' '}
+                            <span className={styles['aquarium-data']}>
+                              {fishLength}/{capacity}
+                            </span>{' '}
+                            fish in aquarium.
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <div className={styles['aquarium-action-row']}>
+                      <div className={styles['aquarium-buttons']}>
+                        <Button
+                          onClick={() => {
+                            setPaymentModalCosmeticId(null);
+                            setPaymentModalUpgradeId(null);
+                            setPaymentModalRodId(null);
+                            setPaymentModalBaitId(null);
+                            setPaymentModalSellRodId(null);
+                            setPaymentModalEventPreview(false);
+              setPaymentModalFrenzyType(null);
+                            setPaymentModalAquarium(true);
+                            setIsPaymentModalOpen(true);
+                          }}
+                          disabled={
+                            !user ||
+                            (user.money || 0) <
+                              getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                          }
+                        >
+                          Upgrade Aquarium for{' '}
+                          {smartFormatNumber(
+                            getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                          )}
+                        </Button>
+                        <Button
+                          onClickAsync={async () => {
+                            const res = await getEventPreview();
+                            if (res?.unlocked) {
+                              setEventPreview(res);
+                              setIsEventPreviewModalOpen(true);
+                              return;
+                            }
+                            if (res) {
+                              setEventPreview(res);
                               setPaymentModalCosmeticId(null);
                               setPaymentModalUpgradeId(null);
                               setPaymentModalRodId(null);
                               setPaymentModalBaitId(null);
                               setPaymentModalSellRodId(null);
-                              setPaymentModalEventPreview(false);
-                              setPaymentModalAquarium(true);
+                              setPaymentModalAquarium(false);
+                              setPaymentModalEventPreview(true);
                               setIsPaymentModalOpen(true);
-                            }}
-                            disabled={
-                              !user ||
-                              (user.money || 0) <
-                                getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
                             }
-                          >
-                            Upgrade Aquarium for{' '}
-                            {smartFormatNumber(
-                              getAquariumUpgradeCost(user?.fishing?.aquarium.level || 1)
+                          }}
+                        >
+                          Upcoming Events
+                        </Button>
+                        <Button
+                          onClick={() => setIsFishSellAllModalOpen(true)}
+                          disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
+                        >
+                          Sell All
+                        </Button>
+                      </div>
+                      <div className={styles['aquarium-controls']}>
+                        <div className={styles['aquarium-control-group']}>
+                          <span className={styles['aquarium-control-label']}>Sort</span>
+                          <Select
+                            value={aquariumSort}
+                            onChange={value => setAquariumSort(value as 'value-desc' | 'value-asc')}
+                            options={[
+                              { label: 'Value: High to Low', value: 'value-desc' },
+                              { label: 'Value: Low to High', value: 'value-asc' },
+                            ]}
+                            disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
+                          />
+                        </div>
+                        <div className={styles['aquarium-control-group']}>
+                          <span className={styles['aquarium-control-label']}>Filter</span>
+                          <Select
+                            value={aquariumModifierFilter}
+                            onChange={value =>
+                              setAquariumModifierFilter(value as 'all' | 'with' | 'without')
+                            }
+                            options={[
+                              { label: 'All Fish', value: 'all' },
+                              { label: 'Has Modifiers', value: 'with' },
+                              { label: 'No Modifiers', value: 'without' },
+                            ]}
+                            disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {aquariumFishView.length === 0 &&
+                      (user?.fishing?.aquarium.fish.length || 0) > 0 && (
+                        <div className={styles['aquarium-empty']}>No fish match those filters.</div>
+                      )}
+                    <div className={styles['aquarium-grid']}>
+                      {aquariumFishView.map(fish => (
+                        <div key={fish.uuid} className={styles['aquarium-fish-card']}>
+                          <h3>
+                            <EmojiText>{fishTypes.find(ft => ft.id === fish.type)?.icon}</EmojiText>{' '}
+                            {fishTypes.find(ft => ft.id === fish.type)?.name}
+                          </h3>
+                          <span className={styles['aquarium-fish-weight']}>
+                            {fish.weight >= 1000 ? (
+                              <span className="mono">
+                                {smartFormatNumber(fish.weight / 1000, false)} tonnes
+                              </span>
+                            ) : (
+                              <span className="mono">
+                                {smartFormatNumber(fish.weight, false)} kg
+                              </span>
                             )}
+                          </span>
+                          <div className={styles['aquarium-fish-modifiers']}>
+                            {fish.modifiers?.map(mod => (
+                              <span
+                                key={fishModifiers.find(fm => fm.id === mod)?.id}
+                                className={styles['aquarium-fish-modifier']}
+                              >
+                                <EmojiText>
+                                  {fishModifiers.find(fm => fm.id === mod)?.icon}
+                                </EmojiText>{' '}
+                                {fishModifiers.find(fm => fm.id === mod)?.name}
+                              </span>
+                            ))}
+                          </div>
+                          <span>
+                            VALUE:{' '}
+                            <span className={`${styles['aquarium-fish-value']} mono`}>
+                              {smartFormatNumber(getFishValue(fish))}
+                            </span>
+                          </span>
+                          <Button
+                            className={styles['aquarium-fish-sell-button']}
+                            onClick={() => {
+                              setAquariumFishToSell(fish.uuid);
+                              setIsFishSellModalOpen(true);
+                            }}
+                          >
+                            Sell
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Modal
+                      isOpen={isFishSellAllModalOpen}
+                      onClose={() => setIsFishSellAllModalOpen(false)}
+                    >
+                      <div className={styles['fish-sell-modal']}>
+                        <h2>Sell All Fish</h2>
+                        <p>
+                          Are you sure you want to sell all your fish for{' '}
+                          <span className="mono">
+                            {smartFormatNumber(
+                              (user?.fishing?.aquarium.fish ?? []).reduce(
+                                (total, fish) => total + getFishValue(fish),
+                                0
+                              )
+                            )}
+                          </span>
+                          ?
+                        </p>
+                        <div className={styles['fish-sell-modal-buttons']}>
+                          <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
+                            Cancel
                           </Button>
                           <Button
                             onClickAsync={async () => {
-                              const res = await getEventPreview();
-                              if (res?.unlocked) {
-                                setEventPreview(res);
-                                setIsEventPreviewModalOpen(true);
-                                return;
-                              }
-                              if (res) {
-                                setEventPreview(res);
-                                setPaymentModalCosmeticId(null);
-                                setPaymentModalUpgradeId(null);
-                                setPaymentModalRodId(null);
-                                setPaymentModalBaitId(null);
-                                setPaymentModalSellRodId(null);
-                                setPaymentModalAquarium(false);
-                                setPaymentModalEventPreview(true);
-                                setIsPaymentModalOpen(true);
-                              }
+                              await sellAllFish();
+                              setIsFishSellAllModalOpen(false);
+                              await updateEverything();
                             }}
-                          >
-                            Upcoming Events
-                          </Button>
-                          <Button
-                            onClick={() => setIsFishSellAllModalOpen(true)}
-                            disabled={(user?.fishing?.aquarium.fish.length || 0) <= 0}
                           >
                             Sell All
                           </Button>
                         </div>
-                        <div className={styles['aquarium-controls']}>
-                          <div className={styles['aquarium-control-group']}>
-                            <span className={styles['aquarium-control-label']}>Sort</span>
-                            <Select
-                              value={aquariumSort}
-                              onChange={value =>
-                                setAquariumSort(value as 'value-desc' | 'value-asc')
-                              }
-                              options={[
-                                { label: 'Value: High to Low', value: 'value-desc' },
-                                { label: 'Value: Low to High', value: 'value-asc' },
-                              ]}
-                              disabled={(user?.fishing?.aquarium.fish.length || 0) <= 1}
-                            />
-                          </div>
-                          <div className={styles['aquarium-control-group']}>
-                            <span className={styles['aquarium-control-label']}>Filter</span>
-                            <Select
-                              value={aquariumModifierFilter}
-                              onChange={value =>
-                                setAquariumModifierFilter(value as 'all' | 'with' | 'without')
-                              }
-                              options={[
-                                { label: 'All Fish', value: 'all' },
-                                { label: 'Has Modifiers', value: 'with' },
-                                { label: 'No Modifiers', value: 'without' },
-                              ]}
-                              disabled={(user?.fishing?.aquarium.fish.length || 0) === 0}
-                            />
-                          </div>
+                      </div>
+                    </Modal>
+
+                    <Modal
+                      isOpen={isFishSellModalOpen}
+                      onClose={() => setIsFishSellModalOpen(false)}
+                    >
+                      <div className={styles['fish-sell-modal']}>
+                        <h2>Sell Fish</h2>
+                        <p>
+                          Are you sure you want to sell this fish for{' '}
+                          <span className="mono">
+                            {smartFormatNumber(
+                              user?.fishing?.aquarium.fish.find(f => f.uuid === aquariumFishToSell)
+                                ? getFishValue(
+                                    user.fishing.aquarium.fish.find(
+                                      f => f.uuid === aquariumFishToSell
+                                    )!
+                                  )
+                                : 0
+                            )}
+                          </span>
+                          ?
+                        </p>
+                        <div className={styles['fish-sell-modal-buttons']}>
+                          <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
+                            Cancel
+                          </Button>
+                          <Button
+                            onClickAsync={async () => {
+                              await sellFish(aquariumFishToSell!);
+                              setIsFishSellModalOpen(false);
+                              setAquariumFishToSell(null);
+                              await updateEverything();
+                            }}
+                          >
+                            Sell
+                          </Button>
                         </div>
                       </div>
-                      {aquariumFishView.length === 0 &&
-                        (user?.fishing?.aquarium.fish.length || 0) > 0 && (
-                          <div className={styles['aquarium-empty']}>
-                            No fish match those filters.
-                          </div>
-                        )}
-                      <div className={styles['aquarium-grid']}>
-                        {aquariumFishView.map(fish => (
-                          <div key={fish.uuid} className={styles['aquarium-fish-card']}>
-                            <h3>
-                              <EmojiText>
-                                {fishTypes.find(ft => ft.id === fish.type)?.icon}
-                              </EmojiText>{' '}
-                              {fishTypes.find(ft => ft.id === fish.type)?.name}
-                            </h3>
-                            <span className={styles['aquarium-fish-weight']}>
-                              {fish.weight >= 1000 ? (
-                                <span className="mono">
-                                  {smartFormatNumber(fish.weight / 1000, false)} tonnes
-                                </span>
-                              ) : (
-                                <span className="mono">
-                                  {smartFormatNumber(fish.weight, false)} kg
-                                </span>
-                              )}
-                            </span>
-                            <div className={styles['aquarium-fish-modifiers']}>
-                              {fish.modifiers?.map(mod => (
-                                <span
-                                  key={fishModifiers.find(fm => fm.id === mod)?.id}
-                                  className={styles['aquarium-fish-modifier']}
-                                >
-                                  <EmojiText>
-                                    {fishModifiers.find(fm => fm.id === mod)?.icon}
-                                  </EmojiText>{' '}
-                                  {fishModifiers.find(fm => fm.id === mod)?.name}
-                                </span>
-                              ))}
-                            </div>
-                            <span>
-                              VALUE:{' '}
-                              <span className={`${styles['aquarium-fish-value']} mono`}>
-                                {smartFormatNumber(getFishValue(fish))}
-                              </span>
-                            </span>
-                            <Button
-                              className={styles['aquarium-fish-sell-button']}
-                              onClick={() => {
-                                setAquariumFishToSell(fish.uuid);
-                                setIsFishSellModalOpen(true);
-                              }}
-                            >
-                              Sell
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+                    </Modal>
 
-                      <Modal
-                        isOpen={isFishSellAllModalOpen}
-                        onClose={() => setIsFishSellAllModalOpen(false)}
-                      >
-                        <div className={styles['fish-sell-modal']}>
-                          <h2>Sell All Fish</h2>
-                          <p>
-                            Are you sure you want to sell all your fish for{' '}
-                            <span className="mono">
-                              {smartFormatNumber(
-                                (user?.fishing?.aquarium.fish ?? []).reduce(
-                                  (total, fish) => total + getFishValue(fish),
-                                  0
-                                )
-                              )}
-                            </span>
-                            ?
-                          </p>
-                          <div className={styles['fish-sell-modal-buttons']}>
-                            <Button onClick={() => setIsFishSellAllModalOpen(false)} secondary>
-                              Cancel
-                            </Button>
-                            <Button
-                              onClickAsync={async () => {
-                                await sellAllFish();
-                                setIsFishSellAllModalOpen(false);
-                                await updateEverything();
-                              }}
+                    <Modal
+                      isOpen={isEventPreviewModalOpen}
+                      onClose={() => setIsEventPreviewModalOpen(false)}
+                    >
+                      <div className={styles['event-preview-modal']}>
+                        <h2>Upcoming Fishing Events</h2>
+                        <div className={styles['event-preview-list']}>
+                          {eventPreview?.events?.map(event => (
+                            <div
+                              key={`${event.event?.id ?? 'unknown'}-${event.startAt}-${event.endsAt}`}
+                              className={styles['event-preview-item']}
                             >
-                              Sell All
-                            </Button>
-                          </div>
-                        </div>
-                      </Modal>
-
-                      <Modal
-                        isOpen={isFishSellModalOpen}
-                        onClose={() => setIsFishSellModalOpen(false)}
-                      >
-                        <div className={styles['fish-sell-modal']}>
-                          <h2>Sell Fish</h2>
-                          <p>
-                            Are you sure you want to sell this fish for{' '}
-                            <span className="mono">
-                              {smartFormatNumber(
-                                user?.fishing?.aquarium.fish.find(
-                                  f => f.uuid === aquariumFishToSell
-                                )
-                                  ? getFishValue(
-                                      user.fishing.aquarium.fish.find(
-                                        f => f.uuid === aquariumFishToSell
-                                      )!
-                                    )
-                                  : 0
-                              )}
-                            </span>
-                            ?
-                          </p>
-                          <div className={styles['fish-sell-modal-buttons']}>
-                            <Button onClick={() => setIsFishSellModalOpen(false)} secondary>
-                              Cancel
-                            </Button>
-                            <Button
-                              onClickAsync={async () => {
-                                await sellFish(aquariumFishToSell!);
-                                setIsFishSellModalOpen(false);
-                                setAquariumFishToSell(null);
-                                await updateEverything();
-                              }}
-                            >
-                              Sell
-                            </Button>
-                          </div>
-                        </div>
-                      </Modal>
-
-                      <Modal
-                        isOpen={isEventPreviewModalOpen}
-                        onClose={() => setIsEventPreviewModalOpen(false)}
-                      >
-                        <div className={styles['event-preview-modal']}>
-                          <h2>Upcoming Fishing Events</h2>
-                          <div className={styles['event-preview-list']}>
-                            {eventPreview?.events?.map((event, idx) => (
-                              <div
-                                key={`${event.event?.id ?? 'unknown'}-${event.startAt}-${idx}`}
-                                className={styles['event-preview-item']}
-                              >
-                                <EmojiText>{event.event?.icon}</EmojiText>
-                                <div className={styles['event-preview-item-info']}>
-                                  <span className={styles['event-preview-item-name']}>
-                                    {event.event?.name ?? 'No event'}
-                                  </span>
-                                  <span className={styles['event-preview-item-time']}>
-                                    {new Date(event.startAt).toLocaleString(undefined, {
-                                      weekday: 'short',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                    })}
-                                  </span>
-                                </div>
+                              <EmojiText>{event.event?.icon}</EmojiText>
+                              <div className={styles['event-preview-item-info']}>
+                                <span className={styles['event-preview-item-name']}>
+                                  {event.event?.name ?? 'No event'}
+                                </span>
+                                <span className={styles['event-preview-item-time']}>
+                                  {new Date(event.startAt).toLocaleString(undefined, {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          ))}
                         </div>
-                      </Modal>
-                    </div>
-                  </>
+                      </div>
+                    </Modal>
+                  </div>
                 )}
                 {fishingSubview === 'sailors' && (
-                  <>
-                    <div className={styles['sailors-tab']}>
-                      <div className={styles['sailors-banner']}>
-                        <span className={styles['sailors-banner-subtitle']}>
-                          PASSIVE FISHING CREW
-                        </span>
-                        <h3 className={styles['sailors-banner-title']}>
-                          <EmojiText>⛵</EmojiText> Sailors
-                        </h3>
-                        <span className={styles['sailors-banner-remaining']}>
-                          {(() => {
-                            const levels = user?.fishing?.sailors?.levels ?? [];
-                            return `Earning ${smartFormatNumber(
-                              getSailorFleetRatePerSec(levels)
-                            )}/sec, held until collected`;
-                          })()}
-                        </span>
-                      </div>
+                  <div className={styles['sailors-tab']}>
+                    <div className={styles['sailors-banner']}>
+                      <span className={styles['sailors-banner-subtitle']}>
+                        PASSIVE FISHING CREW
+                      </span>
+                      <h3 className={styles['sailors-banner-title']}>
+                        <EmojiText>⛵</EmojiText> Sailors
+                      </h3>
+                      <span className={styles['sailors-banner-remaining']}>
+                        {(() => {
+                          const levels = user?.fishing?.sailors?.levels ?? [];
+                          return `Earning ${smartFormatNumber(
+                            getSailorFleetRatePerSec(levels)
+                          )}/sec, held until collected`;
+                        })()}
+                      </span>
+                    </div>
 
-                      <div className={styles['sailors-action-row']}>
-                        <div className={styles['sailors-buttons']}>
-                          <Button
-                            onClickAsync={async () => {
-                              await collectSailorEarnings();
-                              await updateEverything();
-                            }}
-                            disabled={!user || (user.fishing?.sailors?.pending_coins ?? 0) <= 0}
-                          >
-                            Collect {smartFormatNumber(user?.fishing?.sailors?.pending_coins ?? 0)}
-                          </Button>
-                          <Button
-                            onClickAsync={async () => {
-                              await hireSailor();
-                              setFishingSubview('sailors');
-                              await updateEverything();
-                            }}
-                            disabled={
-                              !user ||
-                              (user?.fishing?.sailors?.levels?.length ?? 0) >= SAILOR_MAX_LEVEL ||
-                              (user.money || 0) <
-                                getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
-                            }
-                          >
-                            Hire Sailor for{' '}
-                            {smartFormatNumber(
+                    <div className={styles['sailors-action-row']}>
+                      <div className={styles['sailors-buttons']}>
+                        <Button
+                          onClickAsync={async () => {
+                            await collectSailorEarnings();
+                            await updateEverything();
+                          }}
+                          disabled={!user || (user.fishing?.sailors?.pending_coins ?? 0) <= 0}
+                        >
+                          Collect {smartFormatNumber(user?.fishing?.sailors?.pending_coins ?? 0)}
+                        </Button>
+                        <Button
+                          onClickAsync={async () => {
+                            await hireSailor();
+                            setFishingSubview('sailors');
+                            await updateEverything();
+                          }}
+                          disabled={
+                            !user ||
+                            (user?.fishing?.sailors?.levels?.length ?? 0) >= SAILOR_MAX_LEVEL ||
+                            (user.money || 0) <
                               getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
-                            )}
-                          </Button>
-                        </div>
-                        <span className={styles['sailors-count']}>
-                          {user?.fishing?.sailors?.levels?.length ?? 0} / {SAILOR_MAX_LEVEL} hired
-                        </span>
+                          }
+                        >
+                          Hire Sailor for{' '}
+                          {smartFormatNumber(
+                            getSailorHireCost(user?.fishing?.sailors?.levels?.length ?? 0)
+                          )}
+                        </Button>
                       </div>
+                      <span className={styles['sailors-count']}>
+                        {user?.fishing?.sailors?.levels?.length ?? 0} / {SAILOR_MAX_LEVEL} hired
+                      </span>
+                    </div>
 
-                      {(() => {
-                        const levels = user?.fishing?.sailors?.levels ?? [];
-                        if (levels.length === 0) {
-                          return (
-                            <div className={styles['sailors-empty']}>
-                              <EmojiText>🧑‍✈️</EmojiText> You have no sailors yet. Hire a sailor to
-                              start passively fishing for you while you're online or away!
-                            </div>
-                          );
-                        }
+                    {(() => {
+                      const levels = user?.fishing?.sailors?.levels ?? [];
+                      if (levels.length === 0) {
                         return (
-                          <div className={styles['sailors-grid']}>
-                            {levels.map((level, index) => {
-                              const atMax = level >= SAILOR_MAX_LEVEL;
-                              const cost = getSailorLevelUpCost(level);
-                              const rate = getSailorFleetRatePerSec([level]);
-                              return (
-                                <div key={index} className={styles['sailor-card']}>
-                                  <h3>
-                                    <EmojiText>🧑‍✈️</EmojiText> Sailor {index + 1}
-                                  </h3>
-                                  <span className={styles['sailor-level']}>Level {level}</span>
-                                  <span className={styles['sailor-rate']}>
-                                    <span className="mono">{smartFormatNumber(rate)}</span>/sec
-                                  </span>
-                                  <Button
-                                    onClickAsync={async () => {
-                                      await levelUpSailor(index);
-                                      await updateEverything();
-                                    }}
-                                    disabled={atMax || !user || (user.money || 0) < cost}
-                                  >
-                                    {atMax
-                                      ? `Max Level ${SAILOR_MAX_LEVEL}`
-                                      : `Level Up for ${smartFormatNumber(cost)}`}
-                                  </Button>
-                                </div>
-                              );
-                            })}
+                          <div className={styles['sailors-empty']}>
+                            <EmojiText>🧑‍✈️</EmojiText> You have no sailors yet. Hire a sailor to
+                            start passively fishing for you while you're online or away!
                           </div>
                         );
-                      })()}
-                    </div>
-                  </>
+                      }
+                      return (
+                        <div className={styles['sailors-grid']}>
+                          {levels.map((level, index) => {
+                            const atMax = level >= SAILOR_MAX_LEVEL;
+                            const cost = getSailorLevelUpCost(level);
+                            const rate = getSailorFleetRatePerSec([level]);
+                            return (
+                              <div key={index} className={styles['sailor-card']}>
+                                <h3>
+                                  <EmojiText>🧑‍✈️</EmojiText> Sailor {index + 1}
+                                </h3>
+                                <span className={styles['sailor-level']}>Level {level}</span>
+                                <span className={styles['sailor-rate']}>
+                                  <span className="mono">{smartFormatNumber(rate)}</span>/sec
+                                </span>
+                                <Button
+                                  onClickAsync={async () => {
+                                    await levelUpSailor(index);
+                                    await updateEverything();
+                                  }}
+                                  disabled={atMax || !user || (user.money || 0) < cost}
+                                >
+                                  {atMax
+                                    ? `Max Level ${SAILOR_MAX_LEVEL}`
+                                    : `Level Up for ${smartFormatNumber(cost)}`}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
               </div>
             ))}
@@ -2578,6 +2603,7 @@ export default function Game() {
                           setPaymentModalAquarium(false);
                           setPaymentModalSellRodId(null);
                           setPaymentModalEventPreview(false);
+              setPaymentModalFrenzyType(null);
                           setPaymentModalUpgradeId(upgrade.id);
                           setIsPaymentModalOpen(true);
                         }}
@@ -3106,6 +3132,10 @@ export default function Game() {
               setIsEventPreviewModalOpen(true);
             }
             return;
+          } else if (paymentModalFrenzyType) {
+            const res = await activateFrenzy(paymentModalFrenzyType);
+            if (res.status) setFrenzyStatus(res.status);
+            setPaymentModalFrenzyType(null);
           } else {
             await buyCosmetic(paymentModalCosmeticId!);
           }
