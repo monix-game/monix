@@ -112,7 +112,7 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
     .map(u => ({ user: u, netWorth: computeNetWorth(u, now) }))
     .filter(x => x.netWorth > 0)
     .sort((a, b) => b.netWorth - a.netWorth)
-    .slice(0, 15);
+    .slice(0, 50);
 
   const entryFor = (u: { user: IUser; netWorth: number }, index: number): LeaderboardEntry => ({
     ...entryForUser(u.user, u.user.money || 0, 0),
@@ -178,7 +178,7 @@ export async function buildFishLeaderboard(): Promise<LeaderboardSet> {
         (!u.user.last_seen || now - u.user.last_seen <= SIX_MONTHS)
     )
     .sort((a, b) => b.count - a.count)
-    .slice(0, 15);
+    .slice(0, 50);
 
   const entryFor = (u: { user: IUser; count: number }, index: number): LeaderboardEntry => ({
     ...entryForUser(u.user, u.user.money || 0, u.count),
@@ -203,7 +203,7 @@ export async function buildPlaytimeLeaderboard(): Promise<LeaderboardSet> {
         (!u.user.last_seen || now - u.user.last_seen <= SIX_MONTHS)
     )
     .sort((a, b) => b.playtimeMs - a.playtimeMs)
-    .slice(0, 15);
+    .slice(0, 50);
 
   const entryFor = (u: { user: IUser; playtimeMs: number }, index: number): LeaderboardEntry => ({
     ...entryForUser(u.user, u.user.money || 0, 0),
