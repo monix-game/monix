@@ -26,17 +26,22 @@ type RecentMessage = {
 type UserSpamState = {
   recent: RecentMessage[];
   lastAutoBanAt?: number;
+  spamTimestamps: number[];
 };
 
 const SPAM_CONFIG = {
   duplicateWindowMs: 8000,
   floodWindowMs: 10000,
-  floodMax: 5,
+  floodMax: 8,
   burstWindowMs: 60000,
-  burstMax: 12,
+  burstMax: 20,
   mentionLimit: 5,
   urlLimit: 2,
   autoBanCooldownMs: 5 * 60 * 1000,
+  // Repeated spam detections within the burst window required before an
+  // automatic ban is applied. A single incidental trigger only blocks the
+  // message and warns the user, it does not ban them.
+  autoBanMinSpamEvents: 3,
 };
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
@@ -52,7 +57,7 @@ function getUserState(user_uuid: string): UserSpamState {
   const existing = spamState.get(user_uuid);
   if (existing) return existing;
 
-  const created: UserSpamState = { recent: [] };
+  const created: UserSpamState = { recent: [], spamTimestamps: [] };
   spamState.set(user_uuid, created);
   return created;
 }
@@ -95,16 +100,28 @@ export function checkSocialSpam(params: {
 
   state.recent.push({ time: now, content: normalized, room_uuid });
 
+  const isSpam = reasons.length > 0;
+
+  // Track how many times this user has tripped spam recently. Only auto-ban
+  // once they repeatedly spam within the burst window, so a single incidental
+  // trigger never results in a ban.
+  if (isSpam) {
+    state.spamTimestamps = state.spamTimestamps.filter(
+      entry => now - entry <= SPAM_CONFIG.burstWindowMs
+    );
+    state.spamTimestamps.push(now);
+  }
+
   const canAutoBan =
     !state.lastAutoBanAt || now - state.lastAutoBanAt > SPAM_CONFIG.autoBanCooldownMs;
 
-  if (reasons.length > 0 && canAutoBan) {
+  if (isSpam && canAutoBan && state.spamTimestamps.length >= SPAM_CONFIG.autoBanMinSpamEvents) {
     state.lastAutoBanAt = now;
   }
 
   return {
-    isSpam: reasons.length > 0,
+    isSpam,
     reasons,
-    shouldAutoBan: reasons.length > 0 && canAutoBan,
+    shouldAutoBan: isSpam && canAutoBan && state.spamTimestamps.length >= SPAM_CONFIG.autoBanMinSpamEvents,
   };
 }
