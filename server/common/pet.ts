@@ -15,7 +15,7 @@ export function expRequiredForLevel(level: number): number {
 export function petPassiveRate(pet: IPet, passiveIncomeBonus = 0): number {
   const rarityMultiplier = { common: 1, rare: 2, epic: 4, legendary: 8 }[pet.rarity || 'common'];
   return Math.floor(
-    (pet.level + (pet.bond || 0) / 10) * rarityMultiplier * (1 + passiveIncomeBonus)
+    (pet.level + (pet.bond || 0) / 10) * rarityMultiplier * 20 * (1 + passiveIncomeBonus)
   );
 }
 
