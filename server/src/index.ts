@@ -23,6 +23,7 @@ import {
 import { getActivePunishments } from '../common/punishx/punishx';
 import { countryForIp, requestIpFromHeaders } from './helpers/geo';
 import type { HeaderMap } from './helpers/ip';
+import { rateLimit } from './helpers/rateLimit';
 
 import pingRoutes from './routes/ping';
 import userRoutes from './routes/user';
@@ -42,6 +43,15 @@ import pushRoutes from './routes/push';
 const log = createLogger('server');
 
 const app = new Elysia()
+  .use(
+    rateLimit({
+      windowMs: 1000,
+      max: 30,
+      keyGenerator: (_headers, ip) => `global-ip:${ip || 'unknown'}`,
+      message: { error: 'Too many requests. Please try again shortly.' },
+      skip: pathname => pathname === '/metrics',
+    })
+  )
   .use(
     cors({
       origin: request => {
