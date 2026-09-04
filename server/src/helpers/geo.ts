@@ -31,12 +31,12 @@ export async function countryForIp(ip: string | undefined): Promise<string> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1500);
     const response = await fetch(
-      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,countryCode`,
+      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country`,
       { signal: controller.signal }
     );
     clearTimeout(timeout);
-    const data = (await response.json()) as { status?: string; countryCode?: string };
-    const country = data.status === 'success' && data.countryCode ? data.countryCode : 'XX';
+    const data = (await response.json()) as { status?: string; country?: string };
+    const country = data.status === 'success' && data.country ? data.country : 'Unknown';
     cache.set(ip, { country, expiresAt: Date.now() + CACHE_TTL_MS });
     return country;
   } catch {

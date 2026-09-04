@@ -494,12 +494,9 @@
           "mouseWheelZoom": true
         },
         "basemap": {
-          "config": {
-            "attribution": "OpenStreetMap contributors",
-            "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          },
+          "config": {},
           "name": "OpenStreetMap",
-          "type": "xyz"
+          "type": "osm-standard"
         },
         "layers": [
           {
@@ -524,8 +521,7 @@
               }
             },
             "location": {
-              "gazetteer": "public/gazetteer/world.json",
-              "lookup": "country",
+              "lookup": "lookup",
               "mode": "lookup"
             },
             "name": "Client activity",
@@ -535,7 +531,7 @@
       },
       "targets": [
         {
-          "expr": "sum(monix_client_activity_by_country_total) by (country)",
+          "expr": "label_replace(sum(monix_client_activity_by_country_total) by (country), \"lookup\", \"$1\", \"country\", \"(.*)\")",
           "legendFormat": "{{country}}",
           "instant": true,
           "format": "table"

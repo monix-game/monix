@@ -73,14 +73,14 @@ export const dashboardStats = new Gauge({
 
 export const httpRequestsByCountry = new Counter({
   name: 'monix_http_requests_by_country_total',
-  help: 'HTTP requests grouped by client country code. Unknown/private addresses use XX.',
+  help: 'HTTP requests grouped by client country name. Unknown/private addresses use Unknown.',
   labelNames: ['country'],
   registers: [registry],
 });
 
 export const websocketConnectionsByCountry = new Gauge({
   name: 'monix_websocket_connections_by_country',
-  help: 'Currently connected WebSocket clients grouped by client country code.',
+  help: 'Currently connected WebSocket clients grouped by client country name.',
   labelNames: ['country'],
   registers: [registry],
 });

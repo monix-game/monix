@@ -216,9 +216,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     );
   } finally {
     if (!isMetricsEndpoint) {
-      const country = await countryForIp(clientIp);
-      httpRequestsByCountry.inc({ country });
-      clientActivityByCountry.inc({ protocol: 'http', country });
+      void countryForIp(clientIp).then(country => {
+        httpRequestsByCountry.inc({ country });
+        clientActivityByCountry.inc({ protocol: 'http', country });
+      });
     }
     httpRequestsTotal.inc({ method: req.method || 'UNKNOWN', route, status: String(status) });
     timer();
