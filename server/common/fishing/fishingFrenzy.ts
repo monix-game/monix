@@ -66,3 +66,7 @@ export function setFrenzyActive(now = Date.now()): void {
   frenzyActiveUntil = now + FRENZY_DURATION_MS;
   frenzyLastActivatedAt = now;
 }
+
+export function resetFrenzyCooldown(): void {
+  frenzyLastActivatedAt = 0;
+}

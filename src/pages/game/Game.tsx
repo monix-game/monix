@@ -37,6 +37,7 @@ import {
 import { claimDailyReward, type DailyRewardClaimResult } from '../../helpers/rewards';
 import { getResourceQuantity } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
+import { hasRole } from '../../../server/common/roles';
 import {
   formatRemainingMilliseconds,
   formatRemainingTime,
@@ -75,6 +76,7 @@ import {
   equipRod,
   getEventPreview,
   activateFrenzy,
+  resetFrenzyCooldown,
   goFishing,
   hireSailor,
   collectSailorEarnings,
@@ -1937,6 +1939,19 @@ export default function Game() {
                                   <EmojiText>⏳</EmojiText> Fishing Frenzy is on cooldown: restarts
                                   in {formatRemainingTime(cooldownSecs)}
                                 </span>
+                                {hasRole(user?.role || 'user', 'admin') && (
+                                  <div className={styles['aquarium-frenzy-admin']}>
+                                    <Button
+                                      secondary
+                                      onClickAsync={async () => {
+                                        const res = await resetFrenzyCooldown();
+                                        if (res.status) setFrenzyStatus(res.status);
+                                      }}
+                                    >
+                                      Reset cooldown (admin)
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             );
                           }
@@ -2034,7 +2049,7 @@ export default function Game() {
                             )}
                           </Button>
                           <Button
-                            onClick={async () => {
+                            onClickAsync={async () => {
                               const res = await getEventPreview();
                               if (res?.unlocked) {
                                 setEventPreview(res);

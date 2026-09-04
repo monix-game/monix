@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia';
 import { mutateUserAndSave } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { hasGems } from '../../../common/math';
+import { hasRole } from '../../../common/roles';
 import { broadcast } from '../../socket';
 import {
   FRENZY_DURATION_MS,
@@ -9,6 +10,7 @@ import {
   FRENZY_MONEY_COST,
   canActivateFrenzy,
   getFishingFrenzyStatus,
+  resetFrenzyCooldown,
   setFrenzyActive,
 } from '../../../common/fishing/fishingFrenzy';
 
@@ -94,6 +96,18 @@ export const fishingFrenzy = new Elysia()
         payment_type: t.Union([t.Literal('gems'), t.Literal('money')]),
       }),
     }
-  );
+  )
+  .post('/frenzy/admin/reset-cooldown', ({ authUser, set }) => {
+    const role = authUser?.role;
+    if (!role || !hasRole(role, 'admin')) {
+      set.status = 403;
+      return { error: 'You do not have permission to do this' };
+    }
+
+    resetFrenzyCooldown();
+    broadcastFrenzyStatus();
+
+    return { ok: true, ...getFishingFrenzyStatus() };
+  });
 
 export default fishingFrenzy;

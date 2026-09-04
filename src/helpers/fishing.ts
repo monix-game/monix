@@ -39,6 +39,25 @@ export async function activateFrenzy(
   }
 }
 
+export async function resetFrenzyCooldown(): Promise<{
+  ok: boolean;
+  error?: string;
+  status?: FishingFrenzyStatus;
+}> {
+  try {
+    const resp = await api.post<{ ok?: boolean; error?: string } & FishingFrenzyStatus>(
+      '/fishing/frenzy/admin/reset-cooldown'
+    );
+    if (resp?.success && resp.data?.ok) {
+      return { ok: true, status: resp.data };
+    }
+    return { ok: false, error: resp?.data?.error };
+  } catch (error) {
+    console.error('Error resetting fishing frenzy cooldown:', error);
+    return { ok: false, error: 'Failed to reset fishing frenzy cooldown' };
+  }
+}
+
 export interface EventPreviewResult {
   unlocked: boolean;
   events: UpcomingFishingEvent[] | null;
