@@ -91,7 +91,12 @@ import {
   type FishingFrenzyStatus,
 } from '../../helpers/fishing';
 import { fishingBaits } from '../../../server/common/fishing/fishingBait';
-import { fishingRods } from '../../../server/common/fishing/fishingRods';
+import {
+  fishingRods,
+  fishingRodCategories,
+  getRodCategoryInfo,
+  type FishingRodCategory,
+} from '../../../server/common/fishing/fishingRods';
 import {
   FRENZY_COOLDOWN_S,
   FRENZY_GEM_COST,
@@ -117,14 +122,9 @@ import { buyPermanentUpgrade, prestige } from '../../helpers/progression';
 import { useSocket } from '../../providers/socket';
 import { useChatNotifications } from '../../hooks/useChatNotifications';
 
-const getRodTierInfo = (price: number) => {
-  if (price <= 10000) return { emoji: '🟢', title: 'Starter' };
-  if (price <= 150000) return { emoji: '🔷', title: 'Skilled' };
-  if (price <= 1000000) return { emoji: '🟣', title: 'Elite' };
-  if (price <= 500000000) return { emoji: '🌌', title: 'Mythic' };
-  if (price <= 10000000000) return { emoji: '🌠', title: 'Cosmic' };
-  if (price <= 25000000000) return { emoji: '🕳️', title: 'Singularity' };
-  return { emoji: '✨', title: 'Genesis' };
+const getRodTierInfo = (category: FishingRodCategory) => {
+  const info = getRodCategoryInfo(category);
+  return { emoji: info.emoji, title: info.title };
 };
 
 export default function Game() {
@@ -505,32 +505,15 @@ export default function Game() {
   const rodSections = useMemo(() => {
     const buyableRods = fishingRods.filter(rod => rod.buyable);
 
-    return [
-      {
-        id: 'starter',
-        title: 'Starter',
-        subtitle: `Up to ${smartFormatNumber(10000)}`,
-        rods: buyableRods.filter(rod => rod.price <= 10000),
-      },
-      {
-        id: 'skilled',
-        title: 'Skilled',
-        subtitle: `${smartFormatNumber(25000)} - ${smartFormatNumber(150000)}`,
-        rods: buyableRods.filter(rod => rod.price >= 25000 && rod.price <= 150000),
-      },
-      {
-        id: 'elite',
-        title: 'Elite',
-        subtitle: `${smartFormatNumber(400000)} - ${smartFormatNumber(1000000)}`,
-        rods: buyableRods.filter(rod => rod.price >= 400000 && rod.price <= 1000000),
-      },
-      {
-        id: 'mythic',
-        title: 'Mythic',
-        subtitle: `${smartFormatNumber(5000000)}+`,
-        rods: buyableRods.filter(rod => rod.price >= 5000000),
-      },
-    ].filter(section => section.rods.length > 0);
+    return fishingRodCategories
+      .map(category => ({
+        id: category.id,
+        title: category.title,
+        emoji: category.emoji,
+        subtitle: category.subtitle,
+        rods: buyableRods.filter(rod => rod.category === category.id),
+      }))
+      .filter(section => section.rods.length > 0);
   }, []);
 
   const baitSections = useMemo(() => {
@@ -1539,7 +1522,7 @@ export default function Game() {
                                       if (!rodInfo) return null;
 
                                       const isEquipped = user?.fishing?.equipped_rod === rodId;
-                                      const tier = getRodTierInfo(rodInfo.price);
+                                      const tier = getRodTierInfo(rodInfo.category);
 
                                       return (
                                         <div
@@ -1697,7 +1680,9 @@ export default function Game() {
                         {rodSections.map(section => (
                           <div key={section.id} className={styles['fishing-modal-section']}>
                             <div className={styles['fishing-modal-section-header']}>
-                              <h3>{section.title}</h3>
+                              <h3>
+                                <EmojiText>{section.emoji}</EmojiText> {section.title}
+                              </h3>
                               <div className={styles['fishing-modal-section-meta']}>
                                 <span className={styles['fishing-modal-section-subtitle']}>
                                   {section.subtitle}
