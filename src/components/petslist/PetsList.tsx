@@ -44,6 +44,7 @@ export const PetsList: React.FC<PetsListProps> = ({
   };
 
   const pendingEarnings = pets.reduce((sum, pet) => {
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const elapsedMinutes = Math.max(
       0,
@@ -65,14 +66,14 @@ export const PetsList: React.FC<PetsListProps> = ({
     <>
       <div className={styles['pets-list-buttons']}>
         <Button
-          onClick={async () => {
+          onClickAsync={async () => {
             await collectPetEarnings();
             await refreshUser();
             await fetchPets();
           }}
           disabled={!hydrated || pets.length === 0}
         >
-          Collect ${smartFormatNumber(pendingEarnings)}
+          Collect {smartFormatNumber(pendingEarnings)}
         </Button>
         <Button
           onClick={() => setIsBuyingPet(true)}
