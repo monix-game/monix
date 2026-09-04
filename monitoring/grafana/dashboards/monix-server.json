@@ -493,6 +493,11 @@
           "showLegend": true,
           "mouseWheelZoom": true
         },
+        "basemap": {
+          "config": {},
+          "name": "OpenStreetMap",
+          "type": "osm-standard"
+        },
         "layers": [
           {
             "config": {
