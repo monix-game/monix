@@ -8,15 +8,14 @@ import {
   FRENZY_GEM_COST,
   FRENZY_MONEY_COST,
   canActivateFrenzy,
-  getFrenzyStatus,
+  getFishingFrenzyStatus,
   setFrenzyActive,
 } from '../../../common/fishing/fishingFrenzy';
 
 let frenzyExpiryTimer: ReturnType<typeof setTimeout> | null = null;
 
 function broadcastFrenzyStatus() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  broadcast('fishing:frenzy', getFrenzyStatus());
+  broadcast('fishing:frenzy', getFishingFrenzyStatus());
 }
 
 function scheduleFrenzyExpiry() {
@@ -88,8 +87,7 @@ export const fishingFrenzy = new Elysia()
         return { error: result.error };
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-      return { status: 'activated', ...getFrenzyStatus() };
+      return { status: 'activated', ...getFishingFrenzyStatus() };
     },
     {
       body: t.Object({
