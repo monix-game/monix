@@ -1921,8 +1921,7 @@ export default function Game() {
                       <div className={styles['aquarium-frenzy']}>
                         {frenzyActive ? (
                           <span className={styles['aquarium-frenzy-active']}>
-                            <EmojiText>🌊</EmojiText> Everyone gets {FRENZY_WEIGHT_MULTIPLIER}x fish
-                            weight and {FRENZY_COOLDOWN_S}s fishing cooldown for 1 minute!
+                            <EmojiText>🌊</EmojiText> Fishing Frenzy is active!
                           </span>
                         ) : (() => {
                           const cooldownSecs = Math.ceil(
