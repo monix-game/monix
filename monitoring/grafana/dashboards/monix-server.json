@@ -90,13 +90,88 @@
       ]
     },
     {
+      "type": "row",
+      "title": "System resources",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU usage",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(monix_process_cpu_user_seconds_total[5m]) + rate(monix_process_cpu_system_seconds_total[5m])",
+          "legendFormat": "CPU usage"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory usage",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "monix_process_resident_memory_bytes",
+          "legendFormat": "RSS"
+        },
+        {
+          "expr": "monix_nodejs_heap_size_used_bytes",
+          "legendFormat": "Heap used"
+        }
+      ]
+    },
+    {
       "type": "timeseries",
       "title": "HTTP latency p95",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 13
       },
       "fieldConfig": {
         "defaults": {
@@ -126,7 +201,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 13
       },
       "fieldConfig": {
         "defaults": {
@@ -155,7 +230,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 21
       },
       "fieldConfig": {
         "defaults": {
@@ -184,7 +259,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 21
       },
       "fieldConfig": {
         "defaults": {
@@ -213,7 +288,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 29
       },
       "fieldConfig": {
         "defaults": {
@@ -243,7 +318,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 29
       },
       "fieldConfig": {
         "defaults": {
@@ -272,7 +347,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 37
       },
       "collapsed": false,
       "panels": []
@@ -284,7 +359,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 29
+        "y": 38
       },
       "fieldConfig": {
         "defaults": {
@@ -305,7 +380,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 29
+        "y": 38
       },
       "fieldConfig": {
         "defaults": {
@@ -326,7 +401,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 29
+        "y": 38
       },
       "fieldConfig": {
         "defaults": {
@@ -347,7 +422,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 29
+        "y": 38
       },
       "fieldConfig": {
         "defaults": {
@@ -368,7 +443,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 42
       },
       "fieldConfig": {
         "defaults": {
