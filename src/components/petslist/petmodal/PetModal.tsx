@@ -205,10 +205,13 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
             !feedingPet &&
             !pet.is_dead && (
               <>
-                <Button secondary onClick={() => setFeedingPet(true)}>
+                <Button secondary onClick={() => setFeedingPet(true)} disabled={isPetAsleep(pet)}>
                   Feed
                 </Button>
-                <Button onClickAsync={playWithPetClick} disabled={!canPlayWithPet(pet)}>
+                <Button
+                  onClickAsync={playWithPetClick}
+                  disabled={!canPlayWithPet(pet) || isPetAsleep(pet)}
+                >
                   Play
                 </Button>
                 <Button onClick={() => setConfirmingRelease(true)}>Release</Button>
@@ -218,14 +221,14 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
             <>
               <Button
                 cost={20}
-                disabled={money < 20 || !canFeedPet(pet)}
+                disabled={money < 20 || !canFeedPet(pet) || isPetAsleep(pet)}
                 onClickAsync={feedPetStandardClick}
               >
                 Standard
               </Button>
               <Button
                 cost={50}
-                disabled={money < 50 || !canFeedPet(pet)}
+                disabled={money < 50 || !canFeedPet(pet) || isPetAsleep(pet)}
                 onClickAsync={feedPetPremiumClick}
               >
                 Premium
