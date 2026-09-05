@@ -51,7 +51,14 @@ export function AnticheatProvider({ children }: Readonly<AnticheatProviderProps>
     const handleClick = (event: MouseEvent) => {
       if (anticheatTriggeredRef.current) return;
       if (!event.isTrusted) {
-        startAnticheatAlertLoop();
+        // The app legitimately dispatches synthetic clicks to open hidden file
+        // inputs (e.g. the social image upload button), so only treat synthetic
+        // clicks as scripted when they do not target a file input.
+        const target = event.target as HTMLElement | null;
+        const isFileInput = target instanceof HTMLInputElement && target.type === 'file';
+        if (!isFileInput) {
+          startAnticheatAlertLoop();
+        }
       }
     };
 
