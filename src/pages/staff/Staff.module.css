@@ -109,6 +109,17 @@
   flex-wrap: wrap;
 }
 
+.report-context-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-context-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .report-context-list {
   display: flex;
   flex-direction: column;

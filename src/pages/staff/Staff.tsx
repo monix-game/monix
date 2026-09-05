@@ -95,6 +95,7 @@ export default function Staff() {
   const [reportChangeCategory, setReportChangeCategory] = useState<string>('');
   const [contextModalOpen, setContextModalOpen] = useState<boolean>(false);
   const [contextReport, setContextReport] = useState<IReport | null>(null);
+  const [contextShowDeleted, setContextShowDeleted] = useState<boolean>(false);
 
   // Appeals states
   const [appealsStatusFilter, setAppealsStatusFilter] = useState<
@@ -1852,8 +1853,26 @@ export default function Staff() {
             </p>
           )}
           {contextReport?.context && contextReport.context.length > 0 ? (
-            <div className={`${styles['report-context-list']}`}>
-              {contextReport.context.map(item => (
+            <>
+              <div className={`${styles['report-context-controls']}`}>
+                <Checkbox
+                  checked={contextShowDeleted}
+                  label="Show deleted messages"
+                  disabled={!contextReport.context.some(item => item.deleted)}
+                  onClick={value => setContextShowDeleted(value)}
+                />
+                {!contextShowDeleted &&
+                  contextReport.context.some(item => item.deleted) && (
+                    <span className={`${styles['report-context-hint']}`}>
+                      {contextReport.context.filter(item => item.deleted).length}{' '}
+                      deleted hidden
+                    </span>
+                  )}
+              </div>
+              <div className={`${styles['report-context-list']}`}>
+                {contextReport.context
+                  .filter(item => contextShowDeleted || !item.deleted)
+                  .map(item => (
                 <div
                   key={item.message_uuid}
                   className={`${styles['report-context-item']} ${
@@ -1889,7 +1908,8 @@ export default function Staff() {
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           ) : (
             <b>No context available for this report.</b>
           )}

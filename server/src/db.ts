@@ -579,7 +579,6 @@ export async function markMessagesDeletedByRoomUUID(
     {
       $set: {
         deleted: true,
-        content: '',
         edited: false,
         time_edited: Date.now(),
       },
