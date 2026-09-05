@@ -24,6 +24,34 @@ class ApiError extends Error {
   }
 }
 
+/**
+ * Clears the stored session and redirects to the login page when the server
+ * rejects an authenticated request with 401 (expired/invalid token). Guarded so
+ * only the first failing response triggers the redirect, which also stops the
+ * client from spamming unauthenticated requests (e.g. polling loops) once the
+ * session has expired.
+ */
+function handleUnauthorizedSession(): void {
+  if (typeof localStorage === 'undefined') return;
+
+  try {
+    const redirectKey = localStorageKey('session_redirected_to_login');
+    if (sessionStorage.getItem(redirectKey)) return;
+    sessionStorage.setItem(redirectKey, '1');
+  } catch {
+    // sessionStorage may be unavailable; a redirect loop here is still
+    // preferable to silently staying on a broken page, so continue anyway.
+  }
+
+  for (const key of ['session_token', 'session_user_uuid', 'session_time_created', 'session_expires_at']) {
+    localStorage.removeItem(localStorageKey(key));
+  }
+
+  if (typeof location !== 'undefined' && !/^\/auth\/(login|register)/.test(location.pathname)) {
+    location.href = '/auth/login';
+  }
+}
+
 class ApiHandler {
   private readonly baseUrl: string;
   private readonly defaultTimeout: number = 10000;
@@ -100,6 +128,9 @@ class ApiHandler {
       } catch (error) {
         if (error instanceof ApiError) {
           lastError = error;
+          if (error.status === 401) {
+            handleUnauthorizedSession();
+          }
           break; // Do not retry on API errors
         }
 

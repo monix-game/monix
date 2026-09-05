@@ -31,6 +31,7 @@ import {
   buyUpgrade,
   completeTutorial,
   equipCosmetic,
+  logOut,
   resetTutorial,
   unequipCosmetic,
 } from '../../helpers/auth';
@@ -645,10 +646,14 @@ export default function Game() {
   const updateEverything = useCallback(async () => {
     try {
       const userResp = (await request('user:get', {}, 'user_snapshot')) as {
+        ok?: boolean;
+        error?: string;
         data?: { user?: IUser };
       };
       const userData = userResp?.data?.user;
-      if (!userData) {
+      if (!userData || userResp?.ok === false) {
+        logOut();
+        setUser(null);
         globalThis.location.href = '/auth/login';
         return;
       }
@@ -1589,7 +1594,7 @@ export default function Game() {
                                                   setPaymentModalAquarium(false);
                                                   setPaymentModalRodId(null);
                                                   setPaymentModalEventPreview(false);
-              setPaymentModalFrenzyType(null);
+                                                  setPaymentModalFrenzyType(null);
                                                   setPaymentModalSellRodId(rodId);
                                                   setIsPaymentModalOpen(true);
                                                 }}
@@ -1744,7 +1749,7 @@ export default function Game() {
                                         setPaymentModalAquarium(false);
                                         setPaymentModalSellRodId(null);
                                         setPaymentModalEventPreview(false);
-              setPaymentModalFrenzyType(null);
+                                        setPaymentModalFrenzyType(null);
                                         setPaymentModalRodId(rod.id);
                                         setIsPaymentModalOpen(true);
                                       }}
@@ -1861,7 +1866,7 @@ export default function Game() {
                                         setPaymentModalAquarium(false);
                                         setPaymentModalSellRodId(null);
                                         setPaymentModalEventPreview(false);
-              setPaymentModalFrenzyType(null);
+                                        setPaymentModalFrenzyType(null);
                                         setPaymentModalBaitId(bait.id);
                                         setPaymentModalBaitQty(baitQuantities[bait.id] || 1);
                                         setIsPaymentModalOpen(true);
@@ -2053,7 +2058,7 @@ export default function Game() {
                             setPaymentModalBaitId(null);
                             setPaymentModalSellRodId(null);
                             setPaymentModalEventPreview(false);
-              setPaymentModalFrenzyType(null);
+                            setPaymentModalFrenzyType(null);
                             setPaymentModalAquarium(true);
                             setIsPaymentModalOpen(true);
                           }}
@@ -2361,6 +2366,7 @@ export default function Game() {
                             const cost = getSailorLevelUpCost(level);
                             const rate = getSailorFleetRatePerSec([level]);
                             return (
+                              // eslint-disable-next-line react-x/no-array-index-key
                               <div key={index} className={styles['sailor-card']}>
                                 <h3>
                                   <EmojiText>🧑‍✈️</EmojiText> Sailor {index + 1}
@@ -2532,6 +2538,9 @@ export default function Game() {
                 {PERMANENT_UPGRADES.map(upgrade => {
                   const level = user?.permanent_upgrades?.[upgrade.id] || 0;
                   const cost = permanentUpgradeCost(upgrade, level);
+                  const shardSuffix = cost === 1 ? '' : 's';
+                  const upgradeButtonText =
+                    level >= upgrade.maxLevel ? 'Maxed' : `Upgrade for ${cost} shard${shardSuffix}`;
                   return (
                     <div
                       key={upgrade.id}
@@ -2552,9 +2561,7 @@ export default function Game() {
                           if (await buyPermanentUpgrade(upgrade.id)) await updateEverything();
                         }}
                       >
-                        {level >= upgrade.maxLevel
-                          ? 'Maxed'
-                          : `Upgrade for ${cost} shard${cost === 1 ? '' : 's'}`}
+                        {upgradeButtonText}
                       </Button>
                     </div>
                   );
@@ -2603,7 +2610,7 @@ export default function Game() {
                           setPaymentModalAquarium(false);
                           setPaymentModalSellRodId(null);
                           setPaymentModalEventPreview(false);
-              setPaymentModalFrenzyType(null);
+                          setPaymentModalFrenzyType(null);
                           setPaymentModalUpgradeId(upgrade.id);
                           setIsPaymentModalOpen(true);
                         }}
@@ -2858,16 +2865,19 @@ export default function Game() {
                 const totalFishCaught = fishCaughtByType
                   ? Object.values(fishCaughtByType).reduce((sum, count) => sum + (count || 0), 0)
                   : (stats?.fish_caught ?? 0);
+                
                 const playtimeSeconds = Math.floor((stats?.playtime_ms ?? 0) / 1000);
                 const playtimeDays = Math.floor(playtimeSeconds / 86400);
                 const playtimeHours = Math.floor((playtimeSeconds % 86400) / 3600);
                 const playtimeMinutes = Math.floor((playtimeSeconds % 3600) / 60);
-                const playtimeLabel =
-                  playtimeDays > 0
-                    ? `${playtimeDays}d ${playtimeHours}h ${playtimeMinutes}m`
-                    : playtimeHours > 0
-                      ? `${playtimeHours}h ${playtimeMinutes}m`
-                      : `${playtimeMinutes}m`;
+                let playtimeLabel = `${playtimeMinutes}m`;
+                if (playtimeHours > 0) {
+                  playtimeLabel = `${playtimeHours}h ${playtimeMinutes}m`;
+                }
+                if (playtimeDays > 0) {
+                  playtimeLabel = `${playtimeDays}d ${playtimeHours}h ${playtimeMinutes}m`;
+                }
+
                 const rows: { label: string; value: string | number }[] = [
                   { label: 'Playtime', value: playtimeLabel },
                   { label: 'Messages Sent', value: stats?.messages_sent ?? 0 },

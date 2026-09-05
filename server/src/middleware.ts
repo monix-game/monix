@@ -145,8 +145,8 @@ export function onlyRole(role: 'admin' | 'mod' | 'helper') {
   return ({ authUser, set }: GuardContext) => {
     if (!authUser) return unauthorized(set);
     if (!hasRole(authUser.role, role)) {
-      set.status = 401;
-      return { message: 'Unauthorized' };
+      set.status = 403;
+      return { message: 'Forbidden' };
     }
   };
 }

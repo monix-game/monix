@@ -507,7 +507,12 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
       case 'user:get': {
         const target = getAuthData(ws);
         const socketUser = target.socketUser;
-        if (!socketUser) break;
+        if (!socketUser) {
+          ws.send(
+            JSON.stringify({ type: 'user_snapshot', ok: false, error: 'Not authenticated' })
+          );
+          break;
+        }
         const snapshot = await buildUserSnapshot(socketUser);
         if (snapshot) {
           ws.send(JSON.stringify({ type: 'user_snapshot', data: snapshot }));
@@ -517,6 +522,16 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
       case 'socialRooms:get': {
         const target = getAuthData(ws);
         const socketUser = target.socketUser;
+        if (!socketUser) {
+          ws.send(
+            JSON.stringify({
+              type: 'socialRooms_snapshot',
+              ok: false,
+              error: 'Not authenticated',
+            })
+          );
+          break;
+        }
         const snapshot = await buildRooms(socketUser);
         ws.send(JSON.stringify({ type: 'socialRooms_snapshot', data: snapshot }));
         break;

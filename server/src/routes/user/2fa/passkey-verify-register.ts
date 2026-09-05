@@ -53,7 +53,12 @@ export const passkeyVerifyRegister = new Elysia()
       }
 
       const origins = CORS_ORIGINS.includes('*')
-        ? ['http://localhost:5173', 'http://localhost:6200', 'https://monix.proplayer919.dev']
+        ? [
+            'http://localhost:5173',
+            'http://localhost:6200',
+            'https://monix.proplayer919.dev',
+            'https://monixga.me',
+          ]
         : CORS_ORIGINS;
 
       let result: {
