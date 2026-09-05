@@ -21,18 +21,21 @@ export const editMessage = new Elysia()
       }
 
       const { message_uuid } = params;
-      const { content } = body as { content: string };
-
-      if (!content) {
-        set.status = 400;
-        return { error: 'Missing content' };
-      }
+      const { content } = body as { content?: string };
+      const contentText = content ?? '';
 
       const message = await getMessageByUUID(message_uuid);
 
       if (!message) {
         set.status = 404;
         return { error: 'Message not found' };
+      }
+
+      const isImageMessage = Boolean(message.image_url);
+
+      if (!contentText && !isImageMessage) {
+        set.status = 400;
+        return { error: 'Missing content' };
       }
 
       if (message.sender_uuid !== fetchedUser.uuid && fetchedUser.role === 'user') {
@@ -59,22 +62,26 @@ export const editMessage = new Elysia()
       }
 
       // Make sure the content is not empty after trimming
-      if (content.trim() === '') {
+      if (!isImageMessage && contentText.trim() === '') {
         set.status = 400;
         return { error: 'Message content cannot be empty' };
       }
 
       // Make sure the content is not too long
-      if (content.length > 300) {
+      if (contentText.length > 300) {
         set.status = 400;
         return { error: 'Message content is too long' };
       }
 
-      // Censor the message content
-      const censoredContent = profanityFilter.censorText(content);
+      // Image messages may have an empty caption, so only censor real text.
+      const censoredContent =
+        contentText.trim() === '' ? '' : profanityFilter.censorText(contentText);
 
       // Check if the censored content is empty
-      if (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '') {
+      if (
+        contentText.trim() !== '' &&
+        (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '')
+      ) {
         set.status = 400;
         return { error: 'Message content cannot be only profanity' };
       }

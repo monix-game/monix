@@ -49,6 +49,10 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = React.useState<boolean>(false);
+  const [isImageModalOpen, setIsImageModalOpen] = React.useState<boolean>(false);
+  const [imageModalMode, setImageModalMode] = React.useState<'send' | 'edit'>('send');
+  const [pendingImageDataUri, setPendingImageDataUri] = React.useState<string>('');
+  const [imageCaption, setImageCaption] = React.useState<string>('');
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const profanityFilter = React.useMemo(() => new Filter(), []);
   const messagesRef = React.useRef<IMessage[]>([]);
@@ -197,9 +201,12 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
     }
   };
 
-  const sendImageClick = async (file: File) => {
-    if (isUploadingImage || !file || !room) return;
-    if (file.type && !file.type.startsWith('image/')) return;
+  const handleImageFileSelected = async (file: File) => {
+    if (isUploadingImage || !file) return;
+    if (file.type && !file.type.startsWith('image/')) {
+      if (imageInputRef.current) imageInputRef.current.value = '';
+      return;
+    }
 
     // Base64 inflates the size by ~4/3, so reject early if it can't fit.
     if (file.size > (CHAT_IMAGE_MAX_DATA_URI_LENGTH * 3) / 4) return;
@@ -210,8 +217,34 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
     });
-    if (!imageDataUri || imageDataUri.length > CHAT_IMAGE_MAX_DATA_URI_LENGTH) return;
+    if (!imageDataUri || imageDataUri.length > CHAT_IMAGE_MAX_DATA_URI_LENGTH) {
+      if (imageInputRef.current) imageInputRef.current.value = '';
+      return;
+    }
 
+    setPendingImageDataUri(imageDataUri);
+    setImageCaption('');
+    setImageModalMode('send');
+    setIsImageModalOpen(true);
+  };
+
+  const closeImageModal = () => {
+    setIsImageModalOpen(false);
+    setImageModalMode('send');
+    setPendingImageDataUri('');
+    setImageCaption('');
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const confirmImageSend = async () => {
+    if (isUploadingImage || !pendingImageDataUri || !room) return;
+
+    const caption = imageCaption.trim();
+    const image = pendingImageDataUri;
+    const optimisticContent =
+      caption === '' ? '' : profanityFilter.censorText(caption);
+
+    closeImageModal();
     setIsUploadingImage(true);
 
     // Optimistically add the image to the UI (will be replaced by the WS snapshot)
@@ -226,8 +259,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
         sender_avatar_url: user.avatar_data_uri,
         user_tag: user.equipped_cosmetics?.tag,
         nameplate: user.equipped_cosmetics?.nameplate,
-        content: '',
-        image_url: imageDataUri,
+        content: optimisticContent,
+        image_url: image,
         time_sent: Date.now(),
         ephemeral: false,
         edited: false,
@@ -237,7 +270,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
     try {
       const resp = (await request(
         'chat:send',
-        { room_uuid: room.uuid, content: '', image: imageDataUri },
+        { room_uuid: room.uuid, content: caption, image },
         'chat:send_result'
       )) as { ok: boolean; error?: string };
       if (!resp.ok) {
@@ -247,7 +280,25 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
       setMessages(prev => prev.filter(m => !(m.uuid ?? '').startsWith('temp-')));
     } finally {
       setIsUploadingImage(false);
-      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
+
+  const saveImageCaption = async () => {
+    if (!editedMessage) return;
+
+    const caption = imageCaption.trim();
+    closeImageModal();
+
+    await editMessage(editedMessage.uuid, caption, request);
+    setEditedMessage(null);
+    await fetchMessages();
+  };
+
+  const imageModalSubmit = async () => {
+    if (imageModalMode === 'edit') {
+      await saveImageCaption();
+    } else {
+      await confirmImageSend();
     }
   };
 
@@ -374,6 +425,20 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
       container.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  const openEditMessage = (msg: IMessage) => {
+    setEditedMessage(msg);
+    if (msg.image_url) {
+      setPendingImageDataUri(msg.image_url);
+      setImageCaption(msg.content || '');
+      setImageModalMode('edit');
+      setIsImageModalOpen(true);
+    } else {
+      setEditContent(msg.content);
+      setIsEditModalOpen(true);
+    }
+    hideContextMenu();
+  };
 
   const editMessageClick = async () => {
     if (!editedMessage) return;
@@ -570,17 +635,11 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
                       <div
                         className={styles['context-menu-item']}
                         onClick={() => {
-                          setEditedMessage(contextMenu.message!);
-                          setEditContent(contextMenu.message!.content);
-                          setIsEditModalOpen(true);
-                          hideContextMenu();
+                          openEditMessage(contextMenu.message!);
                         }}
                         onKeyDown={e => {
                           if (e.key === 'Enter') {
-                            setEditedMessage(contextMenu.message!);
-                            setEditContent(contextMenu.message!.content);
-                            setIsEditModalOpen(true);
-                            hideContextMenu();
+                            openEditMessage(contextMenu.message!);
                           }
                         }}
                         role="button"
@@ -647,7 +706,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
                         className={styles['social-image-input']}
                         onChange={e => {
                           const file = e.target.files?.[0];
-                          if (file) void sendImageClick(file);
+                          if (file) void handleImageFileSelected(file);
                         }}
                       />
                       <Button
@@ -709,6 +768,36 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
             <Button onClick={() => setIsReportModalOpen(false)}>Cancel</Button>
             <Button color="red" onClickAsync={reportMessageClick}>
               Submit Report
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    <Modal isOpen={isImageModalOpen} onClose={closeImageModal} ariaLabel="Image message">
+        <div className={styles['social-modal-content']}>
+          <h2>{imageModalMode === 'edit' ? 'Edit Image Caption' : 'Send Image'}</h2>
+          {pendingImageDataUri && (
+            <img
+              src={pendingImageDataUri}
+              alt="Image preview"
+              className={styles['social-image-preview']}
+            />
+          )}
+          <Input
+            placeholder="Add a caption (optional)"
+            value={imageCaption}
+            onValueChange={value => setImageCaption(value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') void imageModalSubmit();
+            }}
+          />
+          <div className={styles['social-modal-actions']}>
+            <Button onClick={closeImageModal}>Cancel</Button>
+            <Button
+              color="blue"
+              onClickAsync={imageModalSubmit}
+              disabled={isUploadingImage}
+            >
+              {imageModalMode === 'edit' ? 'Save Caption' : 'Send'}
             </Button>
           </div>
         </div>

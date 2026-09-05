@@ -646,13 +646,14 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
         }
         const edit_uuid = typeof body.message_uuid === 'string' ? body.message_uuid : '';
         const content = typeof body.content === 'string' ? body.content : '';
-        if (!content) {
-          fail('Missing content');
-          break;
-        }
         const editMessage = await getMessageByUUID(edit_uuid);
         if (!editMessage) {
           fail('Message not found');
+          break;
+        }
+        const isImageMessage = Boolean(editMessage.image_url);
+        if (!content && !isImageMessage) {
+          fail('Missing content');
           break;
         }
         if (editMessage.sender_uuid !== socketUser.uuid && socketUser.role === 'user') {
@@ -672,7 +673,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           fail('You are not allowed to edit messages in this room');
           break;
         }
-        if (content.trim() === '') {
+        if (!isImageMessage && content.trim() === '') {
           fail('Message content cannot be empty');
           break;
         }
@@ -680,8 +681,13 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           fail('Message content is too long');
           break;
         }
-        const censoredContent = profanityFilter.censorText(content);
-        if (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '') {
+        // Image messages may have an empty caption, so only censor real text.
+        const censoredContent =
+          content.trim() === '' ? '' : profanityFilter.censorText(content);
+        if (
+          content.trim() !== '' &&
+          (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '')
+        ) {
           fail('Message content cannot be only profanity');
           break;
         }
