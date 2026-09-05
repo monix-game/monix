@@ -35,7 +35,7 @@ export const buyUpgrade = new Elysia()
 
       const result = await mutateUserAndSave<BuyUpgradeOutcome>(
         authUser2.uuid,
-        async user => {
+        user => {
           if (user.money < upgradeCost) {
             return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient money' } };
           }

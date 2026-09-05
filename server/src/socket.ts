@@ -11,6 +11,7 @@ import {
   updateMessage,
   createReport,
   updateUser,
+  incrementUserStats,
 } from './db';
 import {
   buildFishLeaderboardCached,
@@ -30,7 +31,7 @@ import { sendChatMessage } from './helpers/chat';
 import { notifyNewChatMessage } from './helpers/push';
 import { addUserConnection, removeUserConnection } from './helpers/presence';
 import { applyActivityTracking } from './middleware';
-import { DEFAULT_USER_STATS, type IUser } from '../common/models/user';
+import type { IUser } from '../common/models/user';
 import type { IMessage } from '../common/models/message';
 import type { IRoom } from '../common/models/room';
 import { createLogger } from './logging';
@@ -537,7 +538,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
         break;
       }
       case 'chat:send': {
-        const body = msg as { room_uuid?: string; content?: string };
+        const body = msg as { room_uuid?: string; content?: string; image?: string };
         const target = getAuthData(ws);
         const socketUser = target.socketUser;
         if (!socketUser) {
@@ -552,8 +553,9 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
         }
         const room_uuid = typeof body.room_uuid === 'string' ? body.room_uuid : '';
         const content = typeof body.content === 'string' ? body.content : '';
+        const image = typeof body.image === 'string' ? body.image : undefined;
         const room = await getRoomByUUID(room_uuid || '');
-        const result = await sendChatMessage(socketUser, room ?? null, room_uuid, content);
+        const result = await sendChatMessage(socketUser, room ?? null, room_uuid, content, image);
         ws.send(
           JSON.stringify({
             type: 'chat:send_result',
@@ -562,10 +564,9 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           })
         );
         if (result.ok && room_uuid) {
-          // Track lifetime stats: messages sent
-          socketUser.stats ??= DEFAULT_USER_STATS;
-          socketUser.stats.messages_sent = (socketUser.stats.messages_sent || 0) + 1;
-          void updateUser(socketUser);
+          // Track lifetime stats: messages sent (targeted $inc so unrelated
+          // fields like daily_rewards are never clobbered by a stale snapshot).
+          void incrementUserStats(socketUser.uuid, { messages_sent: 1 });
 
           // Push an up-to-date chat snapshot to subscribers so no HTTP is needed.
           const messages = await chatSnapshot(room_uuid);
@@ -841,22 +842,15 @@ export function attachSocketServer(server: Server | HttpsServer) {
       const closingUser = getAuthData(ws).socketUser;
       if (closingUser?.uuid) {
         removeUserConnection(closingUser.uuid);
-        // Accumulate playtime for the session that just ended. Re-fetch a fresh
-        // user to avoid clobbering any concurrent writes (e.g. routes that
-        // updated the user while the socket was connected).
+        // Accumulate playtime for the session that just ended. Written with a
+        // targeted $inc so it cannot clobber concurrent writes (e.g. a daily
+        // reward claim that happened while the socket was connected).
         const connectedAt = getAuthData(ws).connectedAt;
         if (connectedAt) {
-          void (async () => {
-            try {
-              const fresh = await getUserByUUID(closingUser.uuid);
-              if (!fresh) return;
-              fresh.stats ??= DEFAULT_USER_STATS;
-              fresh.stats.playtime_ms = (fresh.stats.playtime_ms || 0) + (Date.now() - connectedAt);
-              await updateUser(fresh);
-            } catch {
-              // Swallow errors on disconnect bookkeeping.
-            }
-          })();
+          const playtime = Date.now() - connectedAt;
+          if (playtime > 0) {
+            void incrementUserStats(closingUser.uuid, { playtime_ms: playtime });
+          }
         }
       }
       for (const [channel, set] of subscribers) {

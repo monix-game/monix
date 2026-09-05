@@ -10,8 +10,6 @@ import { cosmetics } from '../../../common/cosmetics/cosmetics';
 
 type Equipped = { nameplate?: string; tag?: string };
 
-type EditOutcome = { targetUser: IUser }
-
 export const editUser = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
   .onBeforeHandle(onlyRole('admin'))

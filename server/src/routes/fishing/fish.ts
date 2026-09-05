@@ -27,7 +27,7 @@ export const fish = new Elysia()
       const { auto_sell } = body;
       const now = Date.now();
 
-      const result = await mutateUserAndSave<FishOutcome>(user_uuid, async fetchedUser => {
+      const result = await mutateUserAndSave<FishOutcome>(user_uuid, fetchedUser => {
         const hasMagicJellybean = isUpgradeActive(
           fetchedUser.upgrades,
           MAGIC_JELLYBEAN_UPGRADE_ID,

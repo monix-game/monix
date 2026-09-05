@@ -19,7 +19,7 @@ export const hireSailor = new Elysia()
   .post('/sailors/hire', async ({ authUser, set }) => {
     const user_uuid = authUser?.uuid as string;
 
-    const result = await mutateUserAndSave<HireOutcome>(user_uuid, async fetchedUser => {
+    const result = await mutateUserAndSave<HireOutcome>(user_uuid, fetchedUser => {
       fetchedUser.fishing ??= {
         aquarium: { capacity: 10, level: 1, fish: [] },
         bait_owned: {},

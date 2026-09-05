@@ -9,6 +9,7 @@ import { hasRole } from '../../common/roles';
 import { checkSocialSpam } from './spamModeration';
 import { punishUser } from '../../common/punishx/punishx';
 import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrades';
+import { isChatImageDataUri } from '../../common/chat';
 import type { IUser } from '../../common/models/user';
 import type { IRoom } from '../../common/models/room';
 
@@ -24,13 +25,14 @@ export async function sendChatMessage(
   fetchedUser: IUser,
   room: IRoom | null,
   room_uuid: string,
-  rawContent: string
+  rawContent: string,
+  image?: string
 ): Promise<ChatSendResult> {
   if (!fetchedUser) {
     return { ok: false, status: 404, message: 'User not found' };
   }
 
-  if (!room_uuid || !rawContent) {
+  if (!room_uuid || (!rawContent && !image)) {
     return { ok: false, status: 400, message: 'Missing room_uuid or content' };
   }
 
@@ -55,10 +57,26 @@ export async function sendChatMessage(
     return { ok: false, status: 403, message: 'You are not allowed to send messages in this room' };
   }
 
+  const hasImage = typeof image === 'string' && image.length > 0;
+
+  // Only moderators and above can send images
+  if (hasImage && !hasRole(fetchedUser.role, 'mod')) {
+    return { ok: false, status: 403, message: 'Only moderators and above can send images' };
+  }
+
+  // Validate the image (MIME type + size) before doing anything else
+  if (hasImage && !isChatImageDataUri(image)) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Image must be a PNG, JPEG, GIF or WebP data URI under 1MB',
+    };
+  }
+
   const content = rawContent;
 
   // Make sure the content is not empty after trimming
-  if (content.trim() === '') {
+  if (!hasImage && content.trim() === '') {
     return { ok: false, status: 400, message: 'Message content cannot be empty' };
   }
 
@@ -72,11 +90,15 @@ export async function sendChatMessage(
     return { ok: false, status: 400, message: 'Message content is too long' };
   }
 
-  // Censor the message content
-  const censoredContent = profanityFilter.censorText(content);
+  // Censor the message content. Image-only messages have no text to censor.
+  const censoredContent =
+    hasImage && content.trim() === '' ? '' : profanityFilter.censorText(content);
 
-  // Check if the censored content is empty
-  if (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '') {
+  // Check if the censored content is empty (image-only messages have no text)
+  if (
+    content.trim() !== '' &&
+    (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '')
+  ) {
     await sendNyxMessage(
       fetchedUser.uuid,
       'Your message was not sent because it contains only profanity. Please adhere to our community guidelines.',
@@ -118,7 +140,7 @@ export async function sendChatMessage(
 
   // Check if the message contains links (not allowed in social rooms except for staff)
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  if (urlRegex.test(content) && fetchedUser.role === 'user') {
+  if (content && urlRegex.test(content) && fetchedUser.role === 'user') {
     await sendNyxMessage(
       fetchedUser.uuid,
       'Links are not allowed in social rooms. Please use direct messaging for sharing links.',
@@ -135,6 +157,7 @@ export async function sendChatMessage(
     sender_avatar_url: fetchedUser.avatar_data_uri,
     room_uuid,
     content: censoredContent,
+    image_url: hasImage ? image : undefined,
     deleted: false,
     sent_restricted: !!room.restrict_send_to,
     restricted_role: room.restrict_send_to,

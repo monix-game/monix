@@ -30,7 +30,7 @@ export const releasePet = new Elysia()
       if (pet.is_dead) {
         const result = await mutateUserAndSave<ReleaseOutcome>(
           user_uuid,
-          async fetchedUser => {
+          fetchedUser => {
             const releaseCost = 500;
             if ((fetchedUser.money || 0) < releaseCost) {
               return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to release the pet' } };
@@ -52,7 +52,7 @@ export const releasePet = new Elysia()
         // Validate the user exists even when no deduction is needed.
         const exists = await mutateUserAndSave<ReleaseOutcome>(
           user_uuid,
-          async () => ({ changed: false, value: { ok: 'success' as const, message: 'Pet released successfully' } })
+          () => ({ changed: false, value: { ok: 'success' as const, message: 'Pet released successfully' } })
         );
         if (!exists) {
           set.status = 404;

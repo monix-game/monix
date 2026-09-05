@@ -78,7 +78,7 @@ export const stripeWebhook = new Elysia().post('/stripe', async ({ request, head
         return 'Unknown gems product ID';
       }
 
-      const credited = await mutateUserAndSave<boolean>(user.uuid, async freshUser => {
+      const credited = await mutateUserAndSave<boolean>(user.uuid, freshUser => {
         freshUser.gems += gemsAmount;
         return { changed: true, value: true };
       });

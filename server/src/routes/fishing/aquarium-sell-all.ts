@@ -14,7 +14,7 @@ export const sellAllFish = new Elysia()
 
     const result = await mutateUserAndSave<SellAllOutcome>(
       user_uuid,
-      async fetchedUser => {
+      fetchedUser => {
         // Initialize fishing data if not present
         fetchedUser.fishing ??= {
           aquarium: { capacity: 10, level: 1, fish: [] },

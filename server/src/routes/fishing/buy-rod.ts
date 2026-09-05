@@ -32,7 +32,7 @@ export const buyRod = new Elysia()
 
       const result = await mutateUserAndSave<BuyRodOutcome>(
         user_uuid,
-        async fetchedUser => {
+        fetchedUser => {
           if (fetchedUser.money < rodPrice) {
             return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds' } };
           }

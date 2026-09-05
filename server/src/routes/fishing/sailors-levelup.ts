@@ -31,7 +31,7 @@ export const levelUpSailor = new Elysia()
         return { error: 'Invalid sailor index' };
       }
 
-      const result = await mutateUserAndSave<LevelUpOutcome>(user_uuid, async fetchedUser => {
+      const result = await mutateUserAndSave<LevelUpOutcome>(user_uuid, fetchedUser => {
         fetchedUser.fishing ??= {
           aquarium: { capacity: 10, level: 1, fish: [] },
           bait_owned: {},

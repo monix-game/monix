@@ -35,7 +35,7 @@ export const revivePet = new Elysia()
 
       const result = await mutateUserAndSave<ReviveOutcome>(
         user_uuid,
-        async fetchedUser => {
+        fetchedUser => {
           if ((fetchedUser.money || 0) < reviveCost) {
             return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to revive the pet' } };
           }

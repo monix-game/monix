@@ -23,7 +23,7 @@ export const progressionRoutes = new Elysia()
   .post('/prestige', async ({ authUser, set }) => {
     const result = await mutateUserAndSave<{ ok: boolean; shards?: number; error?: string }>(
       authUser?.uuid as string,
-      async user => {
+      user => {
         const netWorth = getUserNetWorth(user);
         const shards = Math.floor(Math.sqrt(netWorth / 1_000_000_000));
         if (shards < 1) {
@@ -61,7 +61,7 @@ export const progressionRoutes = new Elysia()
       }
       const result = await mutateUserAndSave<{ ok: boolean; level?: number; error?: string }>(
         authUser?.uuid as string,
-        async user => {
+        user => {
           user.prestige ??= { count: 0, shards: 0, lifetime_earned: 0 };
           user.permanent_upgrades ??= {};
           const level = user.permanent_upgrades[upgrade.id] || 0;

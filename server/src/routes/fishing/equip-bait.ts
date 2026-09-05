@@ -28,7 +28,7 @@ export const equipBait = new Elysia()
 
       const result = await mutateUserAndSave<EquipBaitOutcome>(
         user_uuid,
-        async fetchedUser => {
+        fetchedUser => {
           if (
             !fetchedUser.fishing?.bait_owned?.[bait_id] ||
             fetchedUser.fishing.bait_owned[bait_id] <= 0

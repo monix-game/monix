@@ -19,10 +19,20 @@ export const sendMessage = new Elysia()
         return { error: 'User not found' };
       }
 
-      const { room_uuid, content } = body as { room_uuid: string; content: string };
+      const { room_uuid, content, image } = body as {
+        room_uuid: string;
+        content: string;
+        image?: string;
+      };
       const room = await getRoomByUUID(room_uuid || '');
 
-      const result = await sendChatMessage(fetchedUser, room ?? null, room_uuid || '', content || '');
+      const result = await sendChatMessage(
+        fetchedUser,
+        room ?? null,
+        room_uuid || '',
+        content || '',
+        image
+      );
 
       set.status = result.status;
       if (!result.ok) {
@@ -35,6 +45,7 @@ export const sendMessage = new Elysia()
       body: t.Object({
         room_uuid: t.Optional(t.String()),
         content: t.Optional(t.String()),
+        image: t.Optional(t.String()),
       }),
     }
   );

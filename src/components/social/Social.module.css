@@ -88,6 +88,21 @@
   flex: 1;
 }
 
+.social-image-input {
+  display: none;
+}
+
+.social-upload-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+}
+
+.social-upload-label {
+  line-height: 1;
+}
+
 .social-message-send {
   background: none;
   border: none;

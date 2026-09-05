@@ -1,5 +1,10 @@
 import { MongoClient, Db } from 'mongodb';
-import { type IUser, userFromDoc, userToDoc } from '../common/models/user';
+import {
+  type IUser,
+  type IUserStats,
+  userFromDoc,
+  userToDoc,
+} from '../common/models/user';
 import {
   DEFAULT_GLOBAL_SETTINGS,
   globalSettingsFromDoc,
@@ -277,6 +282,69 @@ export async function updateUserActivity(
   void cacheDel(userKey(uuid));
 }
 
+/**
+ * Increment lifetime stats counters for a user using a targeted MongoDB `$inc`,
+ * so a stale in-memory user document can never clobber an unrelated field (e.g.
+ * `daily_rewards` after a claim). Keys missing from the stored counter set are
+ * created automatically.
+ */
+export async function incrementUserStats(
+  uuid: string,
+  counts: Partial<IUserStats>
+): Promise<void> {
+  const database = ensureDB();
+  const inc: Record<string, number> = {};
+  for (const [key, value] of Object.entries(counts)) {
+    const delta = Number(value);
+    if (!Number.isFinite(delta) || delta === 0) continue;
+    inc[`stats.${key}`] = delta;
+  }
+  if (Object.keys(inc).length === 0) return;
+  await database.collection('users').updateOne({ uuid }, { $inc: inc });
+  void cacheDel(userKey(uuid));
+}
+
+/**
+ * Atomically claim the daily reward for a user. The write is guarded so the
+ * reward can only ever be credited once per calendar day (`currentDay`), even
+ * if two requests race or a stale cached user snapshot is involved. Returns
+ * `true` when this call won the claim and the reward was applied, `false`
+ * otherwise (e.g. already claimed today).
+ */
+export async function tryClaimDailyReward(
+  uuid: string,
+  currentDay: number,
+  moneyDelta: number,
+  gemsDelta: number,
+  newStreak: number
+): Promise<boolean> {
+  const database = ensureDB();
+  const result = await database.collection('users').updateOne(
+    {
+      uuid,
+      $or: [
+        { 'daily_rewards.last_claimed_day': { $ne: currentDay } },
+        { daily_rewards: { $exists: false } },
+      ],
+    },
+    {
+      $set: {
+        'daily_rewards.last_claimed_day': currentDay,
+        'daily_rewards.streak': newStreak,
+      },
+      $inc: {
+        money: moneyDelta,
+        gems: gemsDelta,
+        'stats.daily_rewards_claimed': 1,
+      },
+    }
+  );
+  if (result.matchedCount > 0) {
+    void cacheDel(userKey(uuid));
+  }
+  return result.matchedCount > 0;
+}
+
 // ---------------------------------------------------------------------------
 // Per-user write serialization
 // ---------------------------------------------------------------------------
@@ -294,7 +362,7 @@ const userLocks = new Map<string, Promise<void>>();
  * Read the user document directly from MongoDB, bypassing the Redis cache so a
  * mutation never operates on a stale snapshot left by an earlier transaction.
  */
-async function getUserByUUIDFresh(uuid: string): Promise<IUser | null> {
+export async function getUserByUUIDFresh(uuid: string): Promise<IUser | null> {
   const database = ensureDB();
   mongoOperationsTotal.inc({ operation: 'findOne', collection: 'users' });
   const doc = await database.collection('users').findOne({ uuid });
@@ -315,7 +383,9 @@ async function getUserByUUIDFresh(uuid: string): Promise<IUser | null> {
  */
 export async function mutateUserAndSave<T>(
   uuid: string,
-  fn: (user: IUser) => Promise<{ changed: boolean; value: T }>
+  fn: (
+    user: IUser
+  ) => { changed: boolean; value: T } | Promise<{ changed: boolean; value: T }>
 ): Promise<T | null> {
   const prev = userLocks.get(uuid) ?? Promise.resolve();
   let release!: () => void;
@@ -389,7 +459,9 @@ export async function deleteSessionByToken(token: string): Promise<void> {
 
 export async function deleteSessionsByUserUUID(user_uuid: string): Promise<void> {
   const database = ensureDB();
-  const sessions = await database.collection('sessions').find({ user_uuid }).toArray();
+  const sessions = (
+    await database.collection('sessions').find({ user_uuid }).toArray()
+  ).map(sessionFromDoc);
   await database.collection('sessions').deleteMany({ user_uuid });
   for (const s of sessions) {
     void cacheDel(sessionKey(s.token));

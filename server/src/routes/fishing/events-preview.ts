@@ -36,7 +36,7 @@ export const eventsPreview = new Elysia()
 
     const result = await mutateUserAndSave<UnlockOutcome>(
       user_uuid,
-      async fetchedUser => {
+      fetchedUser => {
         if (fetchedUser.fishing?.event_preview_unlocked) {
           return {
             changed: false,

@@ -16,7 +16,7 @@ export const unequipBait = new Elysia()
 
       const result = await mutateUserAndSave<UnequipBaitOutcome>(
         user_uuid,
-        async fetchedUser => {
+        fetchedUser => {
           const fishingState = fetchedUser.fishing;
           if (!fishingState) {
             return { changed: false, value: { ok: 'error', status: 400, error: 'No fishing state available' } };

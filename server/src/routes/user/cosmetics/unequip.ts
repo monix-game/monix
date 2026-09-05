@@ -26,7 +26,7 @@ export const unequipCosmetic = new Elysia()
 
       const result = await mutateUserAndSave<UnequipCosmeticOutcome>(
         authUser2.uuid,
-        async user => {
+        user => {
           user.equipped_cosmetics ??= {};
 
           if (cosmetic_type === 'nameplate') {

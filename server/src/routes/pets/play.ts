@@ -39,7 +39,7 @@ export const playPet = new Elysia()
         return { error: 'Cannot play with the pet while it is asleep' };
       }
 
-      const result = await mutateUserAndSave<PlayOutcome>(user_uuid, async fetchedUser => {
+      const result = await mutateUserAndSave<PlayOutcome>(user_uuid, fetchedUser => {
         fetchedUser.stats ??= DEFAULT_USER_STATS;
         fetchedUser.stats.pets_played = (fetchedUser.stats.pets_played || 0) + 1;
         return {

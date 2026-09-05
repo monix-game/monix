@@ -27,7 +27,7 @@ export const setSetting = new Elysia()
 
       const settings = { ...fetchedUser.settings, [key]: value };
 
-      fetchedUser.settings = convertToSettings(settings as ISettings);
+      fetchedUser.settings = convertToSettings(settings);
       await updateUser(fetchedUser);
 
       return { message: 'Settings updated successfully' };

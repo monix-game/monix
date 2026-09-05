@@ -33,7 +33,7 @@ export const equipCosmetic = new Elysia()
 
       const result = await mutateUserAndSave<EquipCosmeticOutcome>(
         authUser2.uuid,
-        async user => {
+        user => {
           if (!user.cosmetics_unlocked?.includes(cosmetic_id)) {
             return { changed: false, value: { ok: 'error', status: 400, error: 'Cosmetic not unlocked' } };
           }

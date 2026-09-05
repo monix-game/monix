@@ -9,6 +9,7 @@ export interface IMessage {
   sender_avatar_url?: string;
   room_uuid: string;
   content: string;
+  image_url?: string;
   deleted?: boolean;
   sent_restricted?: boolean;
   restricted_role?: 'owner' | 'admin' | 'mod' | 'helper';
@@ -32,6 +33,7 @@ export function messageToDoc(m: IMessage): IMessage {
     sender_avatar_url: m.sender_avatar_url,
     room_uuid: m.room_uuid,
     content: m.content,
+    image_url: m.image_url,
     deleted: m.deleted,
     sent_restricted: m.sent_restricted,
     restricted_role: m.restricted_role,
@@ -57,6 +59,7 @@ export function messageFromDoc(doc: any): IMessage {
     sender_avatar_url: doc.sender_avatar_url || undefined,
     room_uuid: doc.room_uuid || '',
     content: doc.content || '',
+    image_url: doc.image_url || undefined,
     deleted: doc.deleted || false,
     sent_restricted: doc.sent_restricted || false,
     restricted_role: doc.restricted_role || undefined,

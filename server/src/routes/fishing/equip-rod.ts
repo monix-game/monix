@@ -29,7 +29,7 @@ export const equipRod = new Elysia()
 
       const result = await mutateUserAndSave<EquipRodOutcome>(
         user_uuid,
-        async fetchedUser => {
+        fetchedUser => {
           if (!fetchedUser.fishing?.rods_owned?.includes(rod_id)) {
             return { changed: false, value: { ok: 'error', status: 400, error: 'You do not own this rod' } };
           }

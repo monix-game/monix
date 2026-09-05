@@ -119,7 +119,9 @@ export async function notifyNewChatMessage(message: IMessage, room: IRoom | null
 
   const roomName = room.name || 'Chat';
   const senderName = message.sender_username || 'Someone';
-  const body = `${senderName}: ${message.content || 'Sent a message'}`.slice(0, 140);
+  const body = `${senderName}: ${
+    message.content || (message.image_url ? 'Sent an image' : 'Sent a message')
+  }`.slice(0, 140);
 
   // Distinct users that own at least one push subscription.
   const subscriptions = await getAllPushSubscriptions();

@@ -301,6 +301,27 @@ export const Message: React.FC<MessageProps> = ({
         </span>
       </div>
       <div className={`${styles['message-content']} ${message.shouted ? styles.shouted : ''}`}>
+        {message.image_url && (
+          <img
+            src={message.image_url}
+            alt={`Image from ${message.sender_username}`}
+            className={styles['message-image']}
+            loading="lazy"
+            title="Click to open image"
+            onClick={e => {
+              e.stopPropagation();
+              window.open(message.image_url, '_blank', 'noopener');
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                window.open(message.image_url, '_blank', 'noopener');
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          />
+        )}
         {renderMarkdown(message.content)}
       </div>
     </div>

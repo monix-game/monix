@@ -34,7 +34,7 @@ export const buyResource = new Elysia()
 
       const result = await mutateUserAndSave<BuyOutcome>(
         user_uuid,
-        async fetchedUser => {
+        fetchedUser => {
           if (fetchedUser.money === undefined || fetchedUser.money < totalCost) {
             return {
               changed: false,

@@ -8,7 +8,7 @@ import reactX from 'eslint-plugin-react-x';
 import reactDom from 'eslint-plugin-react-dom';
 
 export default defineConfig([
-  globalIgnores(['dist', 'node_modules']),
+  globalIgnores(['dist', 'node_modules', 'server/dist', 'server/node_modules']),
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
     ignores: ['public/**/*', 'dist/**/*', 'node_modules/**/*'],

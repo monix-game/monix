@@ -44,7 +44,7 @@ export const feedPet = new Elysia()
       const feedCost =
         feed_type && FEED_COSTS[feed_type] ? FEED_COSTS[feed_type] : FEED_COSTS['standard'];
 
-      const result = await mutateUserAndSave<FeedOutcome>(user_uuid, async fetchedUser => {
+      const result = await mutateUserAndSave<FeedOutcome>(user_uuid, fetchedUser => {
         if ((fetchedUser.money || 0) < feedCost) {
           return {
             changed: false,

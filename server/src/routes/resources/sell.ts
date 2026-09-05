@@ -32,7 +32,7 @@ export const sellResource = new Elysia()
       const resourcePrice = generatePrice(resourceId, Math.floor(Date.now() / 1000));
       const totalValue = resourcePrice * quantityToSell;
 
-      const result = await mutateUserAndSave<SellOutcome>(user_uuid, async fetchedUser => {
+      const result = await mutateUserAndSave<SellOutcome>(user_uuid, fetchedUser => {
         const currentQuantity = fetchedUser.resources ? fetchedUser.resources[resourceId] || 0 : 0;
         if (fetchedUser.resources === undefined || currentQuantity < quantityToSell) {
           return {

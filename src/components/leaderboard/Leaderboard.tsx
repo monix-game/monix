@@ -27,7 +27,6 @@ function formatPlaytime(ms: number): string {
 }
 
 export const Leaderboard: React.FC = () => {
-  const [hydratedTab, setHydratedTab] = React.useState<LeaderboardTab | null>(null);
   const [activeTab, setActiveTab] = React.useState<LeaderboardTab>('money');
   const [rawMoneyData, setRawMoneyData] = React.useState<LeaderboardEntry[]>([]);
   const [rawFishData, setRawFishData] = React.useState<FishLeaderboardEntry[]>([]);
@@ -83,20 +82,13 @@ export const Leaderboard: React.FC = () => {
     };
   }, [subscribe]);
 
-  useEffect(() => {
-    // Only consider the tab hydrated once its own channel has delivered data.
-    // This prevents the "No data" flash where one leaderboard channel (e.g.
-    // money) arrived before another (e.g. fish) on a fresh subscription.
-    if (activeTab === 'money' && rawMoneyData.length > 0) {
-      setHydratedTab('money');
-    } else if (activeTab === 'fish' && rawFishData.length > 0) {
-      setHydratedTab('fish');
-    } else if (activeTab === 'playtime' && rawPlaytimeData.length > 0) {
-      setHydratedTab('playtime');
-    }
-  }, [activeTab, rawMoneyData, rawFishData, rawPlaytimeData]);
-
-  const hydrated = hydratedTab === activeTab;
+  // Only treat a tab as hydrated once its own channel has delivered data.
+  // This prevents the "No data" flash where one leaderboard channel (e.g.
+  // money) arrives before another (e.g. fish) on a fresh subscription.
+  const hydrated =
+    (activeTab === 'money' && rawMoneyData.length > 0) ||
+    (activeTab === 'fish' && rawFishData.length > 0) ||
+    (activeTab === 'playtime' && rawPlaytimeData.length > 0);
 
   // Resolve the value shown in the trailing column for the active tab.
   const valueFor = (

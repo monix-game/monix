@@ -6,7 +6,14 @@ import { deleteMessage, editMessage, getRoomMessages, reportMessage } from '../.
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
 import type { IUser } from '../../../server/common/models/user';
-import { IconArrowBack, IconClipboard, IconFlag, IconPencil, IconTrash } from '@tabler/icons-react';
+import {
+  IconArrowBack,
+  IconClipboard,
+  IconFlag,
+  IconPencil,
+  IconPhoto,
+  IconTrash,
+} from '@tabler/icons-react';
 import { Modal } from '../modal/Modal';
 import { Select } from '../select/Select';
 import { Button } from '../button/Button';
@@ -17,6 +24,7 @@ import { Spinner } from '../spinner/Spinner';
 import Filter from '../../../server/common/filter/filter';
 import { useSocket } from '../../providers/socket';
 import { PollsPanel } from '../polls/PollsPanel';
+import { CHAT_IMAGE_MAX_DATA_URI_LENGTH } from '../../../server/common/chat';
 
 interface SocialProps {
   user: IUser;
@@ -40,6 +48,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
   const [socialView, setSocialView] = React.useState<'chat' | 'polls'>('chat');
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = React.useState<string>('');
+  const [isUploadingImage, setIsUploadingImage] = React.useState<boolean>(false);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
   const profanityFilter = React.useMemo(() => new Filter(), []);
   const messagesRef = React.useRef<IMessage[]>([]);
   const prevMessagesRef = React.useRef<IMessage[]>([]);
@@ -184,6 +194,60 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
       }
     } catch {
       setMessages(prev => prev.filter(m => !(m.uuid ?? '').startsWith('temp-')));
+    }
+  };
+
+  const sendImageClick = async (file: File) => {
+    if (isUploadingImage || !file || !room) return;
+    if (file.type && !file.type.startsWith('image/')) return;
+
+    // Base64 inflates the size by ~4/3, so reject early if it can't fit.
+    if (file.size > (CHAT_IMAGE_MAX_DATA_URI_LENGTH * 3) / 4) return;
+
+    const imageDataUri = await new Promise<string | null>(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+    if (!imageDataUri || imageDataUri.length > CHAT_IMAGE_MAX_DATA_URI_LENGTH) return;
+
+    setIsUploadingImage(true);
+
+    // Optimistically add the image to the UI (will be replaced by the WS snapshot)
+    setMessages(prev => [
+      ...prev,
+      {
+        uuid: 'temp-' + Date.now(),
+        room_uuid: room.uuid,
+        sender_uuid: user.uuid,
+        sender_username: user.username,
+        sender_badge: user.role,
+        sender_avatar_url: user.avatar_data_uri,
+        user_tag: user.equipped_cosmetics?.tag,
+        nameplate: user.equipped_cosmetics?.nameplate,
+        content: '',
+        image_url: imageDataUri,
+        time_sent: Date.now(),
+        ephemeral: false,
+        edited: false,
+      },
+    ]);
+
+    try {
+      const resp = (await request(
+        'chat:send',
+        { room_uuid: room.uuid, content: '', image: imageDataUri },
+        'chat:send_result'
+      )) as { ok: boolean; error?: string };
+      if (!resp.ok) {
+        setMessages(prev => prev.filter(m => !(m.uuid ?? '').startsWith('temp-')));
+      }
+    } catch {
+      setMessages(prev => prev.filter(m => !(m.uuid ?? '').startsWith('temp-')));
+    } finally {
+      setIsUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
     }
   };
 
@@ -562,17 +626,43 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
             <div className={styles['social-main-bottom']}>
               {!room.restrict_send_to ||
               (room.restrict_send_to && hasRole(user.role, room.restrict_send_to)) ? (
-                <Input
-                  placeholder="Type a message..."
-                  onValueChange={value => setMessageInput(value)}
-                  value={messageInput}
-                  className={styles['social-message-input']}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      void sendMessageClick();
-                    }
-                  }}
-                />
+                <>
+                  <Input
+                    placeholder="Type a message..."
+                    onValueChange={value => setMessageInput(value)}
+                    value={messageInput}
+                    className={styles['social-message-input']}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        void sendMessageClick();
+                      }
+                    }}
+                  />
+                  {hasRole(user.role, 'mod') && (
+                    <>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/gif,image/webp"
+                        className={styles['social-image-input']}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) void sendImageClick(file);
+                        }}
+                      />
+                      <Button
+                        className={styles['social-upload-button']}
+                        disabled={isUploadingImage}
+                        title="Send an image or GIF"
+                        aria-label="Upload image"
+                        onClick={() => imageInputRef.current?.click()}
+                      >
+                        <IconPhoto size={20} />
+                        <span className={styles['social-upload-label']}>Upload</span>
+                      </Button>
+                    </>
+                  )}
+                </>
               ) : (
                 <div className={styles['social-restricted-notice']}>
                   You do not have permission to send messages in this room.

@@ -17,7 +17,7 @@ export const collectSailorEarnings = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
   .onBeforeHandle(onlyActive)
   .post('/sailors/collect', async ({ authUser, set }) => {
-    const result = await mutateUserAndSave<CollectOutcome>(authUser?.uuid as string, async user => {
+    const result = await mutateUserAndSave<CollectOutcome>(authUser?.uuid as string, user => {
       const sailors = user.fishing?.sailors;
       if (!sailors || !Array.isArray(sailors.levels) || sailors.levels.length === 0) {
         return {
