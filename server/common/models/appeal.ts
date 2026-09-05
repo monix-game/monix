@@ -12,6 +12,8 @@ export interface IAppeal {
   reviewed_by?: string;
   time_reviewed?: number;
   review_reason?: string;
+  // View-only enrichment resolved when listing appeals for staff; not persisted.
+  user_username?: string;
 }
 
 export function appealToDoc(m: IAppeal): IAppeal {

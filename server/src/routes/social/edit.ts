@@ -21,7 +21,7 @@ export const editMessage = new Elysia()
       }
 
       const { message_uuid } = params;
-      const { content } = body as { content?: string };
+      const { content } = body;
       const contentText = content ?? '';
 
       const message = await getMessageByUUID(message_uuid);

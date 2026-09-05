@@ -109,6 +109,60 @@
   flex-wrap: wrap;
 }
 
+.report-context-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.report-context-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background-color: var(--dark-bg);
+  border: 1px solid var(--primary-2);
+  border-radius: var(--border-radius);
+}
+
+.report-context-item-reported {
+  border-color: var(--red-2);
+  background-color: var(--red-1);
+}
+
+.report-context-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.report-context-sender {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.report-context-content {
+  word-break: break-word;
+}
+
+.report-context-image {
+  max-width: 220px;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: var(--border-radius);
+  align-self: flex-start;
+}
+
+.report-context-deleted {
+  font-size: 0.75rem;
+  color: var(--red-2);
+  font-style: italic;
+}
+
 .staff-modal {
   display: flex;
   flex-direction: column;

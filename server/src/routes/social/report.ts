@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { v4 } from 'uuid';
 import { createReport, getMessageByUUID, getUserByUUID } from '../../db';
+import { buildReportContext } from '../../helpers/reportContext';
 import { deriveAuth, onlyActive } from '../../middleware';
 import { getCategoryById } from '../../../common/punishx/categories';
 import { hasRole } from '../../../common/roles';
@@ -83,6 +84,7 @@ export const reportMessage = new Elysia()
         details,
         status: 'pending',
         time_reported: Date.now(),
+        context: await buildReportContext(message),
       };
 
       await createReport(report);

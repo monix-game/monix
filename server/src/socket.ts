@@ -28,6 +28,7 @@ import {
   buildUserSnapshot,
 } from './helpers/snapshots';
 import { sendChatMessage } from './helpers/chat';
+import { buildReportContext } from './helpers/reportContext';
 import { notifyNewChatMessage } from './helpers/push';
 import { addUserConnection, removeUserConnection } from './helpers/presence';
 import { applyActivityTracking } from './middleware';
@@ -764,6 +765,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           details,
           status: 'pending',
           time_reported: Date.now(),
+          context: await buildReportContext(reported),
         };
         await createReport(report);
         ws.send(JSON.stringify({ type: 'chat:report_result', ok: true }));

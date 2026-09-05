@@ -93,6 +93,8 @@ export default function Staff() {
   >(null);
   const [selectedReport, setSelectedReport] = useState<IReport | null>(null);
   const [reportChangeCategory, setReportChangeCategory] = useState<string>('');
+  const [contextModalOpen, setContextModalOpen] = useState<boolean>(false);
+  const [contextReport, setContextReport] = useState<IReport | null>(null);
 
   // Appeals states
   const [appealsStatusFilter, setAppealsStatusFilter] = useState<
@@ -1213,6 +1215,18 @@ export default function Staff() {
                       <div className={`${styles['review-body']}`}>
                         <div className={`${styles['staff-info-list']}`}>
                           <div className={`${styles['staff-info-line']}`}>
+                            <span>Reported By</span>
+                            <span className="mono">
+                              {r.reporter_username || r.reporter_uuid}
+                            </span>
+                          </div>
+                          <div className={`${styles['staff-info-line']}`}>
+                            <span>Reported User</span>
+                            <span className="mono">
+                              {r.reported_username || r.reported_uuid}
+                            </span>
+                          </div>
+                          <div className={`${styles['staff-info-line']}`}>
                             <span>Category</span>
                             <span className="mono">{getCategoryById(r.reason)?.name}</span>
                           </div>
@@ -1224,6 +1238,18 @@ export default function Staff() {
                             <span>Details</span>
                             <span className="mono">{r.details || 'N/A'}</span>
                           </div>
+                        </div>
+                        <div className={`${styles['review-buttons']}`}>
+                          {r.context && r.context.length > 0 && (
+                            <Button
+                              onClick={() => {
+                                setContextReport(r);
+                                setContextModalOpen(true);
+                              }}
+                            >
+                              View Context ({r.context.length})
+                            </Button>
+                          )}
                         </div>
                         {r.status === 'pending' && (
                           <div className={`${styles['review-buttons']}`}>
@@ -1321,6 +1347,10 @@ export default function Staff() {
                       </div>
                       <div className={`${styles['review-body']}`}>
                         <div className={`${styles['staff-info-list']}`}>
+                          <div className={`${styles['staff-info-line']}`}>
+                            <span>Appealing User</span>
+                            <span className="mono">{a.user_username || a.user_uuid}</span>
+                          </div>
                           <div className={`${styles['staff-info-line']}`}>
                             <span>Punishment Category</span>
                             <span className="mono">
@@ -1792,6 +1822,80 @@ export default function Staff() {
               </Button>
             </>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={contextModalOpen}
+        onClose={() => setContextModalOpen(false)}
+        ariaLabel="Report chat context"
+        width={640}
+      >
+        <div className={`${styles['staff-modal']}`}>
+          <h2>
+            Chat Context
+            {contextReport &&
+              ` — ${titleCase(
+                getCategoryById(contextReport.reason)?.name || contextReport.reason
+              )}`}
+          </h2>
+          {contextReport && (
+            <p style={{ margin: 0 }}>
+              Reported user:{' '}
+              <b>
+                {contextReport.reported_username || contextReport.reported_uuid}
+              </b>{' '}
+              · Reported by:{' '}
+              <b>
+                {contextReport.reporter_username || contextReport.reporter_uuid}
+              </b>
+            </p>
+          )}
+          {contextReport?.context && contextReport.context.length > 0 ? (
+            <div className={`${styles['report-context-list']}`}>
+              {contextReport.context.map(item => (
+                <div
+                  key={item.message_uuid}
+                  className={`${styles['report-context-item']} ${
+                    item.reported ? styles['report-context-item-reported'] : ''
+                  }`}
+                >
+                  <div className={`${styles['report-context-meta']}`}>
+                    <span className={`${styles['report-context-sender']}`}>
+                      {item.sender_username}
+                      {item.reported ? ' (reported)' : ''}
+                    </span>
+                    <span>{new Date(item.time_sent).toLocaleString()}</span>
+                  </div>
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt="Message attachment"
+                      className={`${styles['report-context-image']}`}
+                    />
+                  ) : item.content ? (
+                    <span className={`${styles['report-context-content']}`}>
+                      {item.content}
+                    </span>
+                  ) : (
+                    <span className={`${styles['report-context-content']}`}>
+                      <i>No text</i>
+                    </span>
+                  )}
+                  {item.deleted && (
+                    <span className={`${styles['report-context-deleted']}`}>
+                      Deleted
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <b>No context available for this report.</b>
+          )}
+          <Button secondary onClick={() => setContextModalOpen(false)}>
+            Close
+          </Button>
         </div>
       </Modal>
 
