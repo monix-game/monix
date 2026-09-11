@@ -185,7 +185,7 @@ export const PetModal: React.FC<PetModalProps> = ({
               </span>
               {charmed && (
                 <span className={styles['pet-modal-sleeping']}>
-                  <EmojiText>✨</EmojiText> Charmed — {charmRemaining} remaining
+                  <EmojiText>✨</EmojiText> Charmed for {charmRemaining}
                 </span>
               )}
               <div className={styles['pet-modal-stat']}>

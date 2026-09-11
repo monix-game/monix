@@ -1,4 +1,4 @@
-import { fnv1a32, mulberry32, formatRemainingTime } from './math';
+import { fnv1a32, mulberry32 } from './math';
 import type { IPet } from './models/pet';
 import {
   getTimeZoneDateUtc,
@@ -17,7 +17,13 @@ export function isPetCharmed(pet: IPet, now: number = Date.now()): boolean {
 export function formatCharmRemaining(pet: IPet, now: number = Date.now()): string {
   if (!isPetCharmed(pet, now)) return '';
   const remainingMs = Math.max(0, pet.charmed_until! - now);
-  return formatRemainingTime(Math.floor(remainingMs / 1000));
+  const remainingSeconds = Math.floor(remainingMs / 1000);
+
+  const days = Math.floor(remainingSeconds / 86400);
+  const hours = Math.floor((remainingSeconds % 86400) / 3600);
+  const minutes = Math.floor((remainingSeconds % 3600) / 60);
+
+  return `${days}d${hours}h${minutes}m`;
 }
 
 export function expRequiredForLevel(level: number): number {

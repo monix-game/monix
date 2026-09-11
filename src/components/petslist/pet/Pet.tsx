@@ -80,7 +80,7 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
             </span>
             {charmed && (
               <span className={styles['pet-sleeping']}>
-                <EmojiText>✨</EmojiText> Charmed — {formatCharmRemaining(pet)}
+                <EmojiText>✨</EmojiText> Charmed for {formatCharmRemaining(pet)}
               </span>
             )}
             <div className={styles['pet-stat']}>
