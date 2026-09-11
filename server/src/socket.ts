@@ -510,9 +510,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
         const target = getAuthData(ws);
         const socketUser = target.socketUser;
         if (!socketUser) {
-          ws.send(
-            JSON.stringify({ type: 'user_snapshot', ok: false, error: 'Not authenticated' })
-          );
+          ws.send(JSON.stringify({ type: 'user_snapshot', ok: false, error: 'Not authenticated' }));
           break;
         }
         const snapshot = await buildUserSnapshot(socketUser);
@@ -683,8 +681,7 @@ async function handleSocketMessage(ws: WSSocket, raw: unknown) {
           break;
         }
         // Image messages may have an empty caption, so only censor real text.
-        const censoredContent =
-          content.trim() === '' ? '' : profanityFilter.censorText(content);
+        const censoredContent = content.trim() === '' ? '' : profanityFilter.censorText(content);
         if (
           content.trim() !== '' &&
           (censoredContent.trim() === '' || censoredContent.replaceAll(/\*+/g, '').trim() === '')

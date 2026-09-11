@@ -32,7 +32,8 @@ export const recoveryGenerate = new Elysia()
 
     set.status = 201;
     return {
-      message: 'Recovery codes generated. Store them somewhere safe - they will only be shown once.',
+      message:
+        'Recovery codes generated. Store them somewhere safe - they will only be shown once.',
       codes: plain,
     };
   });

@@ -65,9 +65,7 @@ export const Resource: React.FC<ResourceProps> = ({
           </span>
           {changePct !== undefined && (
             <span
-              className={`${styles['resource-change']} ${
-                changePct >= 0 ? styles.up : styles.down
-              }`}
+              className={`${styles['resource-change']} ${changePct >= 0 ? styles.up : styles.down}`}
             >
               {changePct >= 0 ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%
             </span>

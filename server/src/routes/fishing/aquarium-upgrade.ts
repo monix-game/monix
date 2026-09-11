@@ -14,42 +14,39 @@ export const upgradeAquarium = new Elysia()
   .post('/aquarium/upgrade', async ({ authUser, set }) => {
     const user_uuid = authUser?.uuid as string;
 
-    const result = await mutateUserAndSave<UpgradeOutcome>(
-      user_uuid,
-      fetchedUser => {
-        // Initialize fishing data if not present
-        fetchedUser.fishing ??= {
-          aquarium: { capacity: 10, level: 1, fish: [] },
-          bait_owned: {},
-          fish_caught: {},
-          rods_owned: [],
-        };
+    const result = await mutateUserAndSave<UpgradeOutcome>(user_uuid, fetchedUser => {
+      // Initialize fishing data if not present
+      fetchedUser.fishing ??= {
+        aquarium: { capacity: 10, level: 1, fish: [] },
+        bait_owned: {},
+        fish_caught: {},
+        rods_owned: [],
+      };
 
-        const upgradeCost = getAquariumUpgradeCost(fetchedUser.fishing.aquarium.level || 1);
+      const upgradeCost = getAquariumUpgradeCost(fetchedUser.fishing.aquarium.level || 1);
 
-        if (fetchedUser.money < upgradeCost) {
-          return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds' } };
-        }
-
-        // Deduct money and upgrade aquarium capacity
-        fetchedUser.money -= upgradeCost;
-        fetchedUser.fishing.aquarium.capacity += 10;
-        fetchedUser.fishing.aquarium.level = (fetchedUser.fishing.aquarium.level || 1) + 1;
-
-        fetchedUser.stats ??= DEFAULT_USER_STATS;
-        fetchedUser.stats.aquarium_upgrades = (fetchedUser.stats.aquarium_upgrades || 0) + 1;
-
-        return {
-          changed: true,
-          value: {
-            ok: 'success' as const,
-            message: 'Aquarium upgraded successfully',
-            money: fetchedUser.money,
-            aquarium_capacity: fetchedUser.fishing.aquarium.capacity,
-          },
-        };
+      if (fetchedUser.money < upgradeCost) {
+        return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds' } };
       }
-    );
+
+      // Deduct money and upgrade aquarium capacity
+      fetchedUser.money -= upgradeCost;
+      fetchedUser.fishing.aquarium.capacity += 10;
+      fetchedUser.fishing.aquarium.level = (fetchedUser.fishing.aquarium.level || 1) + 1;
+
+      fetchedUser.stats ??= DEFAULT_USER_STATS;
+      fetchedUser.stats.aquarium_upgrades = (fetchedUser.stats.aquarium_upgrades || 0) + 1;
+
+      return {
+        changed: true,
+        value: {
+          ok: 'success' as const,
+          message: 'Aquarium upgraded successfully',
+          money: fetchedUser.money,
+          aquarium_capacity: fetchedUser.fishing.aquarium.capacity,
+        },
+      };
+    });
 
     if (!result) {
       set.status = 404;

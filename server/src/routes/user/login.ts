@@ -17,109 +17,107 @@ const authLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
-export const login = new Elysia()
-  .use(authLimiter)
-  .post(
-    '/login',
-    async ({ body, set }) => {
-      const { username, password, token, recoveryCode, tempToken } = body;
-      const passkeyCred =
-        (body.passkeyCredential as AuthenticationCredentialDTO | undefined) ?? undefined;
+export const login = new Elysia().use(authLimiter).post(
+  '/login',
+  async ({ body, set }) => {
+    const { username, password, token, recoveryCode, tempToken } = body;
+    const passkeyCred =
+      (body.passkeyCredential as AuthenticationCredentialDTO | undefined) ?? undefined;
 
-      if (!username || !password) {
-        set.status = 400;
-        return { error: 'Missing username or password' };
-      }
-
-      const user = await getUserByUsername(username);
-      if (!user) {
-        set.status = 401;
-        return { error: 'Invalid username or password' };
-      }
-
-      const password_hash = crypto.createHash('sha256').update(String(password)).digest('hex');
-      if (user.password_hash !== password_hash) {
-        set.status = 401;
-        return { error: 'Invalid username or password' };
-      }
-
-      if (getTwoFactorState(user).needs_2fa) {
-        const origins = CORS_ORIGINS.includes('*')
-          ? [
-              'http://localhost:5173',
-              'http://localhost:6200',
-              'https://monix.proplayer919.dev',
-              'https://monixga.me',
-            ]
-          : CORS_ORIGINS;
-
-        const result = verifySecondFactor(user, {
-          token,
-          recoveryCode,
-          tempToken,
-          passkeyCredential: passkeyCred,
-          origins,
-        });
-
-        if (!result.verified) {
-          set.status = 401;
-          return { error: result.reason };
-        }
-
-        // Persist any state changes (e.g. a consumed recovery code or passkey counter).
-        if (result.changed) {
-          await updateUser(result.user);
-        }
-      }
-
-      // Clean up stale cosmetics: drop any owned/equipped cosmetics that no
-      // longer exist in the catalog (e.g. removed items like frame cosmetics).
-      const validCosmeticIds = new Set(cosmetics.map(c => c.id));
-      const cleanupNeeded =
-        (user.cosmetics_unlocked || []).some(id => !validCosmeticIds.has(id)) ||
-        (user.equipped_cosmetics &&
-          Object.values(user.equipped_cosmetics).some(id => id && !validCosmeticIds.has(id)));
-
-      if (cleanupNeeded) {
-        user.cosmetics_unlocked = (user.cosmetics_unlocked || []).filter(id =>
-          validCosmeticIds.has(id)
-        );
-        if (user.equipped_cosmetics) {
-          const nextEquipped: NonNullable<IUser['equipped_cosmetics']> = {};
-          for (const [key, id] of Object.entries(user.equipped_cosmetics) as [
-            keyof NonNullable<IUser['equipped_cosmetics']>,
-            string | undefined,
-          ][]) {
-            if (id && validCosmeticIds.has(id)) nextEquipped[key] = id;
-          }
-          user.equipped_cosmetics = nextEquipped;
-        }
-        await updateUser(user);
-      }
-
-      const session_token = v4();
-      const time_now = Date.now() / 1000;
-      const session = {
-        token: session_token,
-        user_uuid: user.uuid,
-        time_created: time_now,
-        expires_at: time_now + SESSION_EXPIRES_IN,
-      };
-      await createSession(session);
-
-      set.status = 200;
-      return { message: 'Login successful', session: sessionToDoc(session) };
-    },
-    {
-      body: t.Object({
-        username: t.Optional(t.String()),
-        password: t.Optional(t.String()),
-        token: t.Optional(t.String()),
-        recoveryCode: t.Optional(t.String()),
-        tempToken: t.Optional(t.String()),
-        passkeyCredential: t.Optional(t.Any()),
-      }),
+    if (!username || !password) {
+      set.status = 400;
+      return { error: 'Missing username or password' };
     }
-  );
+
+    const user = await getUserByUsername(username);
+    if (!user) {
+      set.status = 401;
+      return { error: 'Invalid username or password' };
+    }
+
+    const password_hash = crypto.createHash('sha256').update(String(password)).digest('hex');
+    if (user.password_hash !== password_hash) {
+      set.status = 401;
+      return { error: 'Invalid username or password' };
+    }
+
+    if (getTwoFactorState(user).needs_2fa) {
+      const origins = CORS_ORIGINS.includes('*')
+        ? [
+            'http://localhost:5173',
+            'http://localhost:6200',
+            'https://monix.proplayer919.dev',
+            'https://monixga.me',
+          ]
+        : CORS_ORIGINS;
+
+      const result = verifySecondFactor(user, {
+        token,
+        recoveryCode,
+        tempToken,
+        passkeyCredential: passkeyCred,
+        origins,
+      });
+
+      if (!result.verified) {
+        set.status = 401;
+        return { error: result.reason };
+      }
+
+      // Persist any state changes (e.g. a consumed recovery code or passkey counter).
+      if (result.changed) {
+        await updateUser(result.user);
+      }
+    }
+
+    // Clean up stale cosmetics: drop any owned/equipped cosmetics that no
+    // longer exist in the catalog (e.g. removed items like frame cosmetics).
+    const validCosmeticIds = new Set(cosmetics.map(c => c.id));
+    const cleanupNeeded =
+      (user.cosmetics_unlocked || []).some(id => !validCosmeticIds.has(id)) ||
+      (user.equipped_cosmetics &&
+        Object.values(user.equipped_cosmetics).some(id => id && !validCosmeticIds.has(id)));
+
+    if (cleanupNeeded) {
+      user.cosmetics_unlocked = (user.cosmetics_unlocked || []).filter(id =>
+        validCosmeticIds.has(id)
+      );
+      if (user.equipped_cosmetics) {
+        const nextEquipped: NonNullable<IUser['equipped_cosmetics']> = {};
+        for (const [key, id] of Object.entries(user.equipped_cosmetics) as [
+          keyof NonNullable<IUser['equipped_cosmetics']>,
+          string | undefined,
+        ][]) {
+          if (id && validCosmeticIds.has(id)) nextEquipped[key] = id;
+        }
+        user.equipped_cosmetics = nextEquipped;
+      }
+      await updateUser(user);
+    }
+
+    const session_token = v4();
+    const time_now = Date.now() / 1000;
+    const session = {
+      token: session_token,
+      user_uuid: user.uuid,
+      time_created: time_now,
+      expires_at: time_now + SESSION_EXPIRES_IN,
+    };
+    await createSession(session);
+
+    set.status = 200;
+    return { message: 'Login successful', session: sessionToDoc(session) };
+  },
+  {
+    body: t.Object({
+      username: t.Optional(t.String()),
+      password: t.Optional(t.String()),
+      token: t.Optional(t.String()),
+      recoveryCode: t.Optional(t.String()),
+      tempToken: t.Optional(t.String()),
+      passkeyCredential: t.Optional(t.Any()),
+    }),
+  }
+);
 
 export default login;

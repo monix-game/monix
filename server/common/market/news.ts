@@ -57,7 +57,14 @@ export const MARKET_HEADLINES: MarketHeadline[] = [
     id: 'tech-boom',
     text: 'Electronics boom as a new gadget FOMO grips the island',
     icon: '📱',
-    effects: { smartphone: 1.16, laptop: 1.18, camera: 1.12, battery: 1.1, copper: 1.08, lithium: 1.1 },
+    effects: {
+      smartphone: 1.16,
+      laptop: 1.18,
+      camera: 1.12,
+      battery: 1.1,
+      copper: 1.08,
+      lithium: 1.1,
+    },
   },
   {
     id: 'tech-glut',
@@ -111,7 +118,15 @@ export const MARKET_HEADLINES: MarketHeadline[] = [
     id: 'new-mine',
     text: 'New mines open, flooding the market with ores',
     icon: '🪨',
-    effects: { iron: 0.85, coal: 0.82, copper: 0.88, nickel: 0.9, zinc: 0.88, lead: 0.85, uranium: 0.92 },
+    effects: {
+      iron: 0.85,
+      coal: 0.82,
+      copper: 0.88,
+      nickel: 0.9,
+      zinc: 0.88,
+      lead: 0.85,
+      uranium: 0.92,
+    },
   },
   {
     id: 'dairy-crater',

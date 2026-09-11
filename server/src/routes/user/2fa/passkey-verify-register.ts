@@ -91,13 +91,13 @@ export const passkeyVerifyRegister = new Elysia()
         counter: result.signCount,
         name: typeof name === 'string' ? name.slice(0, 50) : 'Passkey',
         created_at: Date.now(),
-        transports: Array.isArray(cred.response?.transports)
-          ? cred.response.transports
-          : [],
+        transports: Array.isArray(cred.response?.transports) ? cred.response.transports : [],
       });
 
       // If this passkey is the user's very first 2FA method, seed recovery codes.
-      const recovery = was2FAEnabled ? { created: false, plain: [] as string[] } : ensureRecoveryCodes(user);
+      const recovery = was2FAEnabled
+        ? { created: false, plain: [] as string[] }
+        : ensureRecoveryCodes(user);
 
       await updateUser(user);
       deleteChallengeForKey(`register:${user.uuid}`);

@@ -52,10 +52,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Input } from '../input/Input';
 import { COMMIT, COMMIT_NUMBER_THIS_MONTH, BUILD_TIMESTAMP } from '../../version';
 import { useMusic } from '../../providers/music';
-import {
-  enablePushNotifications,
-  disablePushNotifications,
-} from '../../helpers/notifications';
+import { enablePushNotifications, disablePushNotifications } from '../../helpers/notifications';
 
 interface SettingsProps {
   user: IUser;
@@ -180,10 +177,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       }
 
       const name = passkeyName.trim() || 'Passkey';
-      const result = await passkeyVerifyRegister(
-        serializeRegistrationCredential(credential),
-        name
-      );
+      const result = await passkeyVerifyRegister(serializeRegistrationCredential(credential), name);
 
       if (result.success) {
         setIsPasskeyAddModalOpen(false);
@@ -677,11 +671,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       <Modal isOpen={isPasskeyRenameModalOpen} onClose={() => setIsPasskeyRenameModalOpen(false)}>
         <div className={styles['settings-confirm-modal']}>
           <h2>Rename Passkey</h2>
-          <Input
-            label="Passkey Name"
-            value={renameName}
-            onValueChange={setRenameName}
-          />
+          <Input label="Passkey Name" value={renameName} onValueChange={setRenameName} />
           <Button
             onClickAsync={async () => {
               await handleRenamePasskey();
@@ -696,9 +686,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       <Modal isOpen={isPasskeyDeleteModalOpen} onClose={() => setIsPasskeyDeleteModalOpen(false)}>
         <div className={styles['settings-confirm-modal']}>
           <h2>Remove Passkey</h2>
-          <p>
-            Are you sure you want to remove "{deleteTarget?.name}"? This cannot be undone.
-          </p>
+          <p>Are you sure you want to remove "{deleteTarget?.name}"? This cannot be undone.</p>
           <Button onClick={() => setIsPasskeyDeleteModalOpen(false)}>Cancel</Button>
           <Button
             onClickAsync={async () => {
@@ -718,8 +706,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           {recoveryCodes.length > 0 ? (
             <>
               <p>
-                Store these recovery codes somewhere safe. Each one can be used once to
-                bypass two-factor authentication. They will not be shown again.
+                Store these recovery codes somewhere safe. Each one can be used once to bypass
+                two-factor authentication. They will not be shown again.
               </p>
               <div className={styles['settings-recovery-codes']}>
                 {recoveryCodes.map((code, i) => (
@@ -753,8 +741,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
                   : 'Generate a fresh set of recovery codes.'}
               </p>
               <p>
-                Recovery codes let you sign in without your authenticator or passkey. Each code
-                can only be used once.
+                Recovery codes let you sign in without your authenticator or passkey. Each code can
+                only be used once.
               </p>
               <Button
                 onClickAsync={async () => {
@@ -876,7 +864,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       <Modal isOpen={isCreditsModalOpen} onClose={() => setIsCreditsModalOpen(false)}>
         <div className={styles['settings-credits-modal']}>
           <h2>Credits</h2>
-          <p className={styles['settings-credits-subtitle']}>Built with care by the creators below.</p>
+          <p className={styles['settings-credits-subtitle']}>
+            Built with care by the creators below.
+          </p>
           <div className={styles['settings-credits-grid']}>
             <div className={styles['settings-credits-card']}>
               <div className={styles['settings-credits-name']}>proplayer919</div>

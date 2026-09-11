@@ -27,26 +27,26 @@ export const equipRod = new Elysia()
         return { error: 'Invalid rod_id' };
       }
 
-      const result = await mutateUserAndSave<EquipRodOutcome>(
-        user_uuid,
-        fetchedUser => {
-          if (!fetchedUser.fishing?.rods_owned?.includes(rod_id)) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'You do not own this rod' } };
-          }
-
-          // Equip the rod
-          fetchedUser.fishing.equipped_rod = rod_id;
-
+      const result = await mutateUserAndSave<EquipRodOutcome>(user_uuid, fetchedUser => {
+        if (!fetchedUser.fishing?.rods_owned?.includes(rod_id)) {
           return {
-            changed: true,
-            value: {
-              ok: 'success' as const,
-              message: 'Rod equipped successfully',
-              equipped_rod: fetchedUser.fishing.equipped_rod,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'You do not own this rod' },
           };
         }
-      );
+
+        // Equip the rod
+        fetchedUser.fishing.equipped_rod = rod_id;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Rod equipped successfully',
+            equipped_rod: fetchedUser.fishing.equipped_rod,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

@@ -22,7 +22,10 @@ export interface PasskeySummary {
   created_at: number;
 }
 
-export async function userNeeds2FA(username: string, password: string): Promise<TwoFactorStatus | null> {
+export async function userNeeds2FA(
+  username: string,
+  password: string
+): Promise<TwoFactorStatus | null> {
   try {
     const resp = await api.post<TwoFactorStatus>('/user/needs-2fa', {
       username,
@@ -242,10 +245,9 @@ export async function finish2FA(
   token: string
 ): Promise<{ success: boolean; recoveryCodes?: string[] }> {
   try {
-    const resp = await api.post<{ message: string; recoveryCodes?: string[] }>(
-      '/user/finish-2fa',
-      { token }
-    );
+    const resp = await api.post<{ message: string; recoveryCodes?: string[] }>('/user/finish-2fa', {
+      token,
+    });
     return { success: resp.success, recoveryCodes: resp.data?.recoveryCodes };
   } catch (err) {
     console.error('Error finishing 2FA setup', err);

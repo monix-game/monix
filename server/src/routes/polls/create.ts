@@ -66,13 +66,19 @@ export const createPollEndpoint = new Elysia()
 
       await createPoll(poll);
 
-      const view = buildPollView(poll, (authUser as { uuid?: string } | undefined)?.uuid || '', Date.now());
+      const view = buildPollView(
+        poll,
+        (authUser as { uuid?: string } | undefined)?.uuid || '',
+        Date.now()
+      );
       return { poll: view };
     },
     {
       body: t.Object({
         question: t.Optional(t.String()),
-        options: t.Optional(t.Array(t.Object({ label: t.Optional(t.String()), emoji: t.Optional(t.String()) }))),
+        options: t.Optional(
+          t.Array(t.Object({ label: t.Optional(t.String()), emoji: t.Optional(t.String()) }))
+        ),
         starts_at: t.Optional(t.Number()),
         ends_at: t.Optional(t.Number()),
       }),

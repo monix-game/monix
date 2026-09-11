@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './PetModal.module.css';
-import { Button, EmojiText, Input, Modal } from '../..';
+import { Button, EmojiText, Input, Modal, PaymentModal } from '../..';
 import type { IPet } from '../../../../server/common/models/pet';
 import {
   calculateHappiness,
@@ -38,6 +38,15 @@ interface PetModalProps {
   onCharm?: () => void;
 }
 
+type PaymentKindName = 'feed-standard' | 'feed-premium' | 'revive' | 'bury';
+
+const PAYMENT_CONFIGS: { [K in PaymentKindName]: { amount: number; productName: string } } = {
+  'feed-standard': { amount: 20, productName: 'Standard Meal' },
+  'feed-premium': { amount: 50, productName: 'Premium Meal' },
+  revive: { amount: 100000, productName: 'Revive' },
+  bury: { amount: 500, productName: 'Bury Pet' },
+};
+
 export const PetModal: React.FC<PetModalProps> = ({
   isOpen,
   money,
@@ -57,7 +66,8 @@ export const PetModal: React.FC<PetModalProps> = ({
   const [namingPet, setNamingPet] = React.useState<boolean>(false);
   const [petNameInput, setPetNameInput] = React.useState<string>(pet.name || '');
   const [feedingPet, setFeedingPet] = React.useState<boolean>(false);
-  const [confirmingRevive, setConfirmingRevive] = React.useState<boolean>(false);
+  const [paymentKind, setPaymentKind] = React.useState<PaymentKindName | null>(null);
+  const [isPaymentLoading, setIsPaymentLoading] = React.useState<boolean>(false);
 
   const playWithPetClick = async () => {
     await playWithPet(pet.uuid);
@@ -84,7 +94,6 @@ export const PetModal: React.FC<PetModalProps> = ({
 
   const revivePetClick = async () => {
     await revivePet(pet.uuid);
-    setConfirmingRevive(false);
     void updateList();
   };
 
@@ -104,6 +113,23 @@ export const PetModal: React.FC<PetModalProps> = ({
     onClose();
   };
 
+  const purchaseAction = async (kind: PaymentKindName): Promise<void> => {
+    switch (kind) {
+      case 'feed-standard':
+        await feedPetStandardClick();
+        break;
+      case 'feed-premium':
+        await feedPetPremiumClick();
+        break;
+      case 'revive':
+        await revivePetClick();
+        break;
+      case 'bury':
+        await confirmReleasePetClick();
+        break;
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -111,7 +137,7 @@ export const PetModal: React.FC<PetModalProps> = ({
         setConfirmingRelease(false);
         setNamingPet(false);
         setFeedingPet(false);
-        setConfirmingRevive(false);
+        setPaymentKind(null);
         onClose();
       }}
     >
@@ -146,10 +172,22 @@ export const PetModal: React.FC<PetModalProps> = ({
             </div>
             <div className={styles['pet-modal-stats']}>
               <span className={styles['pet-modal-sleeping']}>
-                {isPetAsleep(pet) &&
-                  `💤 Sleeping for ${formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}`}
-                {!isPetAsleep(pet) && `😄 Sleeping in ${formatTimeUntilSleep(pet.uuid)}`}
+                {isPetAsleep(pet) ? (
+                  <>
+                    <EmojiText>💤</EmojiText> Sleeping for{' '}
+                    {formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}
+                  </>
+                ) : (
+                  <>
+                    <EmojiText>😄</EmojiText> Sleeping in {formatTimeUntilSleep(pet.uuid)}
+                  </>
+                )}
               </span>
+              {charmed && (
+                <span className={styles['pet-modal-sleeping']}>
+                  <EmojiText>✨</EmojiText> Charmed — {charmRemaining} remaining
+                </span>
+              )}
               <div className={styles['pet-modal-stat']}>
                 <span className={styles['pet-modal-stat-label']}>Happiness:</span>
                 <span className={styles['pet-modal-stat-value']}>{happiness}%</span>
@@ -159,23 +197,6 @@ export const PetModal: React.FC<PetModalProps> = ({
                 <span className={styles['pet-modal-stat-value']}>{hunger}%</span>
               </div>
             </div>
-          </>
-        )}
-        {!pet.is_dead && (
-          <>
-            {charmed ? (
-              <span className={styles['pet-modal-charmed']}>✨ Charmed — {charmRemaining} remaining</span>
-            ) : (
-              <Button
-                color="purple"
-                cost={CHARM_COST_GEMS}
-                costType="gems"
-                disabled={!onCharm || !hasGems(gems, CHARM_COST_GEMS)}
-                onClick={onCharm}
-              >
-                Charm
-              </Button>
-            )}
           </>
         )}
         {namingPet && (
@@ -195,6 +216,15 @@ export const PetModal: React.FC<PetModalProps> = ({
           </div>
         )}
         <div className={styles['pet-modal-actions']}>
+          {!pet.is_dead && !charmed && (
+            <Button
+              color="purple"
+              disabled={!onCharm || !hasGems(gems, CHARM_COST_GEMS)}
+              onClick={onCharm}
+            >
+              Charm
+            </Button>
+          )}
           {pet.name === '' && !confirmingRelease && !namingPet && !pet.is_dead && (
             <>
               <Button onClick={() => setNamingPet(true)}>Give a Name</Button>
@@ -252,16 +282,14 @@ export const PetModal: React.FC<PetModalProps> = ({
           {feedingPet && (
             <>
               <Button
-                cost={20}
-                disabled={money < 20 || !canFeedPet(pet) || isPetAsleep(pet)}
-                onClickAsync={feedPetStandardClick}
+                disabled={!canFeedPet(pet) || isPetAsleep(pet)}
+                onClick={() => setPaymentKind('feed-standard')}
               >
                 Standard
               </Button>
               <Button
-                cost={50}
-                disabled={money < 50 || !canFeedPet(pet) || isPetAsleep(pet)}
-                onClickAsync={feedPetPremiumClick}
+                disabled={!canFeedPet(pet) || isPetAsleep(pet)}
+                onClick={() => setPaymentKind('feed-premium')}
               >
                 Premium
               </Button>
@@ -270,28 +298,38 @@ export const PetModal: React.FC<PetModalProps> = ({
               </Button>
             </>
           )}
-          {pet.is_dead && !confirmingRelease && !confirmingRevive && (
+          {pet.is_dead && !confirmingRelease && (
             <>
-              <Button cost={100000} onClick={() => setConfirmingRevive(true)}>
-                Revive
-              </Button>
-              <Button cost={500} secondary onClick={() => setConfirmingRelease(true)}>
+              <Button onClick={() => setPaymentKind('revive')}>Revive</Button>
+              <Button secondary onClick={() => setPaymentKind('bury')}>
                 Bury
-              </Button>
-            </>
-          )}
-          {confirmingRevive && pet.is_dead && (
-            <>
-              <Button onClickAsync={revivePetClick} disabled={money < 100000}>
-                Confirm
-              </Button>
-              <Button secondary onClick={() => setConfirmingRevive(false)}>
-                Cancel
               </Button>
             </>
           )}
         </div>
       </div>
+
+      {paymentKind && (
+        <PaymentModal
+          isOpen={true}
+          isLoading={isPaymentLoading}
+          onClose={() => setPaymentKind(null)}
+          type="money"
+          amount={PAYMENT_CONFIGS[paymentKind].amount}
+          balance={money}
+          productName={PAYMENT_CONFIGS[paymentKind].productName}
+          onPurchase={async () => {
+            setIsPaymentLoading(true);
+
+            // Artificial delay, since the purchase is usually instant
+            await new Promise(resolve => setTimeout(resolve, 750));
+
+            await purchaseAction(paymentKind);
+            setIsPaymentLoading(false);
+            setPaymentKind(null);
+          }}
+        />
+      )}
     </Modal>
   );
 };

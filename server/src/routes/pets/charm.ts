@@ -52,7 +52,11 @@ export const charmPet = new Elysia()
         pet.charmed_until = Date.now() + CHARM_DURATION_MS;
         return {
           changed: true,
-          value: { ok: 'success' as const, message: 'Pet charmed successfully', pet: petToDoc(pet) },
+          value: {
+            ok: 'success' as const,
+            message: 'Pet charmed successfully',
+            pet: petToDoc(pet),
+          },
         };
       });
 

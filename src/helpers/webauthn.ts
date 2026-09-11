@@ -72,7 +72,9 @@ export interface AuthenticationCredentialDTO {
  * Decode a server public-key credential creation options blob (from
  * `/passkey/options/register`) into an `PublicKeyCredentialCreationOptions`.
  */
-export function decodeCreationOptions(options: CreationOptionsDTO): PublicKeyCredentialCreationOptions {
+export function decodeCreationOptions(
+  options: CreationOptionsDTO
+): PublicKeyCredentialCreationOptions {
   return {
     challenge: base64UrlToArrayBuffer(options.challenge),
     rp: options.rp,
@@ -85,7 +87,7 @@ export function decodeCreationOptions(options: CreationOptionsDTO): PublicKeyCre
     timeout: options.timeout,
     attestation: options.attestation,
     authenticatorSelection: options.authenticatorSelection,
-    excludeCredentials: (options.excludeCredentials || []).map((c) => ({
+    excludeCredentials: (options.excludeCredentials || []).map(c => ({
       id: base64UrlToArrayBuffer(c.id),
       type: c.type,
     })),
@@ -114,13 +116,15 @@ export function serializeRegistrationCredential(
  * Decode a server authentication options blob (from `/passkey/options/auth`) into
  * a `PublicKeyCredentialRequestOptions`.
  */
-export function decodeRequestOptions(options: RequestOptionsDTO): PublicKeyCredentialRequestOptions {
+export function decodeRequestOptions(
+  options: RequestOptionsDTO
+): PublicKeyCredentialRequestOptions {
   return {
     challenge: base64UrlToArrayBuffer(options.challenge),
     rpId: options.rpId,
     timeout: options.timeout,
     userVerification: options.userVerification,
-    allowCredentials: (options.allowCredentials || []).map((c) => ({
+    allowCredentials: (options.allowCredentials || []).map(c => ({
       id: base64UrlToArrayBuffer(c.id),
       type: c.type,
       transports: c.transports || [],
@@ -149,5 +153,7 @@ export function serializeAuthenticationCredential(
 }
 
 export function isWebAuthnSupported(): boolean {
-  return typeof navigator !== 'undefined' && !!navigator.credentials && !!navigator.credentials.create;
+  return (
+    typeof navigator !== 'undefined' && !!navigator.credentials && !!navigator.credentials.create
+  );
 }

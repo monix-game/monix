@@ -63,13 +63,10 @@ export const pardon = new Elysia()
         level: 'info',
         type: 'moderation',
         message: 'Punishment lifted',
-        data: buildRequestLogData(
-          { path, method: request.method, headers },
-          [
-            { key: 'target', value: targetUser.username },
-            { key: 'punishment_category', value: punishment.category.name },
-          ]
-        ),
+        data: buildRequestLogData({ path, method: request.method, headers }, [
+          { key: 'target', value: targetUser.username },
+          { key: 'punishment_category', value: punishment.category.name },
+        ]),
         username: fetchedUser.username,
       });
 

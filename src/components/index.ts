@@ -24,7 +24,4 @@ export { Avatar } from './avatar/Avatar';
 export { DebugOverlay } from './debugoverlay/DebugOverlay';
 export { PaymentModal } from './paymentmodal/PaymentModal';
 export { NewsTicker } from './newsticker/NewsTicker';
-export {
-  NotificationToasts,
-  type ChatToastData,
-} from './notificationtoast/NotificationToasts';
+export { NotificationToasts, type ChatToastData } from './notificationtoast/NotificationToasts';

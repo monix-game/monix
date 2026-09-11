@@ -211,7 +211,9 @@ export default function Staff() {
   }, []);
 
   useEffect(() => {
-    startTransition(() => { void updateEverything(); });
+    startTransition(() => {
+      void updateEverything();
+    });
 
     const interval = setInterval(async () => {
       await updateEverything();
@@ -763,7 +765,9 @@ export default function Staff() {
 
   useEffect(() => {
     if (!ipSelected) return;
-    startTransition(() => { void loadIpGeo(ipSelected); });
+    startTransition(() => {
+      void loadIpGeo(ipSelected);
+    });
   }, [ipSelected, loadIpGeo]);
 
   const punishmentsForModal = (punishmentsModalUser?.punishments || [])
@@ -1131,13 +1135,17 @@ export default function Staff() {
                     <h3>
                       <EmojiText>🛡️ Active Punishments</EmojiText>
                     </h3>
-                    <span className={`${styles['big-number']}`}>{dashboardData?.totalPunishments}</span>
+                    <span className={`${styles['big-number']}`}>
+                      {dashboardData?.totalPunishments}
+                    </span>
                   </div>
                   <div className={`${styles['dashboard-card']}`}>
                     <h3>
                       <EmojiText>🛡️ Punishments Last 24h</EmojiText>
                     </h3>
-                    <span className={`${styles['big-number']}`}>{dashboardData?.punishmentsLast24Hours}</span>
+                    <span className={`${styles['big-number']}`}>
+                      {dashboardData?.punishmentsLast24Hours}
+                    </span>
                   </div>
                   <div className={`${styles['dashboard-card']}`}>
                     <h3>
@@ -1149,7 +1157,9 @@ export default function Staff() {
                     <h3>
                       <EmojiText>📋 Reports Last 24h</EmojiText>
                     </h3>
-                    <span className={`${styles['big-number']}`}>{dashboardData?.reportsLast24Hours}</span>
+                    <span className={`${styles['big-number']}`}>
+                      {dashboardData?.reportsLast24Hours}
+                    </span>
                   </div>
                   <div className={`${styles['dashboard-card']}`}>
                     <h3>
@@ -1161,7 +1171,9 @@ export default function Staff() {
                     <h3>
                       <EmojiText>⚖️ Appeals Last 24h</EmojiText>
                     </h3>
-                    <span className={`${styles['big-number']}`}>{dashboardData?.appealsLast24Hours}</span>
+                    <span className={`${styles['big-number']}`}>
+                      {dashboardData?.appealsLast24Hours}
+                    </span>
                   </div>
                 </>
               )}
@@ -1208,7 +1220,9 @@ export default function Staff() {
                   .map(r => (
                     <div key={r.uuid} className={`${styles['review-card']}`}>
                       <div className={`${styles['review-header']}`}>
-                        <span className={`${styles['review-badge']} ${r.status}`}>{titleCase(r.status)}</span>
+                        <span className={`${styles['review-badge']} ${r.status}`}>
+                          {titleCase(r.status)}
+                        </span>
                         <span className="review-time">
                           {formatRelativeTime(new Date(r.time_reported))}
                         </span>
@@ -1217,15 +1231,11 @@ export default function Staff() {
                         <div className={`${styles['staff-info-list']}`}>
                           <div className={`${styles['staff-info-line']}`}>
                             <span>Reported By</span>
-                            <span className="mono">
-                              {r.reporter_username || r.reporter_uuid}
-                            </span>
+                            <span className="mono">{r.reporter_username || r.reporter_uuid}</span>
                           </div>
                           <div className={`${styles['staff-info-line']}`}>
                             <span>Reported User</span>
-                            <span className="mono">
-                              {r.reported_username || r.reported_uuid}
-                            </span>
+                            <span className="mono">{r.reported_username || r.reported_uuid}</span>
                           </div>
                           <div className={`${styles['staff-info-line']}`}>
                             <span>Category</span>
@@ -1341,7 +1351,9 @@ export default function Staff() {
                   .map(a => (
                     <div key={a.uuid} className={`${styles['review-card']}`}>
                       <div className={`${styles['review-header']}`}>
-                        <span className={`${styles['review-badge']} ${a.status}`}>{titleCase(a.status)}</span>
+                        <span className={`${styles['review-badge']} ${a.status}`}>
+                          {titleCase(a.status)}
+                        </span>
                         <span className="review-time">
                           {formatRelativeTime(new Date(a.time_submitted))}
                         </span>
@@ -1461,7 +1473,9 @@ export default function Staff() {
                         <span className={`${styles['log-badge']} level-${entry.level}`}>
                           {entry.level.toUpperCase()}
                         </span>
-                        <span className={`${styles['log-badge']} log-type`}>{logTypeLabel(entry.type)}</span>
+                        <span className={`${styles['log-badge']} log-type`}>
+                          {logTypeLabel(entry.type)}
+                        </span>
                         <span className={`${styles['log-message']}`}>{entry.message}</span>
                       </div>
                       <span className="log-time">
@@ -1482,7 +1496,9 @@ export default function Staff() {
                             className={`${styles['staff-info-line']} ${styles['log-data-line']}`}
                           >
                             <span>{field.key}</span>
-                            <span className={`mono ${styles['log-data-value']}`}>{field.value}</span>
+                            <span className={`mono ${styles['log-data-value']}`}>
+                              {field.value}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -1842,14 +1858,8 @@ export default function Staff() {
           </h2>
           {contextReport && (
             <p style={{ margin: 0 }}>
-              Reported user:{' '}
-              <b>
-                {contextReport.reported_username || contextReport.reported_uuid}
-              </b>{' '}
-              · Reported by:{' '}
-              <b>
-                {contextReport.reporter_username || contextReport.reporter_uuid}
-              </b>
+              Reported user: <b>{contextReport.reported_username || contextReport.reported_uuid}</b>{' '}
+              · Reported by: <b>{contextReport.reporter_username || contextReport.reporter_uuid}</b>
             </p>
           )}
           {contextReport?.context && contextReport.context.length > 0 ? (
@@ -1861,53 +1871,49 @@ export default function Staff() {
                   disabled={!contextReport.context.some(item => item.deleted)}
                   onClick={value => setContextShowDeleted(value)}
                 />
-                {!contextShowDeleted &&
-                  contextReport.context.some(item => item.deleted) && (
-                    <span className={`${styles['report-context-hint']}`}>
-                      {contextReport.context.filter(item => item.deleted).length}{' '}
-                      deleted hidden
-                    </span>
-                  )}
+                {!contextShowDeleted && contextReport.context.some(item => item.deleted) && (
+                  <span className={`${styles['report-context-hint']}`}>
+                    {contextReport.context.filter(item => item.deleted).length} deleted hidden
+                  </span>
+                )}
               </div>
               <div className={`${styles['report-context-list']}`}>
                 {contextReport.context
                   .filter(item => contextShowDeleted || !item.deleted)
                   .map(item => (
-                <div
-                  key={item.message_uuid}
-                  className={`${styles['report-context-item']} ${
-                    item.reported ? styles['report-context-item-reported'] : ''
-                  }`}
-                >
-                  <div className={`${styles['report-context-meta']}`}>
-                    <span className={`${styles['report-context-sender']}`}>
-                      {item.sender_username}
-                      {item.reported ? ' (reported)' : ''}
-                    </span>
-                    <span>{new Date(item.time_sent).toLocaleString()}</span>
-                  </div>
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt="Message attachment"
-                      className={`${styles['report-context-image']}`}
-                    />
-                  ) : item.content ? (
-                    <span className={`${styles['report-context-content']}`}>
-                      {item.content}
-                    </span>
-                  ) : (
-                    <span className={`${styles['report-context-content']}`}>
-                      <i>No text</i>
-                    </span>
-                  )}
-                  {item.deleted && (
-                    <span className={`${styles['report-context-deleted']}`}>
-                      Deleted
-                    </span>
-                  )}
-                </div>
-              ))}
+                    <div
+                      key={item.message_uuid}
+                      className={`${styles['report-context-item']} ${
+                        item.reported ? styles['report-context-item-reported'] : ''
+                      }`}
+                    >
+                      <div className={`${styles['report-context-meta']}`}>
+                        <span className={`${styles['report-context-sender']}`}>
+                          {item.sender_username}
+                          {item.reported ? ' (reported)' : ''}
+                        </span>
+                        <span>{new Date(item.time_sent).toLocaleString()}</span>
+                      </div>
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt="Message attachment"
+                          className={`${styles['report-context-image']}`}
+                        />
+                      ) : item.content ? (
+                        <span className={`${styles['report-context-content']}`}>
+                          {item.content}
+                        </span>
+                      ) : (
+                        <span className={`${styles['report-context-content']}`}>
+                          <i>No text</i>
+                        </span>
+                      )}
+                      {item.deleted && (
+                        <span className={`${styles['report-context-deleted']}`}>Deleted</span>
+                      )}
+                    </div>
+                  ))}
               </div>
             </>
           ) : (
@@ -1961,7 +1967,9 @@ export default function Staff() {
               return (
                 <div key={punishment.uuid} className={`${styles['review-card']}`}>
                   <div className={`${styles['review-header']}`}>
-                    <span className={`${styles['review-badge']} ${isActive ? 'reviewed' : 'dismissed'}`}>
+                    <span
+                      className={`${styles['review-badge']} ${isActive ? 'reviewed' : 'dismissed'}`}
+                    >
                       {isActive ? 'Active' : 'Inactive'}
                     </span>
                     <span className="review-time">
@@ -2111,7 +2119,9 @@ export default function Staff() {
                       },
                     ]}
                   />
-                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  {editUserError && (
+                    <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>
+                  )}
                   <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSaveEconomyEdits} isLoading={editUserSaving}>
                       Save Money & Gems
@@ -2146,7 +2156,9 @@ export default function Staff() {
                       }
                     }}
                   />
-                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  {editUserError && (
+                    <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>
+                  )}
                   <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSaveAvatarEdits} isLoading={editUserSaving}>
                       Save Avatar
@@ -2171,7 +2183,9 @@ export default function Staff() {
                           options={roleOptions}
                         />
                       </div>
-                      {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                      {editUserError && (
+                        <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>
+                      )}
                       <div className={`${styles['staff-edit-actions']}`}>
                         <Button onClickAsync={handleSaveRoleEdits} isLoading={editUserSaving}>
                           Save Role
@@ -2197,7 +2211,9 @@ export default function Staff() {
                       },
                     ]}
                   />
-                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  {editUserError && (
+                    <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>
+                  )}
                   <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSavePetSlotsEdits} isLoading={editUserSaving}>
                       Save Pet Slots
@@ -2268,7 +2284,9 @@ export default function Staff() {
                       />
                     </div>
                   </div>
-                  {editUserError && <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>}
+                  {editUserError && (
+                    <div className={`${styles['staff-edit-error']}`}>{editUserError}</div>
+                  )}
                   <div className={`${styles['staff-edit-actions']}`}>
                     <Button onClickAsync={handleSaveCosmeticsEdits} isLoading={editUserSaving}>
                       Save Cosmetics

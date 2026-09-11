@@ -4,8 +4,7 @@ import { deriveAuth, onlyActive } from '../../../middleware';
 import { UPGRADES } from '../../../../common/upgrades';
 
 type BuyUpgradeOutcome =
-  | { ok: 'error'; status: number; error: string }
-  | { ok: 'success'; message: string };
+  { ok: 'error'; status: number; error: string } | { ok: 'success'; message: string };
 
 export const buyUpgrade = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -33,22 +32,25 @@ export const buyUpgrade = new Elysia()
 
       const upgradeCost = upgrade.price_per_half_hour;
 
-      const result = await mutateUserAndSave<BuyUpgradeOutcome>(
-        authUser2.uuid,
-        user => {
-          if (user.money < upgradeCost) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient money' } };
-          }
-
-          user.money -= upgradeCost;
-          user.upgrades = user.upgrades || {};
-          user.upgrades[upgrade_id] = {
-            expires_at: Date.now() + 30 * 60 * 1000, // expires in 30 minutes
+      const result = await mutateUserAndSave<BuyUpgradeOutcome>(authUser2.uuid, user => {
+        if (user.money < upgradeCost) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient money' },
           };
-
-          return { changed: true, value: { ok: 'success' as const, message: 'Upgrade purchased successfully' } };
         }
-      );
+
+        user.money -= upgradeCost;
+        user.upgrades = user.upgrades || {};
+        user.upgrades[upgrade_id] = {
+          expires_at: Date.now() + 30 * 60 * 1000, // expires in 30 minutes
+        };
+
+        return {
+          changed: true,
+          value: { ok: 'success' as const, message: 'Upgrade purchased successfully' },
+        };
+      });
 
       if (!result) {
         set.status = 404;

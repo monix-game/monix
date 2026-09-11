@@ -128,7 +128,9 @@
   border: 2px solid var(--primary-2);
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .twofa-method-tab:hover:not(:disabled) {

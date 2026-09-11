@@ -43,7 +43,12 @@ function handleUnauthorizedSession(): void {
     // preferable to silently staying on a broken page, so continue anyway.
   }
 
-  for (const key of ['session_token', 'session_user_uuid', 'session_time_created', 'session_expires_at']) {
+  for (const key of [
+    'session_token',
+    'session_user_uuid',
+    'session_time_created',
+    'session_expires_at',
+  ]) {
     localStorage.removeItem(localStorageKey(key));
   }
 

@@ -3,8 +3,7 @@ import { deletePetByUUID, getPetByUUID, mutateUserAndSave } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
 
 type ReleaseOutcome =
-  | { ok: 'error'; status: number; error: string }
-  | { ok: 'success'; message: string };
+  { ok: 'error'; status: number; error: string } | { ok: 'success'; message: string };
 
 export const releasePet = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -28,17 +27,20 @@ export const releasePet = new Elysia()
 
       // If the pet is dead, it costs 500 to release.
       if (pet.is_dead) {
-        const result = await mutateUserAndSave<ReleaseOutcome>(
-          user_uuid,
-          fetchedUser => {
-            const releaseCost = 500;
-            if ((fetchedUser.money || 0) < releaseCost) {
-              return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to release the pet' } };
-            }
-            fetchedUser.money = (fetchedUser.money || 0) - releaseCost;
-            return { changed: true, value: { ok: 'success' as const, message: 'Pet released successfully' } };
+        const result = await mutateUserAndSave<ReleaseOutcome>(user_uuid, fetchedUser => {
+          const releaseCost = 500;
+          if ((fetchedUser.money || 0) < releaseCost) {
+            return {
+              changed: false,
+              value: { ok: 'error', status: 400, error: 'Insufficient funds to release the pet' },
+            };
           }
-        );
+          fetchedUser.money = (fetchedUser.money || 0) - releaseCost;
+          return {
+            changed: true,
+            value: { ok: 'success' as const, message: 'Pet released successfully' },
+          };
+        });
 
         if (!result) {
           set.status = 404;
@@ -50,10 +52,10 @@ export const releasePet = new Elysia()
         }
       } else {
         // Validate the user exists even when no deduction is needed.
-        const exists = await mutateUserAndSave<ReleaseOutcome>(
-          user_uuid,
-          () => ({ changed: false, value: { ok: 'success' as const, message: 'Pet released successfully' } })
-        );
+        const exists = await mutateUserAndSave<ReleaseOutcome>(user_uuid, () => ({
+          changed: false,
+          value: { ok: 'success' as const, message: 'Pet released successfully' },
+        }));
         if (!exists) {
           set.status = 404;
           return { error: 'User not found' };

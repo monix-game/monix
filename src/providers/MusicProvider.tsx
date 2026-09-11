@@ -52,34 +52,31 @@ export function MusicProvider({ children, fadeDurationMs = 1000 }: Readonly<Prop
     audioRef.current = null;
   }, []);
 
-  const fadeTo = React.useCallback(
-    (target: number, durationMs: number, onDone?: () => void) => {
-      const a = audioRef.current;
-      if (!a) {
+  const fadeTo = React.useCallback((target: number, durationMs: number, onDone?: () => void) => {
+    const a = audioRef.current;
+    if (!a) {
+      onDone?.();
+      return;
+    }
+    fadingRef.current?.cancel?.();
+    const start = performance.now();
+    const from = a.volume;
+    const clampedTarget = Math.max(0, Math.min(1, target));
+    let cancelled = false;
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const t = Math.min(1, (now - start) / durationMs);
+      const v = from + (clampedTarget - from) * t;
+      a.volume = v;
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
         onDone?.();
-        return;
       }
-      fadingRef.current?.cancel?.();
-      const start = performance.now();
-      const from = a.volume;
-      const clampedTarget = Math.max(0, Math.min(1, target));
-      let cancelled = false;
-      const tick = (now: number) => {
-        if (cancelled) return;
-        const t = Math.min(1, (now - start) / durationMs);
-        const v = from + (clampedTarget - from) * t;
-        a.volume = v;
-        if (t < 1) {
-          requestAnimationFrame(tick);
-        } else {
-          onDone?.();
-        }
-      };
-      fadingRef.current = { cancel: () => (cancelled = true) };
-      requestAnimationFrame(tick);
-    },
-    []
-  );
+    };
+    fadingRef.current = { cancel: () => (cancelled = true) };
+    requestAnimationFrame(tick);
+  }, []);
 
   const startTrackRef = React.useRef<(track: Track) => void>(() => {});
 

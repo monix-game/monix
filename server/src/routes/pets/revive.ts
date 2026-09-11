@@ -3,8 +3,7 @@ import { getPetByUUID, mutateUserAndSave, updatePet } from '../../db';
 import { deriveAuth, onlyActive } from '../../middleware';
 
 type ReviveOutcome =
-  | { ok: 'error'; status: number; error: string }
-  | { ok: 'success'; message: string };
+  { ok: 'error'; status: number; error: string } | { ok: 'success'; message: string };
 
 export const revivePet = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -33,16 +32,19 @@ export const revivePet = new Elysia()
       // It costs 100,000 to revive a pet
       const reviveCost = 100000;
 
-      const result = await mutateUserAndSave<ReviveOutcome>(
-        user_uuid,
-        fetchedUser => {
-          if ((fetchedUser.money || 0) < reviveCost) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds to revive the pet' } };
-          }
-          fetchedUser.money = (fetchedUser.money || 0) - reviveCost;
-          return { changed: true, value: { ok: 'success' as const, message: 'Pet revived successfully' } };
+      const result = await mutateUserAndSave<ReviveOutcome>(user_uuid, fetchedUser => {
+        if ((fetchedUser.money || 0) < reviveCost) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient funds to revive the pet' },
+          };
         }
-      );
+        fetchedUser.money = (fetchedUser.money || 0) - reviveCost;
+        return {
+          changed: true,
+          value: { ok: 'success' as const, message: 'Pet revived successfully' },
+        };
+      });
 
       if (!result) {
         set.status = 404;

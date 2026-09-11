@@ -30,42 +30,45 @@ export const buyRod = new Elysia()
       const rodId = rod_id;
       const rodPrice = rod.price;
 
-      const result = await mutateUserAndSave<BuyRodOutcome>(
-        user_uuid,
-        fetchedUser => {
-          if (fetchedUser.money < rodPrice) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds' } };
-          }
-
-          // Initialize fishing data if not present
-          fetchedUser.fishing ??= {
-            aquarium: { capacity: 10, level: 1, fish: [] },
-            bait_owned: {},
-            fish_caught: {},
-            rods_owned: [],
-          };
-          fetchedUser.fishing.rods_owned ??= [];
-
-          // Check if user already owns the rod
-          if (fetchedUser.fishing.rods_owned.includes(rodId)) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'You already own this rod' } };
-          }
-
-          // Deduct money and add rod to user's owned rods
-          fetchedUser.money -= rodPrice;
-          fetchedUser.fishing.rods_owned.push(rodId);
-
+      const result = await mutateUserAndSave<BuyRodOutcome>(user_uuid, fetchedUser => {
+        if (fetchedUser.money < rodPrice) {
           return {
-            changed: true,
-            value: {
-              ok: 'success' as const,
-              message: 'Rod purchased successfully',
-              money: fetchedUser.money,
-              rods_owned: fetchedUser.fishing.rods_owned,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient funds' },
           };
         }
-      );
+
+        // Initialize fishing data if not present
+        fetchedUser.fishing ??= {
+          aquarium: { capacity: 10, level: 1, fish: [] },
+          bait_owned: {},
+          fish_caught: {},
+          rods_owned: [],
+        };
+        fetchedUser.fishing.rods_owned ??= [];
+
+        // Check if user already owns the rod
+        if (fetchedUser.fishing.rods_owned.includes(rodId)) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'You already own this rod' },
+          };
+        }
+
+        // Deduct money and add rod to user's owned rods
+        fetchedUser.money -= rodPrice;
+        fetchedUser.fishing.rods_owned.push(rodId);
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Rod purchased successfully',
+            money: fetchedUser.money,
+            rods_owned: fetchedUser.fishing.rods_owned,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

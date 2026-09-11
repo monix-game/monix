@@ -1,11 +1,5 @@
 export type FishingRodCategory =
-  | 'starter'
-  | 'skilled'
-  | 'elite'
-  | 'mythic'
-  | 'cosmic'
-  | 'singularity'
-  | 'genesis';
+  'starter' | 'skilled' | 'elite' | 'mythic' | 'cosmic' | 'singularity' | 'genesis';
 
 export interface FishingRodCategoryInfo {
   id: FishingRodCategory;
@@ -20,7 +14,12 @@ export const fishingRodCategories: FishingRodCategoryInfo[] = [
   { id: 'elite', title: 'Elite', emoji: '🟣', subtitle: '400,000 - 1,000,000' },
   { id: 'mythic', title: 'Mythic', emoji: '🌌', subtitle: '2,000,000 - 30,000,000' },
   { id: 'cosmic', title: 'Cosmic', emoji: '🌠', subtitle: '50,000,000 - 500,000,000' },
-  { id: 'singularity', title: 'Singularity', emoji: '🕳️', subtitle: '1,000,000,000 - 10,000,000,000' },
+  {
+    id: 'singularity',
+    title: 'Singularity',
+    emoji: '🕳️',
+    subtitle: '1,000,000,000 - 10,000,000,000',
+  },
   { id: 'genesis', title: 'Genesis', emoji: '✨', subtitle: '25,000,000,000+' },
 ];
 

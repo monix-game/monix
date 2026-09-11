@@ -2866,7 +2866,7 @@ export default function Game() {
                 const totalFishCaught = fishCaughtByType
                   ? Object.values(fishCaughtByType).reduce((sum, count) => sum + (count || 0), 0)
                   : (stats?.fish_caught ?? 0);
-                
+
                 const playtimeSeconds = Math.floor((stats?.playtime_ms ?? 0) / 1000);
                 const playtimeDays = Math.floor(playtimeSeconds / 86400);
                 const playtimeHours = Math.floor((playtimeSeconds % 86400) / 3600);

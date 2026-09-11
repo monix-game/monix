@@ -192,9 +192,7 @@ export const PollsPanel: React.FC<PollsPanelProps> = ({ canCreatePoll = false })
       <div className={styles['polls-header']}>
         <h2>Polls</h2>
         <div className={styles['polls-header-actions']}>
-          {canCreatePoll && (
-            <Button onClick={() => setIsPollCreateOpen(true)}>Create Poll</Button>
-          )}
+          {canCreatePoll && <Button onClick={() => setIsPollCreateOpen(true)}>Create Poll</Button>}
           <Button
             secondary
             onClick={() => void refreshPolls(true)}
@@ -282,7 +280,8 @@ export const PollsPanel: React.FC<PollsPanelProps> = ({ canCreatePoll = false })
                           <div key={option.id} className={styles['poll-result-row']}>
                             <div className={styles['poll-result-meta']}>
                               <span className={styles['poll-result-label']}>
-                                {option.emoji && <EmojiText>{option.emoji}</EmojiText>} {option.label}
+                                {option.emoji && <EmojiText>{option.emoji}</EmojiText>}{' '}
+                                {option.label}
                               </span>
                               <span className={styles['poll-result-count']}>
                                 {count} vote{count === 1 ? '' : 's'} ({Math.round(percent)}%)
@@ -407,11 +406,7 @@ export const PollsPanel: React.FC<PollsPanelProps> = ({ canCreatePoll = false })
             <div className={styles['poll-options-editor']}>
               <div className={styles['poll-options-header']}>
                 <span>Options</span>
-                <Button
-                  secondary
-                  onClick={addPollOption}
-                  disabled={pollOptionsDraft.length >= 8}
-                >
+                <Button secondary onClick={addPollOption} disabled={pollOptionsDraft.length >= 8}>
                   Add Option
                 </Button>
               </div>

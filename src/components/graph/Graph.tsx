@@ -145,7 +145,7 @@ export const Graph: React.FC<GraphProps> = ({
       {/* markers */}
       {points.map((p, i) => {
         if (i === 0 || i === points.length - 1) return null;
-         
+
         return (
           <circle
             key={`pt-${p[0]}-${p[1]}`}

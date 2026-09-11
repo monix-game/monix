@@ -1,11 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { v4 } from 'uuid';
-import {
-  getAppealByUUID,
-  getUserByUUID,
-  updateAppeal,
-  updateUser,
-} from '../../db';
+import { getAppealByUUID, getUserByUUID, updateAppeal, updateUser } from '../../db';
 import { deriveAuth, onlyRole } from '../../middleware';
 import { buildRequestLogData, log } from '../../helpers/logging';
 

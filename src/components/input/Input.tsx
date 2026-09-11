@@ -40,7 +40,11 @@ export const Input: React.FC<InputProps> = ({
     return (
       <div className={`${styles.input} ${className || ''}`}>
         {label && <span className={styles['input-label']}>{label}</span>}
-        <input {...props} className={`${styles['input-inner']} ${styles[color]}`} disabled={disabled} />
+        <input
+          {...props}
+          className={`${styles['input-inner']} ${styles[color]}`}
+          disabled={disabled}
+        />
         {errorText && (
           <span className={styles['input-label']}>
             <IconX size={15} className={styles.icon} />

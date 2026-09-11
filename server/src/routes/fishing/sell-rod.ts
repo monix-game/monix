@@ -34,49 +34,52 @@ export const sellRod = new Elysia()
       const rodId = rod_id;
       const sellPrice = Math.floor(rod.price * 0.5);
 
-      const result = await mutateUserAndSave<SellRodOutcome>(
-        user_uuid,
-        fetchedUser => {
-          // Initialize fishing data if not present
-          fetchedUser.fishing ??= {
-            aquarium: { capacity: 10, level: 1, fish: [] },
-            bait_owned: {},
-            fish_caught: {},
-            rods_owned: [],
-          };
-          fetchedUser.fishing.rods_owned ??= [];
+      const result = await mutateUserAndSave<SellRodOutcome>(user_uuid, fetchedUser => {
+        // Initialize fishing data if not present
+        fetchedUser.fishing ??= {
+          aquarium: { capacity: 10, level: 1, fish: [] },
+          bait_owned: {},
+          fish_caught: {},
+          rods_owned: [],
+        };
+        fetchedUser.fishing.rods_owned ??= [];
 
-          // Check if user owns the rod
-          if (!fetchedUser.fishing.rods_owned.includes(rodId)) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'You do not own this rod' } };
-          }
-
-          // Don't allow selling your last rod
-          if (fetchedUser.fishing.rods_owned.length <= 1) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'You must keep at least one rod' } };
-          }
-
-          // Unequip the rod if it's currently equipped
-          if (fetchedUser.fishing.equipped_rod === rodId) {
-            fetchedUser.fishing.equipped_rod = undefined;
-          }
-
-          // Remove the rod and refund half of its original value
-          fetchedUser.fishing.rods_owned = fetchedUser.fishing.rods_owned.filter(id => id !== rodId);
-          fetchedUser.money += sellPrice;
-
+        // Check if user owns the rod
+        if (!fetchedUser.fishing.rods_owned.includes(rodId)) {
           return {
-            changed: true,
-            value: {
-              ok: 'success' as const,
-              message: 'Rod sold successfully',
-              money: fetchedUser.money,
-              sold_for: sellPrice,
-              rods_owned: fetchedUser.fishing.rods_owned,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'You do not own this rod' },
           };
         }
-      );
+
+        // Don't allow selling your last rod
+        if (fetchedUser.fishing.rods_owned.length <= 1) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'You must keep at least one rod' },
+          };
+        }
+
+        // Unequip the rod if it's currently equipped
+        if (fetchedUser.fishing.equipped_rod === rodId) {
+          fetchedUser.fishing.equipped_rod = undefined;
+        }
+
+        // Remove the rod and refund half of its original value
+        fetchedUser.fishing.rods_owned = fetchedUser.fishing.rods_owned.filter(id => id !== rodId);
+        fetchedUser.money += sellPrice;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Rod sold successfully',
+            money: fetchedUser.money,
+            sold_for: sellPrice,
+            rods_owned: fetchedUser.fishing.rods_owned,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

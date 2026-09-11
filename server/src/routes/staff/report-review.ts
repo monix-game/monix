@@ -65,13 +65,10 @@ export const reviewReport = new Elysia()
         level: 'info',
         type: 'report',
         message: 'Report reviewed',
-        data: buildRequestLogData(
-          { path, method: request.method, headers },
-          [
-            { key: 'report_category', value: report.reason },
-            { key: 'action', value: action },
-          ]
-        ),
+        data: buildRequestLogData({ path, method: request.method, headers }, [
+          { key: 'report_category', value: report.reason },
+          { key: 'action', value: action },
+        ]),
         username: fetchedUser.username,
       });
 
@@ -79,7 +76,13 @@ export const reviewReport = new Elysia()
     },
     {
       body: t.Object({
-        action: t.Optional(t.Union([t.Literal('punish_reported'), t.Literal('punish_reporter'), t.Literal('dismissed')])),
+        action: t.Optional(
+          t.Union([
+            t.Literal('punish_reported'),
+            t.Literal('punish_reporter'),
+            t.Literal('dismissed'),
+          ])
+        ),
       }),
     }
   );

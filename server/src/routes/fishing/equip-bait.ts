@@ -26,29 +26,29 @@ export const equipBait = new Elysia()
         return { error: 'Invalid bait_id' };
       }
 
-      const result = await mutateUserAndSave<EquipBaitOutcome>(
-        user_uuid,
-        fetchedUser => {
-          if (
-            !fetchedUser.fishing?.bait_owned?.[bait_id] ||
-            fetchedUser.fishing.bait_owned[bait_id] <= 0
-          ) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'You do not own this bait' } };
-          }
-
-          // Equip the bait
-          fetchedUser.fishing.equipped_bait = bait_id;
-
+      const result = await mutateUserAndSave<EquipBaitOutcome>(user_uuid, fetchedUser => {
+        if (
+          !fetchedUser.fishing?.bait_owned?.[bait_id] ||
+          fetchedUser.fishing.bait_owned[bait_id] <= 0
+        ) {
           return {
-            changed: true,
-            value: {
-              ok: 'success' as const,
-              message: 'Bait equipped successfully',
-              equipped_bait: fetchedUser.fishing.equipped_bait,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'You do not own this bait' },
           };
         }
-      );
+
+        // Equip the bait
+        fetchedUser.fishing.equipped_bait = bait_id;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Bait equipped successfully',
+            equipped_bait: fetchedUser.fishing.equipped_bait,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

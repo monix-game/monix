@@ -32,41 +32,38 @@ export const buyResource = new Elysia()
       const resourcePrice = generatePrice(resourceId, Math.floor(Date.now() / 1000));
       const totalCost = resourcePrice * quantityToBuy;
 
-      const result = await mutateUserAndSave<BuyOutcome>(
-        user_uuid,
-        fetchedUser => {
-          if (fetchedUser.money === undefined || fetchedUser.money < totalCost) {
-            return {
-              changed: false,
-              value: { ok: 'error', status: 400, error: 'Insufficient balance' },
-            };
-          }
-
-          // Deduct balance and add resources
-          fetchedUser.money -= totalCost;
-          if (!fetchedUser.resources) {
-            fetchedUser.resources = {};
-          }
-          fetchedUser.resources[resourceId] =
-            (fetchedUser.resources[resourceId] || 0) + quantityToBuy;
-
-          fetchedUser.stats ??= DEFAULT_USER_STATS;
-          fetchedUser.stats.resource_buys = (fetchedUser.stats.resource_buys || 0) + 1;
-          fetchedUser.stats.resources_bought =
-            (fetchedUser.stats.resources_bought || 0) + quantityToBuy;
-
+      const result = await mutateUserAndSave<BuyOutcome>(user_uuid, fetchedUser => {
+        if (fetchedUser.money === undefined || fetchedUser.money < totalCost) {
           return {
-            changed: true,
-            value: {
-              ok: 'success',
-              message: 'Purchase successful',
-              resourceId,
-              quantity: fetchedUser.resources[resourceId],
-              money: fetchedUser.money,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient balance' },
           };
         }
-      );
+
+        // Deduct balance and add resources
+        fetchedUser.money -= totalCost;
+        if (!fetchedUser.resources) {
+          fetchedUser.resources = {};
+        }
+        fetchedUser.resources[resourceId] =
+          (fetchedUser.resources[resourceId] || 0) + quantityToBuy;
+
+        fetchedUser.stats ??= DEFAULT_USER_STATS;
+        fetchedUser.stats.resource_buys = (fetchedUser.stats.resource_buys || 0) + 1;
+        fetchedUser.stats.resources_bought =
+          (fetchedUser.stats.resources_bought || 0) + quantityToBuy;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success',
+            message: 'Purchase successful',
+            resourceId,
+            quantity: fetchedUser.resources[resourceId],
+            money: fetchedUser.money,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

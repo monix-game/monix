@@ -185,7 +185,9 @@ export const PetsList: React.FC<PetsListProps> = ({
         type="gems"
         amount={CHARM_COST_GEMS}
         balance={gems}
-        productName={charmPetTarget ? `Charm ${charmPetTarget.name || charmPetTarget.type_id}` : 'Charm'}
+        productName={
+          charmPetTarget ? `Charm ${charmPetTarget.name || charmPetTarget.type_id}` : 'Charm'
+        }
         onPurchase={async () => {
           setIsCharmingPet(true);
 

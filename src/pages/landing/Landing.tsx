@@ -27,8 +27,16 @@ export default function Landing() {
   return (
     <div className={styles['landing-container']}>
       <header className={styles['landing-header']}>
-        <img src={monixLogoLight} alt="Monix Logo" className={`${styles['landing-logo']} ${styles['landing-logo-light']}`} />
-        <img src={monixLogoDark} alt="Monix Logo" className={`${styles['landing-logo']} ${styles['landing-logo-dark']}`} />
+        <img
+          src={monixLogoLight}
+          alt="Monix Logo"
+          className={`${styles['landing-logo']} ${styles['landing-logo-light']}`}
+        />
+        <img
+          src={monixLogoDark}
+          alt="Monix Logo"
+          className={`${styles['landing-logo']} ${styles['landing-logo-dark']}`}
+        />
         <h1 className={styles['landing-title']}>Monix</h1>
         <div className="spacer"></div>
 
@@ -69,7 +77,9 @@ export default function Landing() {
         </div>
 
         <div className={`${styles['landing-section']} ${styles.hero}`}>
-          <span className={`${styles['hero-subtitle']} mono`}>The Ultimate Virtual Economy Experience</span>
+          <span className={`${styles['hero-subtitle']} mono`}>
+            The Ultimate Virtual Economy Experience
+          </span>
           <h1 className={styles['hero-title']}>
             <span className={styles['hero-title-word']}>
               <IconCoin />

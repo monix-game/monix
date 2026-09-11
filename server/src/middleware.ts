@@ -103,9 +103,7 @@ async function authenticateRequest(headers: HeaderMap): Promise<AuthResult> {
  * Derives `authUser` from the request headers. Apply this in each endpoint that
  * requires an authenticated user.
  */
-export async function deriveAuth(
-  headers: HeaderMap
-): Promise<{ authUser: IUser | undefined }> {
+export async function deriveAuth(headers: HeaderMap): Promise<{ authUser: IUser | undefined }> {
   const { user } = await authenticateRequest(headers);
   return { authUser: user ?? undefined };
 }

@@ -62,18 +62,15 @@ export const punish = new Elysia()
         level: 'info',
         type: 'moderation',
         message: 'User punished',
-        data: buildRequestLogData(
-          { path, method: request.method, headers },
-          [
-            { key: 'target', value: targetUser.username },
-            { key: 'category', value: category.name },
-            { key: 'reason', value: reason, inline: false },
-            {
-              key: 'duration',
-              value: formatRemainingTime(category.levels[punishment.level] * 60),
-            },
-          ]
-        ),
+        data: buildRequestLogData({ path, method: request.method, headers }, [
+          { key: 'target', value: targetUser.username },
+          { key: 'category', value: category.name },
+          { key: 'reason', value: reason, inline: false },
+          {
+            key: 'duration',
+            value: formatRemainingTime(category.levels[punishment.level] * 60),
+          },
+        ]),
         username: fetchedUser.username,
       });
 

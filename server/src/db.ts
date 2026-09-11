@@ -1,10 +1,5 @@
 import { MongoClient, Db } from 'mongodb';
-import {
-  type IUser,
-  type IUserStats,
-  userFromDoc,
-  userToDoc,
-} from '../common/models/user';
+import { type IUser, type IUserStats, userFromDoc, userToDoc } from '../common/models/user';
 import {
   DEFAULT_GLOBAL_SETTINGS,
   globalSettingsFromDoc,
@@ -288,10 +283,7 @@ export async function updateUserActivity(
  * `daily_rewards` after a claim). Keys missing from the stored counter set are
  * created automatically.
  */
-export async function incrementUserStats(
-  uuid: string,
-  counts: Partial<IUserStats>
-): Promise<void> {
+export async function incrementUserStats(uuid: string, counts: Partial<IUserStats>): Promise<void> {
   const database = ensureDB();
   const inc: Record<string, number> = {};
   for (const [key, value] of Object.entries(counts)) {
@@ -383,9 +375,7 @@ export async function getUserByUUIDFresh(uuid: string): Promise<IUser | null> {
  */
 export async function mutateUserAndSave<T>(
   uuid: string,
-  fn: (
-    user: IUser
-  ) => { changed: boolean; value: T } | Promise<{ changed: boolean; value: T }>
+  fn: (user: IUser) => { changed: boolean; value: T } | Promise<{ changed: boolean; value: T }>
 ): Promise<T | null> {
   const prev = userLocks.get(uuid) ?? Promise.resolve();
   let release!: () => void;
@@ -459,9 +449,9 @@ export async function deleteSessionByToken(token: string): Promise<void> {
 
 export async function deleteSessionsByUserUUID(user_uuid: string): Promise<void> {
   const database = ensureDB();
-  const sessions = (
-    await database.collection('sessions').find({ user_uuid }).toArray()
-  ).map(sessionFromDoc);
+  const sessions = (await database.collection('sessions').find({ user_uuid }).toArray()).map(
+    sessionFromDoc
+  );
   await database.collection('sessions').deleteMany({ user_uuid });
   for (const s of sessions) {
     void cacheDel(sessionKey(s.token));

@@ -48,8 +48,7 @@ export interface SecondFactorInput {
 }
 
 export type SecondFactorResult =
-  | { verified: true; user: IUser; changed: boolean }
-  | { verified: false; reason: string };
+  { verified: true; user: IUser; changed: boolean } | { verified: false; reason: string };
 
 /**
  * The single, unified entry point for verifying any second factor during login.
@@ -59,10 +58,7 @@ export type SecondFactorResult =
  * (possibly mutated, e.g. recovery code now consumed or passkey counter bumped)
  * user.
  */
-export function verifySecondFactor(
-  user: IUser,
-  input: SecondFactorInput
-): SecondFactorResult {
+export function verifySecondFactor(user: IUser, input: SecondFactorInput): SecondFactorResult {
   const state = getTwoFactorState(user);
 
   // Passkey assertion: verify the WebAuthn signature against the challenge that
@@ -95,15 +91,13 @@ export function verifySecondFactor(
 
     let counter;
     try {
-      counter = verifyAuthentication(
-        parsed,
-        passkey,
-        pending.challenge,
-        input.origins || []
-      );
+      counter = verifyAuthentication(parsed, passkey, pending.challenge, input.origins || []);
     } catch (err) {
       deleteChallengeForKey(`auth:${input.tempToken}`);
-      return { verified: false, reason: `Passkey authentication failed: ${(err as Error).message}` };
+      return {
+        verified: false,
+        reason: `Passkey authentication failed: ${(err as Error).message}`,
+      };
     }
 
     deleteChallengeForKey(`auth:${input.tempToken}`);
@@ -143,9 +137,10 @@ export function verifySecondFactor(
  * Seed recovery codes the first time any 2FA method becomes enabled.
  * Returns the plaintext codes to show the user exactly when they are created.
  */
-export function ensureRecoveryCodes(
-  user: Pick<IUser, 'recovery_codes'>
-): { created: boolean; plain: string[] } {
+export function ensureRecoveryCodes(user: Pick<IUser, 'recovery_codes'>): {
+  created: boolean;
+  plain: string[];
+} {
   if (user.recovery_codes && user.recovery_codes.length > 0) {
     return { created: false, plain: [] };
   }

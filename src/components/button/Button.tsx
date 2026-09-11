@@ -1,7 +1,6 @@
 import React from 'react';
 import styles from './Button.module.css';
 import { Spinner } from '../spinner/Spinner';
-import { smartFormatNumber } from '../../../server/common/math';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   secondary?: boolean;
@@ -9,8 +8,6 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
   children: React.ReactNode;
   onClickAsync?: () => Promise<void>;
-  cost?: number | null;
-  costType?: 'money' | 'gems';
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -21,8 +18,6 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   className,
   onClickAsync,
-  cost = null,
-  costType = 'money',
   ...props
 }) => {
   const colorStyles = {
@@ -44,20 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
       }}
       {...props}
     >
-      <span className={styles['btn-content']}>
-        {children}
-        {cost !== null && (
-          <span className={styles['btn-cost']}>
-            (
-            {costType === 'money' ? (
-              <>Cost: {smartFormatNumber(cost)}</>
-            ) : (
-              <>Cost: {smartFormatNumber(cost, false)} Gems</>
-            )}
-            )
-          </span>
-        )}
-      </span>
+      <span className={styles['btn-content']}>{children}</span>
 
       {isLoading && (
         <span className={styles['btn-loading-spinner']}>

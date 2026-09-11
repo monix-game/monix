@@ -4,8 +4,7 @@ import { deriveAuth, onlyAuth } from '../../../middleware';
 import { cosmetics } from '../../../../common/cosmetics/cosmetics';
 
 type EquipCosmeticOutcome =
-  | { ok: 'error'; status: number; error: string }
-  | { ok: 'success'; message: string };
+  { ok: 'error'; status: number; error: string } | { ok: 'success'; message: string };
 
 export const equipCosmetic = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -31,26 +30,32 @@ export const equipCosmetic = new Elysia()
         return { error: 'Cosmetic not found' };
       }
 
-      const result = await mutateUserAndSave<EquipCosmeticOutcome>(
-        authUser2.uuid,
-        user => {
-          if (!user.cosmetics_unlocked?.includes(cosmetic_id)) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Cosmetic not unlocked' } };
-          }
-
-          user.equipped_cosmetics ??= {};
-
-          if (cosmetic.type === 'nameplate') {
-            user.equipped_cosmetics.nameplate = cosmetic.id;
-          } else if (cosmetic.type === 'tag') {
-            user.equipped_cosmetics.tag = cosmetic.id;
-          } else {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Invalid cosmetic type' } };
-          }
-
-          return { changed: true, value: { ok: 'success' as const, message: 'Cosmetic equipped successfully' } };
+      const result = await mutateUserAndSave<EquipCosmeticOutcome>(authUser2.uuid, user => {
+        if (!user.cosmetics_unlocked?.includes(cosmetic_id)) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Cosmetic not unlocked' },
+          };
         }
-      );
+
+        user.equipped_cosmetics ??= {};
+
+        if (cosmetic.type === 'nameplate') {
+          user.equipped_cosmetics.nameplate = cosmetic.id;
+        } else if (cosmetic.type === 'tag') {
+          user.equipped_cosmetics.tag = cosmetic.id;
+        } else {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Invalid cosmetic type' },
+          };
+        }
+
+        return {
+          changed: true,
+          value: { ok: 'success' as const, message: 'Cosmetic equipped successfully' },
+        };
+      });
 
       if (!result) {
         set.status = 404;

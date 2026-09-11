@@ -148,14 +148,17 @@ interface ParsedPublicKey {
   e?: Buffer;
 }
 
- 
 function parseCOSEKey(coseKey: Uint8Array): ParsedPublicKey {
   const decoded = cborDecode(Buffer.from(coseKey));
 
   // The map keys are integers per COSE spec.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toBuffer = (v: any): Buffer | undefined =>
-    v === undefined || typeof v === 'number' ? undefined : Buffer.isBuffer(v) ? v : Buffer.from(v as Uint8Array);
+    v === undefined || typeof v === 'number'
+      ? undefined
+      : Buffer.isBuffer(v)
+        ? v
+        : Buffer.from(v as Uint8Array);
 
   const key: ParsedPublicKey = {
     kty: Number(decoded[1]),
@@ -294,7 +297,6 @@ export function parseRegistrationResponse(
   const clientDataJSON = base64UrlToBuffer(credential.response.clientDataJSON);
   const attestationObject = base64UrlToBuffer(credential.response.attestationObject);
 
-   
   const decoded = cborDecode(attestationObject) as { authData?: Uint8Array };
   const authData = Buffer.from(decoded.authData || new Uint8Array());
 
@@ -315,7 +317,9 @@ export interface ParsedAssertion {
   userHandle: Buffer | null;
 }
 
-export function parseAuthenticationResponse(credential: AuthenticationCredentialDTO): ParsedAssertion {
+export function parseAuthenticationResponse(
+  credential: AuthenticationCredentialDTO
+): ParsedAssertion {
   return {
     authData: base64UrlToBuffer(credential.response.authenticatorData),
     clientDataJSON: base64UrlToBuffer(credential.response.clientDataJSON),
@@ -475,7 +479,10 @@ export function verifyAuthentication(
   let signatureToVerify = parsed.signature;
   if (keyAsn1 === 'ec' && parsed.signature.length === 64) {
     // Raw ECDSA (r || s) -> DER
-    signatureToVerify = derSignature(parsed.signature.subarray(0, 32), parsed.signature.subarray(32));
+    signatureToVerify = derSignature(
+      parsed.signature.subarray(0, 32),
+      parsed.signature.subarray(32)
+    );
   }
 
   const valid = crypto.verify('sha256', signingBase, storedPublicKey, signatureToVerify);

@@ -122,6 +122,7 @@ export function checkSocialSpam(params: {
   return {
     isSpam,
     reasons,
-    shouldAutoBan: isSpam && canAutoBan && state.spamTimestamps.length >= SPAM_CONFIG.autoBanMinSpamEvents,
+    shouldAutoBan:
+      isSpam && canAutoBan && state.spamTimestamps.length >= SPAM_CONFIG.autoBanMinSpamEvents,
   };
 }

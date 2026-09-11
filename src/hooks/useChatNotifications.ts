@@ -103,7 +103,17 @@ export function useChatNotifications(opts: {
       if (queuedToastIdsRef.current.has(id)) return;
       queuedToastIdsRef.current.add(id);
 
-      setToasts(prev => [...prev.slice(-4), { id, roomUuid: room_uuid, roomName: room_name || 'Chat', senderUsername: sender_username || 'Someone', senderAvatarUrl: sender_avatar_url, content }]);
+      setToasts(prev => [
+        ...prev.slice(-4),
+        {
+          id,
+          roomUuid: room_uuid,
+          roomName: room_name || 'Chat',
+          senderUsername: sender_username || 'Someone',
+          senderAvatarUrl: sender_avatar_url,
+          content,
+        },
+      ]);
 
       const timer = setTimeout(() => {
         dismissToast(id);

@@ -11,39 +11,37 @@ const authLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
-export const needs2fa = new Elysia()
-  .use(authLimiter)
-  .post(
-    '/needs-2fa',
-    async ({ body, set }) => {
-      const { username, password } = body;
+export const needs2fa = new Elysia().use(authLimiter).post(
+  '/needs-2fa',
+  async ({ body, set }) => {
+    const { username, password } = body;
 
-      if (!username || !password) {
-        set.status = 400;
-        return { error: 'Missing username or password' };
-      }
-
-      const user = await getUserByUsername(username);
-      if (!user) {
-        set.status = 401;
-        return { error: 'Invalid username or password' };
-      }
-
-      const password_hash = crypto.createHash('sha256').update(String(password)).digest('hex');
-      if (user.password_hash !== password_hash) {
-        set.status = 401;
-        return { error: 'Invalid username or password' };
-      }
-
-      set.status = 200;
-      return { ...getTwoFactorState(user), needs_2fa: getTwoFactorState(user).needs_2fa };
-    },
-    {
-      body: t.Object({
-        username: t.Optional(t.String()),
-        password: t.Optional(t.String()),
-      }),
+    if (!username || !password) {
+      set.status = 400;
+      return { error: 'Missing username or password' };
     }
-  );
+
+    const user = await getUserByUsername(username);
+    if (!user) {
+      set.status = 401;
+      return { error: 'Invalid username or password' };
+    }
+
+    const password_hash = crypto.createHash('sha256').update(String(password)).digest('hex');
+    if (user.password_hash !== password_hash) {
+      set.status = 401;
+      return { error: 'Invalid username or password' };
+    }
+
+    set.status = 200;
+    return { ...getTwoFactorState(user), needs_2fa: getTwoFactorState(user).needs_2fa };
+  },
+  {
+    body: t.Object({
+      username: t.Optional(t.String()),
+      password: t.Optional(t.String()),
+    }),
+  }
+);
 
 export default needs2fa;

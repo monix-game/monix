@@ -3,8 +3,7 @@ import { mutateUserAndSave } from '../../../db';
 import { deriveAuth, onlyAuth } from '../../../middleware';
 
 type UnequipCosmeticOutcome =
-  | { ok: 'error'; status: number; error: string }
-  | { ok: 'success'; message: string };
+  { ok: 'error'; status: number; error: string } | { ok: 'success'; message: string };
 
 export const unequipCosmetic = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -24,22 +23,25 @@ export const unequipCosmetic = new Elysia()
         return { error: 'User not found' };
       }
 
-      const result = await mutateUserAndSave<UnequipCosmeticOutcome>(
-        authUser2.uuid,
-        user => {
-          user.equipped_cosmetics ??= {};
+      const result = await mutateUserAndSave<UnequipCosmeticOutcome>(authUser2.uuid, user => {
+        user.equipped_cosmetics ??= {};
 
-          if (cosmetic_type === 'nameplate') {
-            user.equipped_cosmetics.nameplate = undefined;
-          } else if (cosmetic_type === 'tag') {
-            user.equipped_cosmetics.tag = undefined;
-          } else {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Invalid cosmetic type' } };
-          }
-
-          return { changed: true, value: { ok: 'success' as const, message: 'Cosmetic unequipped successfully' } };
+        if (cosmetic_type === 'nameplate') {
+          user.equipped_cosmetics.nameplate = undefined;
+        } else if (cosmetic_type === 'tag') {
+          user.equipped_cosmetics.tag = undefined;
+        } else {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Invalid cosmetic type' },
+          };
         }
-      );
+
+        return {
+          changed: true,
+          value: { ok: 'success' as const, message: 'Cosmetic unequipped successfully' },
+        };
+      });
 
       if (!result) {
         set.status = 404;

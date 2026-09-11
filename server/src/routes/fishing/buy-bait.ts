@@ -33,38 +33,38 @@ export const buyBait = new Elysia()
 
       const totalPrice = bait.price * quantity;
 
-      const result = await mutateUserAndSave<BuyBaitOutcome>(
-        user_uuid,
-        fetchedUser => {
-          // Initialize fishing data if not present
-          fetchedUser.fishing ??= {
-            aquarium: { capacity: 10, level: 1, fish: [] },
-            bait_owned: {},
-            fish_caught: {},
-            rods_owned: [],
-          };
-          fetchedUser.fishing.bait_owned ??= {};
+      const result = await mutateUserAndSave<BuyBaitOutcome>(user_uuid, fetchedUser => {
+        // Initialize fishing data if not present
+        fetchedUser.fishing ??= {
+          aquarium: { capacity: 10, level: 1, fish: [] },
+          bait_owned: {},
+          fish_caught: {},
+          rods_owned: [],
+        };
+        fetchedUser.fishing.bait_owned ??= {};
 
-          if (fetchedUser.money < totalPrice) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient funds' } };
-          }
-
-          // Deduct money and add bait to user's owned bait
-          fetchedUser.money -= totalPrice;
-          fetchedUser.fishing.bait_owned[bait_id] =
-            (fetchedUser.fishing.bait_owned[bait_id] || 0) + quantity;
-
+        if (fetchedUser.money < totalPrice) {
           return {
-            changed: true,
-            value: {
-              ok: 'success' as const,
-              message: 'Bait purchased successfully',
-              money: fetchedUser.money,
-              bait_owned: fetchedUser.fishing.bait_owned,
-            },
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient funds' },
           };
         }
-      );
+
+        // Deduct money and add bait to user's owned bait
+        fetchedUser.money -= totalPrice;
+        fetchedUser.fishing.bait_owned[bait_id] =
+          (fetchedUser.fishing.bait_owned[bait_id] || 0) + quantity;
+
+        return {
+          changed: true,
+          value: {
+            ok: 'success' as const,
+            message: 'Bait purchased successfully',
+            money: fetchedUser.money,
+            bait_owned: fetchedUser.fishing.bait_owned,
+          },
+        };
+      });
 
       if (!result) {
         set.status = 404;

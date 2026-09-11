@@ -60,11 +60,9 @@ export async function editMessage(
   request: SocketContextValue['request']
 ): Promise<boolean> {
   try {
-    const resp = (await request(
-      'chat:edit',
-      { message_uuid, content },
-      'chat:edit_result'
-    )) as { ok: boolean };
+    const resp = (await request('chat:edit', { message_uuid, content }, 'chat:edit_result')) as {
+      ok: boolean;
+    };
     return resp?.ok === true;
   } catch (err) {
     console.error('Error editing message', err);
@@ -77,11 +75,9 @@ export async function deleteMessage(
   request: SocketContextValue['request']
 ): Promise<boolean> {
   try {
-    const resp = (await request(
-      'chat:delete',
-      { message_uuid },
-      'chat:delete_result'
-    )) as { ok: boolean };
+    const resp = (await request('chat:delete', { message_uuid }, 'chat:delete_result')) as {
+      ok: boolean;
+    };
     return resp?.ok === true;
   } catch (err) {
     console.error('Error deleting message', err);

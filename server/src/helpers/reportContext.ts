@@ -9,17 +9,11 @@ const CONTEXT_MESSAGE_LIMIT = 50;
  * time the report was made, so staff can review the surrounding context later
  * even once the room has moved on.
  */
-export async function buildReportContext(
-  reported: IMessage
-): Promise<ReportContextMessage[]> {
+export async function buildReportContext(reported: IMessage): Promise<ReportContextMessage[]> {
   const messages = await getMessagesByRoomUUID(reported.room_uuid);
 
   return messages
-    .filter(
-      m =>
-        !m.ephemeral &&
-        (m.time_sent ?? 0) <= (reported.time_sent ?? 0)
-    )
+    .filter(m => !m.ephemeral && (m.time_sent ?? 0) <= (reported.time_sent ?? 0))
     .slice(-CONTEXT_MESSAGE_LIMIT)
     .map(m => ({
       message_uuid: m.uuid,

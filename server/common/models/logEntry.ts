@@ -4,14 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type LogLevel = 'info' | 'warn' | 'error';
 export type LogType =
-  | 'system'
-  | 'command'
-  | 'payment'
-  | 'feature-flag'
-  | 'report'
-  | 'appeal'
-  | 'moderation'
-  | 'other';
+  'system' | 'command' | 'payment' | 'feature-flag' | 'report' | 'appeal' | 'moderation' | 'other';
 
 export interface LogEntry {
   uuid: string;

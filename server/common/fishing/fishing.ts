@@ -11,7 +11,11 @@ import {
 import { fishingRods } from './fishingRods';
 import { fishModifiers } from './fishModifiers';
 import { fishTypes } from './fishTypes';
-import { getFrenzyEventInfo, isFishingFrenzyActive, FRENZY_WEIGHT_MULTIPLIER } from './fishingFrenzy';
+import {
+  getFrenzyEventInfo,
+  isFishingFrenzyActive,
+  FRENZY_WEIGHT_MULTIPLIER,
+} from './fishingFrenzy';
 import {
   getTimeZoneDateUtc,
   getTimeZoneDayStartUtc,

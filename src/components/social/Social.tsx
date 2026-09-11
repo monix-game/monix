@@ -241,8 +241,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
 
     const caption = imageCaption.trim();
     const image = pendingImageDataUri;
-    const optimisticContent =
-      caption === '' ? '' : profanityFilter.censorText(caption);
+    const optimisticContent = caption === '' ? '' : profanityFilter.censorText(caption);
 
     closeImageModal();
     setIsUploadingImage(true);
@@ -592,7 +591,8 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
                       contextMenu.message.sender_uuid !== user.uuid &&
                       contextMenu.message.sender_uuid !== 'nyx' &&
                       !hasRole(
-                        contextMenu.message.sender_badge as 'owner' | 'admin' | 'mod' | 'helper' | 'user' || 'user',
+                        (contextMenu.message.sender_badge as
+                          'owner' | 'admin' | 'mod' | 'helper' | 'user') || 'user',
                         'admin'
                       );
                     return (
@@ -772,7 +772,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
           </div>
         </div>
       </Modal>
-    <Modal isOpen={isImageModalOpen} onClose={closeImageModal} ariaLabel="Image message">
+      <Modal isOpen={isImageModalOpen} onClose={closeImageModal} ariaLabel="Image message">
         <div className={styles['social-modal-content']}>
           <h2>{imageModalMode === 'edit' ? 'Edit Image Caption' : 'Send Image'}</h2>
           {pendingImageDataUri && (
@@ -792,11 +792,7 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
           />
           <div className={styles['social-modal-actions']}>
             <Button onClick={closeImageModal}>Cancel</Button>
-            <Button
-              color="blue"
-              onClickAsync={imageModalSubmit}
-              disabled={isUploadingImage}
-            >
+            <Button color="blue" onClickAsync={imageModalSubmit} disabled={isUploadingImage}>
               {imageModalMode === 'edit' ? 'Save Caption' : 'Send'}
             </Button>
           </div>

@@ -67,10 +67,22 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
           </div>
           <div className={styles['pet-stats']}>
             <span className={styles['pet-sleeping']}>
-              {isPetAsleep(pet) &&
-                `💤 Sleeping for ${formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}`}
-              {!isPetAsleep(pet) && `😄 Sleeping in ${formatTimeUntilSleep(pet.uuid)}`}
+              {isPetAsleep(pet) ? (
+                <>
+                  <EmojiText>💤</EmojiText> Sleeping for{' '}
+                  {formatSleepRemainder(dailySleepPeriod(new Date(), pet.uuid))}
+                </>
+              ) : (
+                <>
+                  <EmojiText>😄</EmojiText> Sleeping in {formatTimeUntilSleep(pet.uuid)}
+                </>
+              )}
             </span>
+            {charmed && (
+              <span className={styles['pet-sleeping']}>
+                <EmojiText>✨</EmojiText> Charmed — {formatCharmRemaining(pet)}
+              </span>
+            )}
             <div className={styles['pet-stat']}>
               <span className={styles['pet-stat-label']}>Happiness:</span>
               <span className={styles['pet-stat-value']}>{happiness}%</span>
@@ -86,9 +98,6 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
         <div className={styles['pet-dead-message']}>
           <EmojiText>💀</EmojiText> This pet has passed away.
         </div>
-      )}
-      {!pet.is_dead && charmed && (
-        <span className={styles['pet-charmed']}>✨ Charmed: {formatCharmRemaining(pet)}</span>
       )}
     </div>
   );

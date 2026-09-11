@@ -45,7 +45,7 @@ export default function Login() {
     const user = await fetchUser();
     if (user) {
       setLoading(false);
-       
+
       globalThis.location.href = '/game';
     } else {
       setLoading(false);
@@ -119,10 +119,7 @@ export default function Login() {
         return;
       }
 
-      const secondFactor =
-        mode === 'recovery'
-          ? { recoveryCode }
-          : { twoFACode };
+      const secondFactor = mode === 'recovery' ? { recoveryCode } : { twoFACode };
 
       const success = await login(username, password, secondFactor);
       if (success) {
@@ -142,7 +139,7 @@ export default function Login() {
       const success = await login(username, password);
       if (success) {
         setLoading(false);
-         
+
         globalThis.location.href = '/game';
         return;
       }

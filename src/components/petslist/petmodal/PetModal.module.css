@@ -114,13 +114,6 @@
   margin-top: 12px;
 }
 
-.pet-modal-charmed {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--purple-2);
-  text-align: center;
-}
-
 .pet-modal-actions {
   display: flex;
   flex-direction: row;

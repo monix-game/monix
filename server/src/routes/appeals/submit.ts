@@ -66,13 +66,10 @@ export const submitAppeal = new Elysia()
         level: 'info',
         type: 'appeal',
         message: 'Appeal submitted',
-        data: buildRequestLogData(
-          { path, method: request.method, headers },
-          [
-            { key: 'submitter', value: fetchedUser.username },
-            { key: 'punishment_category', value: punishment.category.name },
-          ]
-        ),
+        data: buildRequestLogData({ path, method: request.method, headers }, [
+          { key: 'submitter', value: fetchedUser.username },
+          { key: 'punishment_category', value: punishment.category.name },
+        ]),
         username: fetchedUser.username,
       });
 

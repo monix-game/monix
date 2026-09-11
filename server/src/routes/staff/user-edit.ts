@@ -43,7 +43,14 @@ export const editUser = new Elysia()
           !hasPowerOver(fetchedUser.role, targetUser.role) ||
           !hasRole(fetchedUser.role, 'admin')
         ) {
-          return { changed: false, value: { ok: 'error', status: 403, error: 'You do not have permission to edit this user' } };
+          return {
+            changed: false,
+            value: {
+              ok: 'error',
+              status: 403,
+              error: 'You do not have permission to edit this user',
+            },
+          };
         }
 
         const originalUser: {
@@ -86,8 +93,10 @@ export const editUser = new Elysia()
           equipped_cosmetics?: Equipped;
         };
 
-        const fail = (status: number, error: string) =>
-          ({ changed: false as const, value: { ok: 'error' as const, status, error } });
+        const fail = (status: number, error: string) => ({
+          changed: false as const,
+          value: { ok: 'error' as const, status, error },
+        });
 
         let changed = false;
 
@@ -128,9 +137,7 @@ export const editUser = new Elysia()
             return fail(400, 'Cosmetics unlocked must be an array');
           }
           const validCosmetics = new Set(cosmetics.map(c => c.id));
-          targetUser.cosmetics_unlocked = cosmetics_unlocked.filter(id =>
-            validCosmetics.has(id)
-          );
+          targetUser.cosmetics_unlocked = cosmetics_unlocked.filter(id => validCosmetics.has(id));
           changed = true;
         }
 
@@ -187,17 +194,17 @@ export const editUser = new Elysia()
             targetUser.avatar_data_uri = processedAvatar;
             changed = true;
           } catch (error) {
-            return fail(
-              400,
-              error instanceof Error ? error.message : 'Failed to process avatar'
-            );
+            return fail(400, error instanceof Error ? error.message : 'Failed to process avatar');
           }
         }
 
         const changeDetails: { key: string; value: string; inline?: boolean }[] = [];
 
         if (money !== undefined) {
-          changeDetails.push({ key: 'money', value: `${originalUser.money} -> ${targetUser.money}` });
+          changeDetails.push({
+            key: 'money',
+            value: `${originalUser.money} -> ${targetUser.money}`,
+          });
         }
         if (gems !== undefined) {
           changeDetails.push({ key: 'gems', value: `${originalUser.gems} -> ${targetUser.gems}` });
@@ -206,13 +213,22 @@ export const editUser = new Elysia()
           changeDetails.push({ key: 'role', value: `${originalUser.role} -> ${targetUser.role}` });
         }
         if (pet_slots !== undefined) {
-          changeDetails.push({ key: 'pet_slots', value: `${originalUser.pet_slots} -> ${targetUser.pet_slots}` });
+          changeDetails.push({
+            key: 'pet_slots',
+            value: `${originalUser.pet_slots} -> ${targetUser.pet_slots}`,
+          });
         }
         if (remove_avatar) {
-          changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> removed` });
+          changeDetails.push({
+            key: 'avatar',
+            value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> removed`,
+          });
         } else if (avatar_url) {
           const preview = avatar_url.slice(0, 64).concat(avatar_url.length > 64 ? '...' : '');
-          changeDetails.push({ key: 'avatar', value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> set to new avatar (${preview})` });
+          changeDetails.push({
+            key: 'avatar',
+            value: `${originalUser.avatar_data_uri ? 'present' : 'none'} -> set to new avatar (${preview})`,
+          });
         }
         if (cosmetics_unlocked !== undefined) {
           const prev = originalUser.cosmetics_unlocked || [];
@@ -261,10 +277,10 @@ export const editUser = new Elysia()
         level: 'info',
         type: 'moderation',
         message: 'User edited',
-        data: buildRequestLogData(
-          { path, method: request.method, headers },
-          [{ key: 'target', value: targetUser.username }, ...changeDetails]
-        ),
+        data: buildRequestLogData({ path, method: request.method, headers }, [
+          { key: 'target', value: targetUser.username },
+          ...changeDetails,
+        ]),
         username: fetchedUser.username,
       });
 

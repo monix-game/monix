@@ -162,7 +162,10 @@ export async function sendChatMessage(
     sent_restricted: !!room.restrict_send_to,
     restricted_role: room.restrict_send_to,
     nameplate: fetchedUser.equipped_cosmetics?.nameplate,
-    sender_magic_jellybean_active: isUpgradeActive(fetchedUser.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID),
+    sender_magic_jellybean_active: isUpgradeActive(
+      fetchedUser.upgrades,
+      MAGIC_JELLYBEAN_UPGRADE_ID
+    ),
     user_tag: fetchedUser.equipped_cosmetics?.tag,
     time_sent: Date.now(),
     edited: false,

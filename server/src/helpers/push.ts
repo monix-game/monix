@@ -53,8 +53,7 @@ export async function sendPushToUser(user_uuid: string, payload: PushPayload): P
       sent += 1;
     } catch (err) {
       const statusCode =
-        (err as { statusCode?: number }).statusCode ??
-        (err as { status?: number }).status;
+        (err as { statusCode?: number }).statusCode ?? (err as { status?: number }).status;
       if (statusCode === 404 || statusCode === 410) {
         await deletePushSubscriptionByEndpoint(sub.endpoint).catch(() => {
           /* ignore */
@@ -88,8 +87,7 @@ export async function sendPushToSubscriptions(
       );
     } catch (err) {
       const statusCode =
-        (err as { statusCode?: number }).statusCode ??
-        (err as { status?: number }).status;
+        (err as { statusCode?: number }).statusCode ?? (err as { status?: number }).status;
       if (statusCode === 404 || statusCode === 410) {
         await deletePushSubscriptionByEndpoint(sub.endpoint).catch(() => {
           /* ignore */

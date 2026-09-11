@@ -1,11 +1,6 @@
 export const CHAT_IMAGE_MAX_DATA_URI_LENGTH = 1_000_000;
 
-export const CHAT_IMAGE_ALLOWED_MIME_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/gif',
-  'image/webp',
-];
+export const CHAT_IMAGE_ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 export function isChatImageDataUri(value: string): boolean {
   if (value.length > CHAT_IMAGE_MAX_DATA_URI_LENGTH) return false;

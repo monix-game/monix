@@ -11,11 +11,7 @@ export type SocketContextValue = {
   connected: boolean;
   subscribe: (channel: string, handler: SocketSnapshotHandler) => () => void;
   send: (op: string, payload?: Record<string, unknown>) => void;
-  request: (
-    op: string,
-    payload: Record<string, unknown>,
-    ackType: string
-  ) => Promise<unknown>;
+  request: (op: string, payload: Record<string, unknown>, ackType: string) => Promise<unknown>;
   ping: () => Promise<number>;
 };
 

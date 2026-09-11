@@ -197,12 +197,12 @@ export function SocketProvider({ children }: Readonly<Props>) {
     };
   }, [connect]);
 
-const send = React.useCallback(
-  (op: string, payload: Record<string, unknown> = {}) => {
-    sendMessage({ op, ...payload });
-  },
-  [sendMessage]
-);
+  const send = React.useCallback(
+    (op: string, payload: Record<string, unknown> = {}) => {
+      sendMessage({ op, ...payload });
+    },
+    [sendMessage]
+  );
 
   const value = React.useMemo(
     () => ({ connected, subscribe, send, request, ping }),

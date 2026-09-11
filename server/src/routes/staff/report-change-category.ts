@@ -48,16 +48,13 @@ export const changeReportCategory = new Elysia()
         level: 'info',
         type: 'report',
         message: 'Report category changed',
-        data: buildRequestLogData(
-          { path, method: request.method, headers },
-          [
-            { key: 'original_category', value: originalCategory },
-            {
-              key: 'new_category',
-              value: punishXCategories.find(c => c.id === new_category_id)?.name || new_category_id,
-            },
-          ]
-        ),
+        data: buildRequestLogData({ path, method: request.method, headers }, [
+          { key: 'original_category', value: originalCategory },
+          {
+            key: 'new_category',
+            value: punishXCategories.find(c => c.id === new_category_id)?.name || new_category_id,
+          },
+        ]),
         username: fetchedUser.username,
       });
 

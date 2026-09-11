@@ -5,8 +5,7 @@ import { cosmetics } from '../../../../common/cosmetics/cosmetics';
 import { hasGems } from '../../../../common/math';
 
 type BuyCosmeticOutcome =
-  | { ok: 'error'; status: number; error: string }
-  | { ok: 'success'; message: string };
+  { ok: 'error'; status: number; error: string } | { ok: 'success'; message: string };
 
 export const buyCosmetic = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -39,25 +38,31 @@ export const buyCosmetic = new Elysia()
 
       const cosmeticPrice = cosmetic.price;
 
-      const result = await mutateUserAndSave<BuyCosmeticOutcome>(
-        authUser2.uuid,
-        user => {
-          if (user.cosmetics_unlocked?.includes(cosmetic_id)) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Cosmetic already unlocked' } };
-          }
-          if (!hasGems(user.gems, cosmeticPrice)) {
-            return { changed: false, value: { ok: 'error', status: 400, error: 'Insufficient gems' } };
-          }
-
-          if (user.gems !== -1) {
-            user.gems -= cosmeticPrice;
-          }
-          user.cosmetics_unlocked = user.cosmetics_unlocked || [];
-          user.cosmetics_unlocked.push(cosmetic_id);
-
-          return { changed: true, value: { ok: 'success' as const, message: 'Cosmetic purchased successfully' } };
+      const result = await mutateUserAndSave<BuyCosmeticOutcome>(authUser2.uuid, user => {
+        if (user.cosmetics_unlocked?.includes(cosmetic_id)) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Cosmetic already unlocked' },
+          };
         }
-      );
+        if (!hasGems(user.gems, cosmeticPrice)) {
+          return {
+            changed: false,
+            value: { ok: 'error', status: 400, error: 'Insufficient gems' },
+          };
+        }
+
+        if (user.gems !== -1) {
+          user.gems -= cosmeticPrice;
+        }
+        user.cosmetics_unlocked = user.cosmetics_unlocked || [];
+        user.cosmetics_unlocked.push(cosmetic_id);
+
+        return {
+          changed: true,
+          value: { ok: 'success' as const, message: 'Cosmetic purchased successfully' },
+        };
+      });
 
       if (!result) {
         set.status = 404;

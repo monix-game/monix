@@ -43,7 +43,9 @@ export async function ensureValidCertificate(): Promise<CertConfig | null> {
 
       logger.info(`Certificate expiring in ${Math.round(daysLeft)} days. Renewing now...`);
     } catch (err: unknown) {
-      logger.warn(`Failed to inspect existing cert: ${(err as Error).message}. Generating new cert...`);
+      logger.warn(
+        `Failed to inspect existing cert: ${(err as Error).message}. Generating new cert...`
+      );
     }
   }
 
@@ -106,7 +108,8 @@ async function generateNetlifyDnsCert(): Promise<CertConfig> {
   }
 
   const zones = (await zonesRes.json()) as [];
-  const zone = zones.find((z: { name: string }) => z.name === zoneName) as { id: string; name: string } | undefined;
+  const zone = zones.find((z: { name: string }) => z.name === zoneName) as
+    { id: string; name: string } | undefined;
 
   if (!zone) {
     throw new Error(`Netlify DNS zone '${zoneName}' not found in your Netlify account.`);
