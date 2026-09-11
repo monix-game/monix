@@ -3,8 +3,8 @@ import styles from './PetsList.module.css';
 import { Pet } from './pet/Pet';
 import type { IPet } from '../../../server/common/models/pet';
 import { PetModal } from './petmodal/PetModal';
-import { adoptPet, collectPetEarnings, getAllPets } from '../../helpers/pets';
-import { petPassiveRate } from '../../../server/common/pet';
+import { adoptPet, charmPet, collectPetEarnings, getAllPets } from '../../helpers/pets';
+import { petPassiveRate, CHARM_COST_GEMS } from '../../../server/common/pet';
 import { smartFormatNumber } from '../../../server/common/math';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
@@ -14,6 +14,7 @@ import { useSocket } from '../../providers/socket';
 
 interface PetsListProps {
   money: number;
+  gems: number;
   petSlots?: number;
   userUuid: string;
   passiveIncomeBonus?: number;
@@ -22,6 +23,7 @@ interface PetsListProps {
 
 export const PetsList: React.FC<PetsListProps> = ({
   money,
+  gems,
   petSlots,
   userUuid,
   passiveIncomeBonus = 0,
@@ -35,6 +37,9 @@ export const PetsList: React.FC<PetsListProps> = ({
 
   const [isBuyingPet, setIsBuyingPet] = useState<boolean>(false);
   const [isPetPurchaseLoading, setIsPetPurchaseLoading] = useState<boolean>(false);
+
+  const [charmPetTarget, setCharmPetTarget] = useState<IPet | null>(null);
+  const [isCharmingPet, setIsCharmingPet] = useState<boolean>(false);
 
   const { subscribe } = useSocket();
 
@@ -127,6 +132,10 @@ export const PetsList: React.FC<PetsListProps> = ({
           key={pet.uuid}
           pet={pet}
           money={money}
+          gems={gems}
+          onCharm={() => {
+            setCharmPetTarget(pet);
+          }}
         />
       ))}
 
@@ -166,6 +175,31 @@ export const PetsList: React.FC<PetsListProps> = ({
             const newPet = pets.find(p => p.uuid === pet.uuid);
             return { ...prev, [newPet ? newPet.uuid : pet.uuid]: true };
           });
+        }}
+      />
+
+      <PaymentModal
+        isOpen={charmPetTarget !== null}
+        isLoading={isCharmingPet}
+        onClose={() => setCharmPetTarget(null)}
+        type="gems"
+        amount={CHARM_COST_GEMS}
+        balance={gems}
+        productName={charmPetTarget ? `Charm ${charmPetTarget.name || charmPetTarget.type_id}` : 'Charm'}
+        onPurchase={async () => {
+          setIsCharmingPet(true);
+
+          // Artificial delay
+          await new Promise(resolve => setTimeout(resolve, 750));
+
+          const pet = charmPetTarget ? await charmPet(charmPetTarget.uuid) : null;
+          setIsCharmingPet(false);
+          if (!pet) {
+            return;
+          }
+          setCharmPetTarget(null);
+          await fetchPets();
+          await refreshUser();
         }}
       />
     </>

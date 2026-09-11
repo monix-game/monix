@@ -1,4 +1,4 @@
-import { fnv1a32, mulberry32 } from './math';
+import { fnv1a32, mulberry32, formatRemainingTime } from './math';
 import type { IPet } from './models/pet';
 import {
   getTimeZoneDateUtc,
@@ -6,6 +6,19 @@ import {
   getTimeZoneParts,
   SYDNEY_TIME_ZONE,
 } from './timezone';
+
+export const CHARM_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+export const CHARM_COST_GEMS = 50;
+
+export function isPetCharmed(pet: IPet, now: number = Date.now()): boolean {
+  return typeof pet.charmed_until === 'number' && pet.charmed_until > now;
+}
+
+export function formatCharmRemaining(pet: IPet, now: number = Date.now()): string {
+  if (!isPetCharmed(pet, now)) return '';
+  const remainingMs = Math.max(0, pet.charmed_until! - now);
+  return formatRemainingTime(Math.floor(remainingMs / 1000));
+}
 
 export function expRequiredForLevel(level: number): number {
   // Exponential level up requirement: 100 * (level ^ 2)
@@ -40,7 +53,11 @@ export function levelUpCost(pet: IPet): number {
   return 50 * Math.pow(pet.level, 2);
 }
 
-export function calculateHappiness(timeLastFed: number, timeLastPlayed: number): number {
+export function calculateHappiness(
+  timeLastFed: number,
+  timeLastPlayed: number,
+  charmed = false
+): number {
   const now = Date.now();
   const timeSinceFed = now - timeLastFed;
   const timeSincePlayed = now - timeLastPlayed;
@@ -55,10 +72,10 @@ export function calculateHappiness(timeLastFed: number, timeLastPlayed: number):
   if (happiness < 0) happiness = 0;
   if (happiness > maxHappiness) happiness = maxHappiness;
 
-  return Math.floor(happiness);
+  return charmed ? maxHappiness : Math.floor(happiness);
 }
 
-export function calculateHunger(timeLastFed: number): number {
+export function calculateHunger(timeLastFed: number, charmed = false): number {
   const now = Date.now();
   const timeSinceFed = now - timeLastFed;
 
@@ -71,7 +88,7 @@ export function calculateHunger(timeLastFed: number): number {
   if (hunger < 0) hunger = 0;
   if (hunger > maxHunger) hunger = maxHunger;
 
-  return Math.floor(hunger);
+  return charmed ? 0 : Math.floor(hunger);
 }
 
 export function canFeedPet(pet: IPet): boolean {

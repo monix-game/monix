@@ -1,7 +1,7 @@
 import { getPetsByOwnerUUID, updatePet } from '../../db';
 import type { IUser } from '../../../common/models/user';
 import type { IPet } from '../../../common/models/pet';
-import { calculateHunger } from '../../../common/pet';
+import { calculateHunger, isPetCharmed } from '../../../common/pet';
 
 export const FEED_COSTS: { [key: string]: number } = {
   standard: 20,
@@ -31,6 +31,7 @@ export async function updatePlayersPets(user_uuid: string): Promise<IPet[]> {
   const pets = await getPetsByOwnerUUID(user_uuid);
   for (const pet of pets) {
     if (pet.is_dead) continue;
+    if (isPetCharmed(pet)) continue;
     const hunger = calculateHunger(pet.time_last_fed);
     if (hunger >= 100) {
       // Pet is starving, it dies

@@ -7,9 +7,11 @@ import {
   calculateHunger,
   dailySleepPeriod,
   expRequiredForLevel,
+  formatCharmRemaining,
   formatSleepRemainder,
   formatTimeUntilSleep,
   isPetAsleep,
+  isPetCharmed,
   petPassiveRate,
 } from '../../../../server/common/pet';
 import type { IPet } from '../../../../server/common/models/pet';
@@ -21,8 +23,9 @@ interface PetProps {
 }
 
 export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
-  const happiness = calculateHappiness(pet.time_last_fed, pet.time_last_played);
-  const hunger = calculateHunger(pet.time_last_fed);
+  const charmed = isPetCharmed(pet);
+  const happiness = calculateHappiness(pet.time_last_fed, pet.time_last_played, charmed);
+  const hunger = calculateHunger(pet.time_last_fed, charmed);
   const type = petTypes.find(t => t.id === pet.type_id)!;
 
   return (
@@ -83,6 +86,9 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
         <div className={styles['pet-dead-message']}>
           <EmojiText>💀</EmojiText> This pet has passed away.
         </div>
+      )}
+      {!pet.is_dead && charmed && (
+        <span className={styles['pet-charmed']}>✨ Charmed: {formatCharmRemaining(pet)}</span>
       )}
     </div>
   );

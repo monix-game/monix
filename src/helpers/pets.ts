@@ -151,3 +151,18 @@ export async function revivePet(petId: string): Promise<boolean> {
     return false;
   }
 }
+
+export async function charmPet(petId: string): Promise<IPet | null> {
+  try {
+    const resp = await api.post<{ pet: IPet }>('/pets/charm', {
+      pet_uuid: petId,
+    });
+    if (resp?.success) {
+      return resp.data?.pet || null;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error charming pet', err);
+    return null;
+  }
+}

@@ -10,9 +10,11 @@ import {
   canPlayWithPet,
   dailySleepPeriod,
   expRequiredForLevel,
+  formatCharmRemaining,
   formatSleepRemainder,
   formatTimeUntilSleep,
   isPetAsleep,
+  isPetCharmed,
 } from '../../../../server/common/pet';
 import { petTypes } from '../../../../server/common/petTypes';
 import {
@@ -23,20 +25,33 @@ import {
   levelUpPet,
   revivePet,
 } from '../../../helpers/pets';
-import { smartFormatNumber } from '../../../../server/common/math';
+import { hasGems, smartFormatNumber } from '../../../../server/common/math';
+import { CHARM_COST_GEMS } from '../../../../server/common/pet';
 
 interface PetModalProps {
   isOpen: boolean;
   money: number;
+  gems: number;
   onClose: () => void;
   updateList: () => void;
   pet: IPet;
+  onCharm?: () => void;
 }
 
-export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, updateList, pet }) => {
+export const PetModal: React.FC<PetModalProps> = ({
+  isOpen,
+  money,
+  gems,
+  onClose,
+  updateList,
+  pet,
+  onCharm,
+}) => {
   const type = petTypes.find(t => t.id === pet.type_id)!;
-  const happiness = calculateHappiness(pet.time_last_fed, pet.time_last_played);
-  const hunger = calculateHunger(pet.time_last_fed);
+  const charmed = isPetCharmed(pet);
+  const happiness = calculateHappiness(pet.time_last_fed, pet.time_last_played, charmed);
+  const hunger = calculateHunger(pet.time_last_fed, charmed);
+  const charmRemaining = charmed ? formatCharmRemaining(pet) : '';
 
   const [confirmingRelease, setConfirmingRelease] = React.useState<boolean>(false);
   const [namingPet, setNamingPet] = React.useState<boolean>(false);
@@ -144,6 +159,23 @@ export const PetModal: React.FC<PetModalProps> = ({ isOpen, money, onClose, upda
                 <span className={styles['pet-modal-stat-value']}>{hunger}%</span>
               </div>
             </div>
+          </>
+        )}
+        {!pet.is_dead && (
+          <>
+            {charmed ? (
+              <span className={styles['pet-modal-charmed']}>✨ Charmed — {charmRemaining} remaining</span>
+            ) : (
+              <Button
+                color="purple"
+                cost={CHARM_COST_GEMS}
+                costType="gems"
+                disabled={!onCharm || !hasGems(gems, CHARM_COST_GEMS)}
+                onClick={onCharm}
+              >
+                Charm
+              </Button>
+            )}
           </>
         )}
         {namingPet && (

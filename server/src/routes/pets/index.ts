@@ -8,6 +8,7 @@ import feed from './feed';
 import play from './play';
 import release from './release';
 import revive from './revive';
+import charm from './charm';
 import levelup from './levelup';
 import collect from './collect';
 
@@ -22,6 +23,7 @@ export const petsRoutes = new Elysia()
   .use(play)
   .use(release)
   .use(revive)
+  .use(charm)
   .use(levelup)
   .use(collect);
 

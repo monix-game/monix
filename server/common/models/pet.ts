@@ -16,6 +16,7 @@ export interface IPet {
   bond: number;
   passive_earned: number;
   last_passive_collected: number;
+  charmed_until: number | null;
 }
 
 export function petToDoc(p: IPet): IPet {
@@ -34,6 +35,7 @@ export function petToDoc(p: IPet): IPet {
     bond: p.bond || 0,
     passive_earned: p.passive_earned || 0,
     last_passive_collected: p.last_passive_collected || p.time_created,
+    charmed_until: p.charmed_until || null,
   };
 }
 
@@ -57,5 +59,6 @@ export function petFromDoc(doc: any): IPet {
       typeof doc.last_passive_collected === 'number'
         ? doc.last_passive_collected
         : doc.time_created || 0,
+    charmed_until: typeof doc.charmed_until === 'number' ? doc.charmed_until : null,
   };
 }

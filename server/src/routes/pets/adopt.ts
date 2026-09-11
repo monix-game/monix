@@ -66,6 +66,7 @@ export const adoptPet = new Elysia()
         bond: 0,
         passive_earned: 0,
         last_passive_collected: Date.now(),
+        charmed_until: null,
       };
 
       await createPet(pet);

@@ -2404,6 +2404,7 @@ export default function Game() {
                 <h2>Pets</h2>
                 <PetsList
                   money={user?.money || 0}
+                  gems={user?.gems ?? 0}
                   petSlots={user?.pet_slots}
                   userUuid={user?.uuid ?? ''}
                   passiveIncomeBonus={(user?.permanent_upgrades?.deep_pockets || 0) * 0.05}

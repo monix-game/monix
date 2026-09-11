@@ -150,3 +150,10 @@
   color: var(--error);
   text-align: center;
 }
+
+.pet-charmed {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--purple-2);
+  text-align: center;
+}
