@@ -10,7 +10,6 @@ import { connectRedis, disconnectRedis } from './redis';
 
 import { MONGO_URI, PORT, CORS_ORIGINS } from './constants';
 import { attachSocketServer, setupSocketPublishers } from './socket';
-import { ensureValidCertificate } from './certs';
 import { logger, createLogger } from './logging';
 import {
   clientActivityByCountry,
@@ -236,28 +235,15 @@ async function start() {
     );
   }, 30_000);
 
-  const certConfig = await ensureValidCertificate();
-  let server: ReturnType<typeof createServer>;
-
-  if (certConfig) {
-    const key = fs.readFileSync(certConfig.keyPath);
-    const cert = fs.readFileSync(certConfig.certPath);
-    server = createHttpsServer({ key, cert }, (req, res) => {
-      void handleRequest(req, res);
-    });
-    log.info('HTTPS server created with TLS certificates');
-  } else {
-    server = createServer((req, res) => {
-      void handleRequest(req, res);
-    });
-    log.info('HTTP server created (TLS disabled)');
-  }
+  const server = createServer((req, res) => {
+    void handleRequest(req, res);
+  });
+  log.info('HTTP server created');
 
   attachSocketServer(server);
   setupSocketPublishers();
   server.listen(PORT, () => {
-    const protocol = certConfig ? 'https' : 'http';
-    log.info(`Server started on ${protocol}://0.0.0.0:${PORT}`);
+    log.info(`Server started on http://0.0.0.0:${PORT}`);
   });
 
   const shutdown = async () => {

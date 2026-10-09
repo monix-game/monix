@@ -57,8 +57,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - '6200:6200'
     healthcheck:
       test:
         - CMD-SHELL
@@ -77,8 +75,6 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    volumes:
-      - certs_data:/app/certs
     depends_on:
       mongodb:
         condition: service_healthy
@@ -136,6 +132,5 @@ services:
 volumes:
   mongo_data: {}
   redis_data: {}
-  certs_data: {}
   prometheus_data: {}
   grafana_data: {}
