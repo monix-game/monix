@@ -191,6 +191,6 @@ class ApiHandler {
   }
 }
 
-export const API_BASE = import.meta.env.DEV ? '/api' : 'https://api.monixga.me:6200/api';
+export const API_BASE = import.meta.env.DEV ? '/api' : 'https://api.monixga.me/api';
 
 export const api = new ApiHandler(API_BASE);

@@ -1,7 +1,5 @@
 import { createServer } from 'node:http';
-import { createServer as createHttpsServer } from 'node:https';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import fs from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { Elysia } from 'elysia';
 import cors from '@elysiajs/cors';
