@@ -9,12 +9,14 @@ import {
   FRENZY_GEM_COST,
   FRENZY_MONEY_COST,
   canActivateFrenzy,
+  getFishingFrenzyCooldownRemaining,
   getFishingFrenzyStatus,
   resetFrenzyCooldown,
   setFrenzyActive,
 } from '../../../common/fishing/fishingFrenzy';
 
 let frenzyExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+let frenzyCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
 function broadcastFrenzyStatus() {
   broadcast('fishing:frenzy', getFishingFrenzyStatus());
@@ -26,6 +28,22 @@ function scheduleFrenzyExpiry() {
     broadcastFrenzyStatus();
     frenzyExpiryTimer = null;
   }, FRENZY_DURATION_MS + 50);
+}
+
+/**
+ * Clients count the cooldown down from `cooldownEndsAt` on their own clock, but
+ * they still need a push when it lapses so the "activate" controls re-enable
+ * without waiting for the next activation.
+ */
+function scheduleFrenzyCooldown() {
+  if (frenzyCooldownTimer) clearTimeout(frenzyCooldownTimer);
+  const remaining = getFishingFrenzyCooldownRemaining();
+  if (remaining <= 0) return;
+
+  frenzyCooldownTimer = setTimeout(() => {
+    broadcastFrenzyStatus();
+    frenzyCooldownTimer = null;
+  }, remaining + 50);
 }
 
 export const fishingFrenzy = new Elysia()
@@ -74,6 +92,7 @@ export const fishingFrenzy = new Elysia()
 
           setFrenzyActive();
           scheduleFrenzyExpiry();
+          scheduleFrenzyCooldown();
           broadcastFrenzyStatus();
 
           return { changed: true, value: { ok: true } };
@@ -105,6 +124,10 @@ export const fishingFrenzy = new Elysia()
     }
 
     resetFrenzyCooldown();
+    if (frenzyCooldownTimer) {
+      clearTimeout(frenzyCooldownTimer);
+      frenzyCooldownTimer = null;
+    }
     broadcastFrenzyStatus();
 
     return { ok: true, ...getFishingFrenzyStatus() };

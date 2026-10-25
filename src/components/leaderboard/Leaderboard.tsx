@@ -3,15 +3,18 @@ import styles from './Leaderboard.module.css';
 import {
   type FishLeaderboardEntry,
   type LeaderboardEntry,
+  type NetWorthBreakdown,
   type PlaytimeLeaderboardEntry,
 } from '../../helpers/leaderboard';
 import { Spinner } from '../spinner/Spinner';
-import { getOrdinalSuffix, getPodiumLevel, titleCase } from '../../../server/common/math';
+import { getOrdinalSuffix, getPodiumLevel } from '../../../server/common/math';
 import { Avatar } from '../avatar/Avatar';
 import { Checkbox } from '../checkbox/Checkbox';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
+import { resolveNameplate } from '../../helpers/cosmetics';
 import { EmojiText } from '../EmojiText';
 import { Nameplate } from '../nameplate/Nameplate';
+import { RoleBadge } from '../rolebadge/RoleBadge';
 import { useSocket } from '../../providers/socket';
 
 type LeaderboardTab = 'money' | 'fish' | 'playtime';
@@ -32,6 +35,8 @@ export const Leaderboard: React.FC = () => {
   const [rawFishData, setRawFishData] = React.useState<FishLeaderboardEntry[]>([]);
   const [rawPlaytimeData, setRawPlaytimeData] = React.useState<PlaytimeLeaderboardEntry[]>([]);
   const [hideStaff, setHideStaff] = React.useState<boolean>(false);
+  // Ranks whose net-worth breakdown is expanded (money tab only).
+  const [expandedRanks, setExpandedRanks] = React.useState<Set<number>>(() => new Set<number>());
 
   const { subscribe } = useSocket();
 
@@ -91,6 +96,7 @@ export const Leaderboard: React.FC = () => {
     (activeTab === 'playtime' && rawPlaytimeData.length > 0);
 
   // Resolve the value shown in the trailing column for the active tab.
+  // Numbers are rendered monospaced so the digits line up between rows.
   const valueFor = (
     entry: LeaderboardEntry | FishLeaderboardEntry | PlaytimeLeaderboardEntry
   ): string => {
@@ -105,6 +111,34 @@ export const Leaderboard: React.FC = () => {
   };
 
   const isMoneyTab = activeTab === 'money';
+
+  const toggleBreakdown = (rank: number) => {
+    setExpandedRanks(prev => {
+      const next = new Set(prev);
+      if (next.has(rank)) next.delete(rank);
+      else next.add(rank);
+      return next;
+    });
+  };
+
+  const breakdownFor = (
+    entry: LeaderboardEntry | FishLeaderboardEntry | PlaytimeLeaderboardEntry
+  ): NetWorthBreakdown | null => {
+    if (!isMoneyTab) return null;
+    return (entry as LeaderboardEntry).netWorthBreakdown ?? null;
+  };
+
+  const nameplateFor = (
+    entry: LeaderboardEntry | FishLeaderboardEntry | PlaytimeLeaderboardEntry
+  ) => resolveNameplate(entry.cosmetics?.nameplate, entry.magic_jellybean_active);
+
+  const breakdownRows: { label: string; icon: string; value: number }[] = [
+    { label: 'Cash', icon: '💵', value: 0 },
+    { label: 'Resources', icon: '🪨', value: 0 },
+    { label: 'Rods', icon: '🎣', value: 0 },
+    { label: 'Bait', icon: '🪱', value: 0 },
+    { label: 'Fish', icon: '🐟', value: 0 },
+  ];
 
   return (
     <div className={styles['leaderboard-container']}>
@@ -155,17 +189,8 @@ export const Leaderboard: React.FC = () => {
                   size={50}
                 />
                 <span className={styles['podium-user']}>
-                  <Nameplate
-                    text={entry.username}
-                    styleKey={(() => {
-                      if (entry.magic_jellybean_active) return 'rainbow';
-                      if (entry.cosmetics.nameplate) {
-                        return cosmetics.find(c => c.id === entry.cosmetics.nameplate)
-                          ?.nameplateStyle;
-                      }
-                      return undefined;
-                    })()}
-                  />
+                  <Nameplate text={entry.username} {...nameplateFor(entry)} />
+                  {entry.role !== 'user' && <RoleBadge role={entry.role} />}
                   {entry.cosmetics.user_tag && (
                     <span
                       className={`user-tag tag-colour-${cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagColour}`}
@@ -176,50 +201,77 @@ export const Leaderboard: React.FC = () => {
                       {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagName}
                     </span>
                   )}
-                  {entry.role !== 'user' && (
-                    <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
-                  )}
                 </span>
-                <span className={styles['podium-money']}>{valueFor(entry)}</span>
+                <span className={`${styles['podium-money']} mono`}>{valueFor(entry)}</span>
               </div>
             ))}
           </div>
           <div className={styles['leaderboard-list']}>
-            {listData.map(entry => (
-              <div key={entry.rank} className={styles['leaderboard-entry']}>
-                <span className={styles['leaderboard-user-info']}>
-                  <b>
-                    {entry.rank}
-                    {getOrdinalSuffix(entry.rank)}:
-                  </b>{' '}
-                  <Nameplate
-                    text={entry.username}
-                    styleKey={(() => {
-                      if (entry.magic_jellybean_active) return 'rainbow';
-                      if (entry.cosmetics.nameplate) {
-                        return cosmetics.find(c => c.id === entry.cosmetics.nameplate)
-                          ?.nameplateStyle;
-                      }
-                      return undefined;
-                    })()}
-                  />
-                  {entry.cosmetics.user_tag && (
-                    <span
-                      className={`user-tag tag-colour-${cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagColour}`}
-                    >
-                      <EmojiText>
-                        {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagIcon}
-                      </EmojiText>{' '}
-                      {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagName}
+            {listData.map(entry => {
+              const breakdown = breakdownFor(entry);
+              const isExpanded = expandedRanks.has(entry.rank);
+              return (
+                <div key={entry.rank} className={styles['leaderboard-entry-group']}>
+                  <div className={styles['leaderboard-entry']}>
+                    <span className={styles['leaderboard-user-info']}>
+                      <b>
+                        {entry.rank}
+                        {getOrdinalSuffix(entry.rank)}:
+                      </b>{' '}
+                      <Nameplate text={entry.username} {...nameplateFor(entry)} />
+                      {entry.role !== 'user' && <RoleBadge role={entry.role} />}
+                      {entry.cosmetics.user_tag && (
+                        <span
+                          className={`user-tag tag-colour-${cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagColour}`}
+                        >
+                          <EmojiText>
+                            {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagIcon}
+                          </EmojiText>{' '}
+                          {cosmetics.find(c => c.id === entry.cosmetics.user_tag)?.tagName}
+                        </span>
+                      )}
                     </span>
+                    <span className={styles['leaderboard-money']}>
+                      <span className="mono">{valueFor(entry)}</span>
+                      {breakdown && (
+                        <button
+                          type="button"
+                          className={styles['breakdown-toggle']}
+                          onClick={() => toggleBreakdown(entry.rank)}
+                          aria-expanded={isExpanded}
+                          aria-label={`${isExpanded ? 'Hide' : 'Show'} breakdown for ${entry.username}`}
+                        >
+                          <EmojiText>{isExpanded ? '▾' : '▸'}</EmojiText>
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                  {breakdown && isExpanded && (
+                    <div className={styles['breakdown']}>
+                      {breakdownRows.map((row, i) => {
+                        const amount = [
+                          breakdown.money,
+                          breakdown.resources,
+                          breakdown.rods,
+                          breakdown.bait,
+                          breakdown.fish,
+                        ][i];
+                        return (
+                          <span key={row.label} className={styles['breakdown-row']}>
+                            <span className={styles['breakdown-label']}>
+                              <EmojiText>{row.icon}</EmojiText> {row.label}
+                            </span>
+                            <span className={`${styles['breakdown-value']} mono`}>
+                              ${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </span>
+                          </span>
+                        );
+                      })}
+                    </div>
                   )}
-                  {entry.role !== 'user' && (
-                    <span className={`user-badge ${entry.role}`}>{titleCase(entry.role)}</span>
-                  )}
-                </span>
-                <span className={styles['leaderboard-money']}>{valueFor(entry)}</span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

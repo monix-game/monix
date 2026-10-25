@@ -7,22 +7,20 @@ import deleteAccount from './delete';
 import changePassword from './change-password';
 import twoFARoutes from './2fa';
 import cosmeticsRoutes from './cosmetics';
-import tutorialRoutes from './tutorial';
 import avatarRoutes from './avatar';
 import upgradesRoutes from './upgrades';
 import rewardsRoutes from './rewards';
-import progressionRoutes from './progression';
+import transferMoney from './transfer';
 
 export const userRoutes = new Elysia()
   .use(register)
   .use(login)
   .use(twoFARoutes)
   .use(cosmeticsRoutes)
-  .use(tutorialRoutes)
   .use(avatarRoutes)
   .use(upgradesRoutes)
   .use(rewardsRoutes)
-  .use(progressionRoutes)
+  .use(transferMoney)
   .use(getUser)
   .use(logout)
   .use(deleteAccount)

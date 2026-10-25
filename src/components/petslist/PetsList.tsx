@@ -1,15 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import styles from './PetsList.module.css';
 import { Pet } from './pet/Pet';
 import type { IPet } from '../../../server/common/models/pet';
 import { PetModal } from './petmodal/PetModal';
-import { adoptPet, charmPet, collectPetEarnings, getAllPets } from '../../helpers/pets';
+import {
+  adoptPet,
+  charmPet,
+  collectPetEarnings,
+  getAllPets,
+  getPetSlotInfo,
+  buyPetSlot,
+  type PetSlotInfo,
+} from '../../helpers/pets';
+import { SatchelPanel } from './satchel/SatchelPanel';
 import { petPassiveRate, CHARM_COST_GEMS } from '../../../server/common/pet';
 import { smartFormatNumber } from '../../../server/common/math';
 import { Button } from '../button/Button';
 import { Spinner } from '../spinner/Spinner';
 import { PetShopModal } from './petshopmodal/PetShopModal';
 import { PaymentModal } from '../paymentmodal/PaymentModal';
+import { Modal } from '../modal/Modal';
 import { useSocket } from '../../providers/socket';
 
 interface PetsListProps {
@@ -33,13 +43,17 @@ export const PetsList: React.FC<PetsListProps> = ({
   const [pets, setPets] = useState<IPet[]>([]);
   const [petModalsOpen, setPetModalsOpen] = useState<{ [key: string]: boolean }>({});
   const [petShopModalOpen, setPetShopModalOpen] = useState<boolean>(false);
-  const maxSlots = Math.min(Math.max(petSlots ?? 3, 3), 17);
-
   const [isBuyingPet, setIsBuyingPet] = useState<boolean>(false);
   const [isPetPurchaseLoading, setIsPetPurchaseLoading] = useState<boolean>(false);
 
   const [charmPetTarget, setCharmPetTarget] = useState<IPet | null>(null);
   const [isCharmingPet, setIsCharmingPet] = useState<boolean>(false);
+  const [isSatchelOpen, setIsSatchelOpen] = useState<boolean>(false);
+  const [slotInfo, setSlotInfo] = useState<PetSlotInfo | null>(null);
+
+  // The server is the authority on the slot limit because it accounts for
+  // permanent `expanded_kennel` upgrades that are not reflected in petSlots.
+  const maxSlots = slotInfo?.slotLimit ?? Math.min(Math.max(petSlots ?? 3, 3), 17);
 
   const { subscribe } = useSocket();
 
@@ -47,6 +61,17 @@ export const PetsList: React.FC<PetsListProps> = ({
     const fetchedPets = await getAllPets();
     setPets(fetchedPets);
   };
+
+  const fetchSlotInfo = useCallback(async () => {
+    setSlotInfo(await getPetSlotInfo());
+  }, []);
+
+  useEffect(() => {
+    // Fetch-on-mount: the slot limit is server-owned data, so it cannot be
+    // derived during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchSlotInfo();
+  }, [fetchSlotInfo]);
 
   const pendingEarnings = pets.reduce((sum, pet) => {
     // eslint-disable-next-line react-hooks/purity
@@ -91,6 +116,9 @@ export const PetsList: React.FC<PetsListProps> = ({
           disabled={!hydrated || pets.length >= maxSlots}
         >
           Open Pet Shop
+        </Button>
+        <Button onClick={() => setIsSatchelOpen(true)} disabled={!hydrated}>
+          Satchel
         </Button>
       </div>
       <div className={styles['info-text']}>
@@ -147,6 +175,27 @@ export const PetsList: React.FC<PetsListProps> = ({
           void fetchPets();
         }}
       />
+
+      {isSatchelOpen && (
+        <Modal isOpen={isSatchelOpen} onClose={() => setIsSatchelOpen(false)} ariaLabel="Satchel">
+          <SatchelPanel
+            pets={pets.length}
+            slotInfo={slotInfo}
+            money={money}
+            onClose={() => setIsSatchelOpen(false)}
+            onAdopted={async () => {
+              await fetchPets();
+              await fetchSlotInfo();
+              await refreshUser();
+            }}
+            onSlotBought={async () => {
+              await buyPetSlot();
+              await fetchSlotInfo();
+              await refreshUser();
+            }}
+          />
+        </Modal>
+      )}
 
       <PaymentModal
         isOpen={isBuyingPet}

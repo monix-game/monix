@@ -16,13 +16,17 @@ img.emoji {
 
 /* User Badges */
 .user-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
   background-color: var(--primary-1);
   color: var(--text);
-  padding: 1px 3px;
-  border-radius: var(--border-radius);
+  border-radius: 50%;
   border: 2px solid var(--primary-2);
-  font-size: 0.7rem;
-  font-weight: 600;
+  line-height: 1;
   user-select: none;
 }
 

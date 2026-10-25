@@ -151,6 +151,26 @@ export function MusicProvider({ children, fadeDurationMs = 1000 }: Readonly<Prop
     playAt(Math.max(0, currentIndexRef.current - 1));
   }, [playAt]);
 
+  /** Play a specific track, adding it to the queue if it is not already there. */
+  const playTrack = React.useCallback(
+    (track: Track) => {
+      const key = track.id ?? track.src;
+      const q = queueRef.current;
+      const existing = q.findIndex(t => (t.id ?? t.src) === key);
+      if (existing >= 0) {
+        playAt(existing);
+        return;
+      }
+
+      // Keep explicit picks in the queue (right after the current track) so
+      // next/previous still work naturally afterwards.
+      const insertAt = currentIndexRef.current + 1;
+      syncQueue([...q.slice(0, insertAt), track, ...q.slice(insertAt)]);
+      playAt(insertAt);
+    },
+    [playAt, syncQueue]
+  );
+
   const enqueue = React.useCallback(
     (tracks: Track | Track[]) => {
       const incoming = Array.isArray(tracks) ? tracks : [tracks];
@@ -221,6 +241,7 @@ export function MusicProvider({ children, fadeDurationMs = 1000 }: Readonly<Prop
       isPlaying,
       volume,
       enqueue,
+      playTrack,
       playAt,
       playNext,
       playPrev,
@@ -236,6 +257,7 @@ export function MusicProvider({ children, fadeDurationMs = 1000 }: Readonly<Prop
       isPlaying,
       volume,
       enqueue,
+      playTrack,
       playAt,
       playNext,
       playPrev,

@@ -1,10 +1,8 @@
 import styles from '../Auth.module.css';
-import monixLogoLight from '../../../assets/logo.svg';
-import monixLogoDark from '../../../assets/logo-dark.svg';
 import { AnimatedBackground, Button, Footer, Input } from '../../../components';
 import { useEffect, useState } from 'react';
 import { isSignedIn, register } from '../../../helpers/auth';
-import { currentTheme } from '../../../helpers/theme';
+import { currentTheme, themeLogo } from '../../../helpers/theme';
 import Filter from '../../../../server/common/filter/filter';
 
 export default function Register() {
@@ -65,7 +63,7 @@ export default function Register() {
             <img
               className={styles['auth-logo']}
               alt="Monix Logo"
-              src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
+              src={themeLogo(currentTheme())}
             />
           </div>
           <h1 className={styles['auth-title']}>Register for Monix</h1>

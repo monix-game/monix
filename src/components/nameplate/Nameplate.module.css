@@ -11,6 +11,13 @@
   width: auto;
 }
 
+/* Plated nameplates render at their intrinsic size so the plate keeps its
+   vertical padding instead of being scaled back down to the text line. */
+.nameplate-svg__svg--plate {
+  height: auto;
+  width: auto;
+}
+
 .nameplate-svg__text {
   font-family: inherit;
   font-size: 1em;

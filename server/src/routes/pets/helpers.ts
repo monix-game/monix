@@ -18,8 +18,30 @@ export const PET_SLOT_MAX = 10;
 
 export function getPetSlotLimit(user: IUser): number {
   const rawSlots = typeof user.pet_slots === 'number' ? user.pet_slots : PET_SLOT_MIN;
-  const permanentSlots = user.permanent_upgrades?.expanded_kennel || 0;
-  return Math.min(Math.max(rawSlots + permanentSlots, PET_SLOT_MIN), PET_SLOT_MAX + 7);
+  return Math.min(Math.max(rawSlots, PET_SLOT_MIN), PET_SLOT_MAX);
+}
+
+/**
+ * Cost of the next purchasable kennel slot.
+ */
+export function petSlotCost(currentLimit: number): number {
+  // Each bought slot costs more than the last, starting at 25k for the 4th.
+  const purchased = Math.max(0, currentLimit - PET_SLOT_MIN);
+  return Math.floor(25_000 * Math.pow(2.4, purchased));
+}
+
+export function canBuyPetSlot(user: IUser): { ok: boolean; reason?: string; cost?: number } {
+  const currentSlots = typeof user.pet_slots === 'number' ? user.pet_slots : PET_SLOT_MIN;
+  if (currentSlots >= PET_SLOT_MAX) {
+    return { ok: false, reason: 'You have bought the maximum number of pet slots' };
+  }
+
+  const cost = petSlotCost(currentSlots);
+  if ((user.money || 0) < cost) {
+    return { ok: false, reason: 'Insufficient funds', cost };
+  }
+
+  return { ok: true, cost };
 }
 
 /**

@@ -2,7 +2,13 @@ import React, { useCallback, useEffect } from 'react';
 import styles from './Social.module.css';
 import type { IRoom } from '../../../server/common/models/room';
 import { EmojiText } from '../EmojiText';
-import { deleteMessage, editMessage, getRoomMessages, reportMessage } from '../../helpers/social';
+import {
+  deleteMessage,
+  editMessage,
+  getRoomMessages,
+  reportMessage,
+  startDm,
+} from '../../helpers/social';
 import type { IMessage } from '../../../server/common/models/message';
 import { Input } from '../input/Input';
 import type { IUser } from '../../../server/common/models/user';
@@ -76,6 +82,13 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
   const [editContent, setEditContent] = React.useState<string>('');
 
   const [hydrated, setHydrated] = React.useState<boolean>(false);
+
+  const [dmUsernameInput, setDmUsernameInput] = React.useState<string>('');
+  const [isStartingDm, setIsStartingDm] = React.useState<boolean>(false);
+  const [dmError, setDmError] = React.useState<string>('');
+
+  const publicRooms = React.useMemo(() => rooms.filter(r => r.type !== 'dm'), [rooms]);
+  const dmRooms = React.useMemo(() => rooms.filter(r => r.type === 'dm'), [rooms]);
 
   const messageContainerRef = React.useRef<HTMLDivElement>(null);
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -453,31 +466,105 @@ export const Social: React.FC<SocialProps> = ({ user, room, setRoom, rooms, unre
     await fetchMessages();
   };
 
+  const openRoom = (r: IRoom) => {
+    setSocialView('chat');
+    setRoom(r);
+    void fetchMessages(r.uuid);
+    hideContextMenu();
+  };
+
+  const startDmWithUsername = async () => {
+    const username = dmUsernameInput.trim();
+    if (!username || isStartingDm) return;
+
+    setIsStartingDm(true);
+    setDmError('');
+    try {
+      const result = await startDm(username);
+      if (!result) {
+        setDmError('Could not start that conversation.');
+        return;
+      }
+      setDmUsernameInput('');
+      setSocialView('chat');
+      setRoom(result.room);
+      void fetchMessages(result.room.uuid);
+    } finally {
+      setIsStartingDm(false);
+    }
+  };
+
   return (
     <div className={styles['social-root']}>
       <div className={styles['social-sidebar']}>
         <div className={styles['social-sidebar-inner']}>
           <h2>Social</h2>
+          <form
+            className={styles['dm-start-form']}
+            onSubmit={e => {
+              e.preventDefault();
+              void startDmWithUsername();
+            }}
+          >
+            <input
+              className={styles['dm-start-input']}
+              type="text"
+              value={dmUsernameInput}
+              placeholder="Message a user…"
+              maxLength={32}
+              onChange={e => setDmUsernameInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void startDmWithUsername();
+                }
+              }}
+              aria-label="Start a direct message with a username"
+            />
+            <Button
+              type="submit"
+              disabled={dmUsernameInput.trim() === '' || isStartingDm}
+              aria-label="Start direct message"
+            >
+              {isStartingDm ? '…' : '✉️'}
+            </Button>
+          </form>
+          {dmError && <p className={styles['dm-error']}>{dmError}</p>}
+          {dmRooms.length > 0 && (
+            <>
+              <h3 className={styles['social-sidebar-heading']}>
+                <EmojiText>✉️</EmojiText> Direct Messages
+              </h3>
+              <div className={styles['social-sidebar-rooms']}>
+                {dmRooms.map(r => (
+                  <div
+                    key={r.uuid}
+                    className={`${styles['social-room-item']} ${
+                      socialView === 'chat' && r.uuid === room.uuid ? styles.active : ''
+                    }`}
+                    onClick={() => openRoom(r)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') openRoom(r);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <EmojiText>💬</EmojiText> {r.name}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           <div className={styles['social-sidebar-rooms']}>
-            {rooms.map(r => (
+            {publicRooms.map(r => (
               <div
                 key={r.uuid}
                 className={`${styles['social-room-item']} ${
                   socialView === 'chat' && r.uuid === room.uuid ? styles.active : ''
                 }`}
-                onClick={() => {
-                  setSocialView('chat');
-                  setRoom(r);
-                  void fetchMessages(r.uuid);
-                  hideContextMenu();
-                }}
+                onClick={() => openRoom(r)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    setSocialView('chat');
-                    setRoom(r);
-                    void fetchMessages(r.uuid);
-                    hideContextMenu();
-                  }
+                  if (e.key === 'Enter') openRoom(r);
                 }}
                 role="button"
                 tabIndex={0}

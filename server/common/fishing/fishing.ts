@@ -11,6 +11,8 @@ import {
 import { fishingRods } from './fishingRods';
 import { fishModifiers } from './fishModifiers';
 import { fishTypes } from './fishTypes';
+import { petTypes } from '../petTypes';
+import { rollStrayPet, strayChance } from '../pet';
 import {
   getFrenzyEventInfo,
   isFishingFrenzyActive,
@@ -61,6 +63,13 @@ export interface FishingResult {
   rod_used: string; // ID of the fishing rod used
   event_active: FishingEventInfo | null; // Active fishing event info, or null if no event
   timestamp: number; // When the fishing attempt occurred
+  /**
+   * Stray pet pulled up by this cast, if any. The pet is stashed in the satchel
+   * in addition to the fish — it does not replace the catch. Keeping this fish
+   * is what arms the forced auto-sell for the *next* cast, which is where the
+   * aquarium space is actually needed.
+   */
+  stray_pet: { type_id: string; rarity: 'common' | 'rare' } | null;
 }
 
 /**
@@ -72,8 +81,7 @@ export interface FishingResult {
 export function calculateFishingResult(
   baitId: string | null,
   rodId: string,
-  upgrades?: Record<string, { expires_at: number }>,
-  permanentUpgrades?: Record<string, number>
+  upgrades?: Record<string, { expires_at: number }>
 ): FishingResult {
   const bait = baitId ? fishingBaits.find(b => b.id === baitId) : null;
   const rod = fishingRods.find(r => r.id === rodId);
@@ -119,25 +127,27 @@ export function calculateFishingResult(
     rng
   );
 
-  // Determine modifiers for the caught fish based on active event and random chance
-  let modifier = null;
+  // Determine modifiers for the caught fish based on active event and random chance.
+  // Guaranteed event modifiers (e.g. Trick or Trout's Haunted) are applied to
+  // every catch, while the remaining event modifiers are rolled as usual.
+  const possibleModifiers = fishModifiers.filter(mod => mod.event === event.event?.id);
+  const modifiers: string[] = possibleModifiers.filter(mod => mod.guaranteed).map(mod => mod.id);
+
   const modifierChance = Math.min(
     1,
-    0.5 +
-      (permanentUpgrades?.lucky_tide || 0) * 0.05 +
-      (isUpgradeActive(upgrades, LUCKY_CHARM_UPGRADE_ID) ? 0.5 : 0)
+    0.5 + (isUpgradeActive(upgrades, LUCKY_CHARM_UPGRADE_ID) ? 0.5 : 0)
   );
   if (rng() <= modifierChance) {
-    const possibleModifiers = fishModifiers.filter(mod => mod.event === event.event?.id);
-    if (possibleModifiers.length > 0) {
+    const rollableModifiers = possibleModifiers.filter(mod => !mod.guaranteed);
+    if (rollableModifiers.length > 0) {
       const chosenModifier = weightedRandom(
-        possibleModifiers,
-        possibleModifiers.map(m => m.rarity_weight),
+        rollableModifiers,
+        rollableModifiers.map(m => m.rarity_weight),
         rng
       );
 
       if (chosenModifier) {
-        modifier = chosenModifier.id;
+        modifiers.push(chosenModifier.id);
       }
     }
   }
@@ -145,21 +155,24 @@ export function calculateFishingResult(
   // Calculate weight of the caught fish based on its type, rod multiplier, and lucky boost
   const baseWeight = rng() * (fishType.max_weight - fishType.min_weight) + fishType.min_weight;
   const rodMultiplier = rod ? rod.multiplier : 1;
-  const permanentWeightMultiplier = 1 + (permanentUpgrades?.angler_instinct || 0) * 0.08;
-  const upgradeWeightMultiplier =
-    permanentWeightMultiplier * (isUpgradeActive(upgrades, HEAVY_LINE_UPGRADE_ID) ? 1.25 : 1);
+  const upgradeWeightMultiplier = isUpgradeActive(upgrades, HEAVY_LINE_UPGRADE_ID) ? 1.25 : 1;
   const frenzyMultiplier = frenzyActive ? FRENZY_WEIGHT_MULTIPLIER : 1;
   const finalWeight =
     baseWeight * rodMultiplier * luckyBoost * upgradeWeightMultiplier * frenzyMultiplier;
 
+  // A stray pet can take the place of the catch. Rolled from the same seeded
+  // RNG so the whole cast stays deterministic.
+  const strayPet = rng() < strayChance() ? rollStrayPet(rng, petTypes) : null;
+
   return {
     fish_type: fishType.id,
     weight: Number.parseFloat(finalWeight.toFixed(2)),
-    modifiers: clampFishModifiers(modifier ? [modifier] : []),
+    modifiers: clampFishModifiers(modifiers),
     bait_used: bait ? bait.id : null,
     rod_used: rod ? rod.id : 'damaged-rod',
     event_active: frenzyActive ? getFrenzyEventInfo() : event.event,
     timestamp: now.getTime(),
+    stray_pet: strayPet,
   };
 }
 
@@ -416,7 +429,7 @@ export function applyAquariumEventModifiers(
     return false;
   }
 
-  const eventModifiers = fishModifiers.filter(mod => mod.event === event.id);
+  const eventModifiers = fishModifiers.filter(mod => mod.event === event.id && !mod.guaranteed);
   if (eventModifiers.length === 0) {
     return false;
   }

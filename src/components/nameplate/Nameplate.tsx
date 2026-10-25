@@ -6,6 +6,92 @@ type GradientStop = {
   color: string;
 };
 
+/**
+ * Plates drawn behind the nameplate text. The SVG viewBox is grown to fit, so
+ * these only need to describe fills — sizing is handled by the component.
+ */
+const NAMEPLATE_BACKGROUNDS: Record<string, { light: GradientStop[]; dark: GradientStop[] }> = {
+  gold: {
+    light: [
+      { offset: '0%', color: '#fff1b8' },
+      { offset: '55%', color: '#f0cf72' },
+      { offset: '100%', color: '#d3a53a' },
+    ],
+    dark: [
+      { offset: '0%', color: '#6b4f14' },
+      { offset: '55%', color: '#4a360c' },
+      { offset: '100%', color: '#2b1f05' },
+    ],
+  },
+  sakura: {
+    light: [
+      { offset: '0%', color: '#ffe6f0' },
+      { offset: '55%', color: '#fbc4da' },
+      { offset: '100%', color: '#f0a3c2' },
+    ],
+    dark: [
+      { offset: '0%', color: '#64223c' },
+      { offset: '55%', color: '#451427' },
+      { offset: '100%', color: '#280a16' },
+    ],
+  },
+  ember: {
+    light: [
+      { offset: '0%', color: '#f3b183' },
+      { offset: '100%', color: '#c0562a' },
+    ],
+    dark: [
+      { offset: '0%', color: '#7a2f12' },
+      { offset: '100%', color: '#40180a' },
+    ],
+  },
+  ice: {
+    light: [
+      { offset: '0%', color: '#d6f1fb' },
+      { offset: '100%', color: '#8cc7e0' },
+    ],
+    dark: [
+      { offset: '0%', color: '#1d4f6b' },
+      { offset: '100%', color: '#0d2b3c' },
+    ],
+  },
+  forest: {
+    light: [
+      { offset: '0%', color: '#c3e6c8' },
+      { offset: '100%', color: '#6fae7c' },
+    ],
+    dark: [
+      { offset: '0%', color: '#1e5730' },
+      { offset: '100%', color: '#0e2c1a' },
+    ],
+  },
+  sunset: {
+    light: [
+      { offset: '0%', color: '#ffd9a8' },
+      { offset: '100%', color: '#e08a4c' },
+    ],
+    dark: [
+      { offset: '0%', color: '#7a3f18' },
+      { offset: '100%', color: '#3d1f0d' },
+    ],
+  },
+  void: {
+    light: [
+      { offset: '0%', color: '#b79ae0' },
+      { offset: '100%', color: '#4a2f75' },
+    ],
+    dark: [
+      { offset: '0%', color: '#2b1a48' },
+      { offset: '100%', color: '#120b21' },
+    ],
+  },
+};
+
+/** Extra viewBox room, in px, needed to draw a background plate. */
+const BACKGROUND_PADDING_X = 7;
+/** Vertical plate room as a fraction of the font size, so the plate scales with the text. */
+const BACKGROUND_PADDING_Y_RATIO = 0.28;
+
 const NAMEPLATE_GRADIENTS: Record<string, { light: GradientStop[]; dark: GradientStop[] }> = {
   gold: {
     light: [
@@ -116,9 +202,16 @@ const NAMEPLATE_GRADIENTS: Record<string, { light: GradientStop[]; dark: Gradien
 interface NameplateProps extends React.HTMLAttributes<HTMLSpanElement> {
   text: string;
   styleKey?: string | null;
+  backgroundKey?: string | null;
 }
 
-export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className, ...rest }) => {
+export const Nameplate: React.FC<NameplateProps> = ({
+  text,
+  styleKey,
+  backgroundKey,
+  className,
+  ...rest
+}) => {
   const wrapperRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<SVGTextElement>(null);
   const [textWidth, setTextWidth] = useState(0);
@@ -127,6 +220,7 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
   const gradientId = useId();
   const shineId = useId();
   const maskId = useId();
+  const backgroundId = useId();
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -136,11 +230,21 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
   }, []);
 
   const gradientStops = useMemo(() => {
-    if (!styleKey) return null;
-    const gradients = NAMEPLATE_GRADIENTS[styleKey];
-    if (!gradients) return NAMEPLATE_GRADIENTS.gold[isDarkMode ? 'dark' : 'light'];
+    if (!styleKey && !backgroundKey) return null;
+    const gradients = styleKey ? NAMEPLATE_GRADIENTS[styleKey] : null;
+    if (!gradients) {
+      // Background-only plates still need a text colour, so fall back to gold.
+      return NAMEPLATE_GRADIENTS.gold[isDarkMode ? 'dark' : 'light'];
+    }
     return gradients[isDarkMode ? 'dark' : 'light'];
-  }, [styleKey, isDarkMode]);
+  }, [styleKey, backgroundKey, isDarkMode]);
+
+  const backgroundStops = useMemo(() => {
+    if (!backgroundKey) return null;
+    const background = NAMEPLATE_BACKGROUNDS[backgroundKey];
+    if (!background) return null;
+    return background[isDarkMode ? 'dark' : 'light'];
+  }, [backgroundKey, isDarkMode]);
 
   useLayoutEffect(() => {
     if (!wrapperRef.current || !textRef.current || !gradientStops) return;
@@ -163,6 +267,17 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
   const height = Math.max(fontSize, 1);
   const isRainbowStyle = styleKey === 'rainbow';
 
+  // A background plate needs the viewBox to grow outwards so the plate is not
+  // clipped by the tight text-only viewBox. The plate is also allowed to render
+  // at its intrinsic height (see the `--plate` class) so it reads taller than
+  // the text line instead of being squashed back down to 1em.
+  const hasBackground = Boolean(backgroundStops);
+  const backgroundPaddingY = hasBackground ? height * BACKGROUND_PADDING_Y_RATIO : 0;
+  const viewBoxX = hasBackground ? -BACKGROUND_PADDING_X : 0;
+  const viewBoxY = hasBackground ? -backgroundPaddingY : 0;
+  const viewBoxWidth = width + (hasBackground ? BACKGROUND_PADDING_X * 2 : 0);
+  const viewBoxHeight = height + (hasBackground ? backgroundPaddingY * 2 : 0);
+
   return (
     <span
       ref={wrapperRef}
@@ -171,14 +286,21 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
       {...rest}
     >
       <svg
-        className={`${styles['nameplate-svg__svg']} nameplate-svg__svg--shiny`}
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        className={`${styles['nameplate-svg__svg']} ${
+          hasBackground ? styles['nameplate-svg__svg--plate'] : ''
+        } nameplate-svg__svg--shiny`}
+        width={viewBoxWidth}
+        height={viewBoxHeight}
+        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
         role="img"
         aria-hidden="true"
       >
         <defs>
+          <linearGradient id={backgroundId} x1="0" x2="0" y1="0" y2="1">
+            {backgroundStops?.map(stop => (
+              <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+            ))}
+          </linearGradient>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
             {isRainbowStyle && (
               <animateTransform
@@ -204,6 +326,16 @@ export const Nameplate: React.FC<NameplateProps> = ({ text, styleKey, className,
             <rect x="0" y="0" width={width} height={height} fill={`url(#${shineId})`} />
           </mask>
         </defs>
+        {backgroundStops && (
+          <rect
+            x={viewBoxX}
+            y={viewBoxY}
+            width={viewBoxWidth}
+            height={viewBoxHeight}
+            rx={Math.max(4, height * 0.4)}
+            fill={`url(#${backgroundId})`}
+          />
+        )}
         <text
           ref={textRef}
           x={1}

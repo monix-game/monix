@@ -1,8 +1,6 @@
 import styles from '../Payment.module.css';
-import monixLogoLight from '../../../assets/logo.svg';
-import monixLogoDark from '../../../assets/logo-dark.svg';
 import { AnimatedBackground, Button, Footer } from '../../../components';
-import { currentTheme } from '../../../helpers/theme';
+import { currentTheme, themeLogo } from '../../../helpers/theme';
 
 export default function Cancel() {
   return (
@@ -14,7 +12,7 @@ export default function Cancel() {
             <img
               className={styles['payment-logo']}
               alt="Monix Logo"
-              src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
+              src={themeLogo(currentTheme())}
             />
           </div>
           <h1 className={styles['payment-title']}>Payment Cancelled</h1>

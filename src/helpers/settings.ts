@@ -4,18 +4,33 @@ import { localStorageKey } from './constants';
 
 export interface IClientSettings {
   theme: 'light' | 'dark' | 'system';
+  /**
+   * Colour scheme. Kept separate from `theme` so each palette can still be
+   * rendered on a light or dark surface.
+   */
+  palette: 'monix' | 'ocean' | 'sunset' | 'forest' | 'candy' | 'mono';
+  /**
+   * Seasonal theme. When enabled it overrides the palette with a limited-time
+   * look (e.g. Halloween) while `theme` still selects light or dark.
+   */
+  seasonalTheme: boolean;
   musicVolume: number;
   motionReduction: boolean;
   debugOverlay: boolean;
   debugOverlayPosition: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+  /** Whether caught fish are sold immediately. Persisted so it survives reloads. */
+  autoSellFish: boolean;
 }
 
 export const defaultSettings: IClientSettings = {
   theme: 'light',
+  palette: 'monix',
+  seasonalTheme: true,
   musicVolume: 10,
   motionReduction: false,
   debugOverlay: false,
   debugOverlayPosition: 'topleft',
+  autoSellFish: false,
 };
 
 export function loadSettings(): IClientSettings {

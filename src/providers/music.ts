@@ -8,6 +8,7 @@ export type MusicContextValue = {
   isPlaying: boolean;
   volume: number; // 0.0 - 1.0
   enqueue: (tracks: Track | Track[]) => void;
+  playTrack: (track: Track) => void;
   playAt: (index: number) => void;
   playNext: () => void;
   playPrev: () => void;

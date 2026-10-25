@@ -1,10 +1,19 @@
 import { api } from './api';
 
+export interface NetWorthBreakdown {
+  money: number;
+  resources: number;
+  rods: number;
+  bait: number;
+  fish: number;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   username: string;
   money: number;
   netWorth?: number;
+  netWorthBreakdown?: NetWorthBreakdown;
   avatar?: string;
   role: 'owner' | 'admin' | 'mod' | 'helper' | 'user';
   magic_jellybean_active?: boolean;

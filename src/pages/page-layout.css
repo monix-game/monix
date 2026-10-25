@@ -17,9 +17,45 @@
   flex-grow: 1;
 }
 
+.app-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.app-brand-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-brand .app-title {
+  margin-right: 0;
+}
+
+.app-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .app-logo {
   height: 65px;
-  margin-right: -15px;
+  margin-right: 0;
+  user-select: none;
+}
+
+.app-brand-caption {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-top: 2px;
+  color: #fff;
+  white-space: nowrap;
   user-select: none;
 }
 
@@ -29,6 +65,19 @@ html[data-theme='light'] .app-logo-dark {
 
 html[data-theme='dark'] .app-logo-light {
   display: none;
+}
+
+.app-logo-seasonal {
+  display: none;
+}
+
+html[data-seasonal='true'] .app-logo-light,
+html[data-seasonal='true'] .app-logo-dark {
+  display: none;
+}
+
+html[data-seasonal='true'] .app-logo-seasonal {
+  display: block;
 }
 
 .app-title {
@@ -104,6 +153,10 @@ html[data-theme='dark'] .app-logo-light {
   vertical-align: middle;
 }
 
+.username-info .user-tag {
+  margin-left: 0;
+}
+
 .user-avatar {
   width: 34px;
   height: 34px;
@@ -165,6 +218,15 @@ html[data-theme='dark'] .app-logo-light {
     width: 100%;
     text-align: center;
     order: 1;
+  }
+
+  .app-brand {
+    width: 100%;
+  }
+
+  .app-brand-main {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .app-logo {

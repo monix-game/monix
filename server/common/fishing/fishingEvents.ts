@@ -120,6 +120,19 @@ export const fishingEvents: FishingEventInfo[] = [
     },
   },
   {
+    // Listed before `halloween` so it wins the overlapping dates (Oct 30 - Nov 5).
+    id: 'trick_or_trout',
+    name: 'Trick or Trout',
+    icon: '🎣',
+    timing: {
+      type: 'date_range',
+      start_month: 9,
+      start_day: 25,
+      end_month: 10,
+      end_day: 5,
+    },
+  },
+  {
     id: 'halloween',
     name: "Hallow's Eve",
     icon: '🎃',

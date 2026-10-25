@@ -16,11 +16,19 @@ import {
   IconLockOpen,
   IconLogout,
   IconLogout2,
+  IconPalette,
+  IconPumpkinScary,
   IconTrash,
   IconUserCircle,
   IconVolume,
 } from '@tabler/icons-react';
-import { applyTheme } from '../../helpers/theme';
+import {
+  applyTheme,
+  defaultThemePalette,
+  isThemePalette,
+  themePalettes,
+  type ThemePalette,
+} from '../../helpers/theme';
 import { loadSettings, updateServerSetting, updateSetting } from '../../helpers/settings';
 import {
   changePassword,
@@ -56,13 +64,12 @@ import { enablePushNotifications, disablePushNotifications } from '../../helpers
 
 interface SettingsProps {
   user: IUser;
-  onRestartTutorial?: () => void | Promise<void>;
 }
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type DebugOverlayPosition = 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
 
-export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) => {
+export const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = React.useState<boolean>(false);
   const [is2FAModalOpen, setIs2FAModalOpen] = React.useState<boolean>(false);
   const [is2FARemoveModalOpen, setIs2FARemoveModalOpen] = React.useState<boolean>(false);
@@ -99,6 +106,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
 
   // State for various settings
   const [theme, setTheme] = React.useState<ThemeOption>('light');
+  const [palette, setPalette] = React.useState<ThemePalette>(defaultThemePalette);
+  const [seasonalTheme, setSeasonalTheme] = React.useState<boolean>(false);
   const [musicVolume, setMusicVolume] = React.useState<number>(70);
   const [motionReduction, setMotionReduction] = React.useState<boolean>(false);
   const [debugOverlay, setDebugOverlay] = React.useState<boolean>(false);
@@ -126,6 +135,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
       const settings = loadSettings();
 
       setTheme(settings.theme);
+      setPalette(isThemePalette(settings.palette) ? settings.palette : defaultThemePalette);
+      setSeasonalTheme(settings.seasonalTheme);
       setMusicVolume(settings.musicVolume);
       setMotionReduction(settings.motionReduction);
       setDebugOverlay(settings.debugOverlay);
@@ -259,6 +270,46 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
           }}
         />
         <SettingsOption
+          type="select"
+          icon={<IconPalette />}
+          label="Colour Palette"
+          description={
+            seasonalTheme
+              ? 'Unavailable while a seasonal theme is active'
+              : 'Pick the colour scheme used across the site'
+          }
+          selectOptions={themePalettes.map(themePalette => ({
+            label: `${themePalette.name} — ${themePalette.description}`,
+            value: themePalette.id,
+          }))}
+          value={palette}
+          disabled={seasonalTheme}
+          onChange={(newValue: string | boolean | number) => {
+            const next = newValue as ThemePalette;
+            if (!isThemePalette(next)) return;
+            setPalette(next);
+            updateSetting('palette', next);
+            // Re-apply so the palette attribute updates immediately.
+            applyTheme(theme);
+          }}
+        />
+        <SettingsOption
+          type="checkbox"
+          icon={<IconPumpkinScary />}
+          label="Seasonal Theme"
+          description="Swap in a limited-time look (Halloween) in place of the colour palettes"
+          value={seasonalTheme}
+          onChange={(newValue: string | boolean | number) => {
+            const enabled = Boolean(newValue);
+            setSeasonalTheme(enabled);
+            updateSetting('seasonalTheme', enabled);
+            // Re-apply so the seasonal palette swaps in/out immediately.
+            applyTheme(theme);
+            // Remount to refresh the logos rendered with `currentTheme()`.
+            globalThis.location.reload();
+          }}
+        />
+        <SettingsOption
           type="slider"
           icon={<IconVolume />}
           label="Music Volume"
@@ -283,19 +334,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, onRestartTutorial }) =
             updateSetting('motionReduction', newValue as boolean);
           }}
         />
-        <SettingsOption
-          type="button"
-          icon={<IconGitCommit />}
-          label="Restart Tutorial"
-          description="Replay the guided walkthrough of Monix"
-          buttonLabel="Restart"
-          buttonAction={async () => {
-            if (onRestartTutorial) {
-              await onRestartTutorial();
-            }
-          }}
-        />
-
         <h2 className={styles['settings-header']}>Social</h2>
         <SettingsOption
           type="button"

@@ -46,8 +46,7 @@ export const claimDailyReward = new Elysia()
     }
 
     const reward = DAILY_REWARDS[newStreak - 1];
-    const rewardMultiplier = 1 + (freshUser.permanent_upgrades?.daily_fortune || 0) * 0.1;
-    const adjustedReward = { ...reward, amount: Math.floor(reward.amount * rewardMultiplier) };
+    const adjustedReward = reward;
     const moneyDelta = adjustedReward.type === 'money' ? adjustedReward.amount : 0;
     const gemsDelta =
       adjustedReward.type === 'gems' && freshUser.gems !== -1 ? adjustedReward.amount : 0;

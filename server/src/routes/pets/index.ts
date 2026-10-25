@@ -11,6 +11,8 @@ import revive from './revive';
 import charm from './charm';
 import levelup from './levelup';
 import collect from './collect';
+import satchel from './satchel';
+import slot from './slot';
 
 export const petsRoutes = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -25,6 +27,8 @@ export const petsRoutes = new Elysia()
   .use(revive)
   .use(charm)
   .use(levelup)
-  .use(collect);
+  .use(collect)
+  .use(satchel)
+  .use(slot);
 
 export default petsRoutes;

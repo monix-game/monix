@@ -95,7 +95,7 @@
 }
 
 .podium-user :global(.user-badge),
-:global(.user-tag) {
+.podium-user :global(.user-tag) {
   margin-left: 8px;
 }
 
@@ -123,6 +123,56 @@
   border-radius: var(--border-radius);
   background-color: var(--dark-bg);
   border: 2px solid var(--primary-2);
+}
+
+.leaderboard-entry-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.breakdown-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 0 0 6px;
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.breakdown-toggle:hover {
+  color: var(--text);
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 15px;
+  border: 2px solid var(--primary-2);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  background-color: var(--bg);
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.breakdown-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.breakdown-value {
+  text-align: right;
 }
 
 .leaderboard-rank {

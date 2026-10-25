@@ -56,19 +56,11 @@ export const ACHIEVEMENTS: AchievementInfo[] = [
     description: 'Own five pets at once.',
     requirement: '5 pets owned',
   },
-  {
-    id: 'reborn',
-    icon: '🌟',
-    name: 'Reborn',
-    description: 'Prestige for the first time.',
-    requirement: '1 prestige',
-  },
 ];
 
 export function getEligibleAchievementIds(user: {
   money?: number;
   petsOwned?: number;
-  prestige?: { count?: number };
   stats?: {
     fish_caught?: number;
     resources_bought?: number;
@@ -85,7 +77,6 @@ export function getEligibleAchievementIds(user: {
     billionaire: (user.money || 0) >= 1_000_000_000,
     dedicated: (stats.playtime_ms || 0) >= 10 * 60 * 60 * 1000,
     collector: (user.petsOwned || 0) >= 5,
-    reborn: (user.prestige?.count || 0) >= 1,
   };
   return Object.entries(checks)
     .filter(([, eligible]) => eligible)

@@ -7,6 +7,12 @@ export interface FishingFrenzyStatus {
   active: boolean;
   endsAt: number;
   cooldownRemainingMs: number;
+  /**
+   * Absolute timestamp at which the activation cooldown expires. Used to
+   * render a live countdown from the client clock. `cooldownRemainingMs` is
+   * only a snapshot and does not tick down on its own.
+   */
+  cooldownEndsAt: number;
 }
 
 export async function getFrenzyStatus(): Promise<FishingFrenzyStatus | null> {
@@ -237,12 +243,20 @@ export async function goFishing(autoSell: boolean = false): Promise<{
   fishingResult: FishingResult;
   fishCaught: IFish;
   success: boolean;
+  strayCaught: boolean;
+  satchelFull: boolean;
+  nextCatchAutoSell: boolean;
+  autoSold: boolean;
 } | null> {
   try {
     const resp = await api.post<{
       fishingResult: FishingResult;
       fishCaught: IFish;
       success: boolean;
+      strayCaught?: boolean;
+      satchelFull?: boolean;
+      nextCatchAutoSell?: boolean;
+      autoSold?: boolean;
     }>('/fishing/fish', { auto_sell: autoSell });
     if (resp?.success) {
       const payload = resp.data;
@@ -251,6 +265,10 @@ export async function goFishing(autoSell: boolean = false): Promise<{
           fishingResult: payload.fishingResult,
           fishCaught: payload.fishCaught,
           success: payload.success,
+          strayCaught: payload.strayCaught ?? false,
+          satchelFull: payload.satchelFull ?? false,
+          nextCatchAutoSell: payload.nextCatchAutoSell ?? false,
+          autoSold: payload.autoSold ?? false,
         };
       }
     }

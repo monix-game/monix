@@ -1,7 +1,7 @@
 import styles from './Landing.module.css';
 import monixLogoLight from '../../assets/logo.svg';
 import monixLogoDark from '../../assets/logo-dark.svg';
-import { Button, EmojiText, Footer } from '../../components';
+import { AnimatedBackground, Button, EmojiText, Footer } from '../../components';
 import {
   IconCoin,
   IconDeviceGamepad,
@@ -12,7 +12,7 @@ import {
   IconSparkles,
   IconFish,
 } from '@tabler/icons-react';
-import { currentTheme } from '../../helpers/theme';
+import { currentTheme, seasonalThemes, themeLogo } from '../../helpers/theme';
 import { isSignedIn } from '../../helpers/auth';
 import { useEffect, useState } from 'react';
 
@@ -26,6 +26,7 @@ export default function Landing() {
 
   return (
     <div className={styles['landing-container']}>
+      <AnimatedBackground />
       <header className={styles['landing-header']}>
         <img
           src={monixLogoLight}
@@ -36,6 +37,11 @@ export default function Landing() {
           src={monixLogoDark}
           alt="Monix Logo"
           className={`${styles['landing-logo']} ${styles['landing-logo-dark']}`}
+        />
+        <img
+          src={seasonalThemes[0].logo}
+          alt="Monix Logo"
+          className={`${styles['landing-logo']} ${styles['landing-logo-seasonal']}`}
         />
         <h1 className={styles['landing-title']}>Monix</h1>
         <div className="spacer"></div>
@@ -72,7 +78,7 @@ export default function Landing() {
 
       <main className={styles['landing-main']}>
         <div className={styles['landing-title']}>
-          <img src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight} alt="Monix Logo" />
+          <img src={themeLogo(currentTheme())} alt="Monix Logo" />
           <h1>Monix</h1>
         </div>
 

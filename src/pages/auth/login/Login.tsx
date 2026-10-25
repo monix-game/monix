@@ -1,6 +1,4 @@
 import styles from '../Auth.module.css';
-import monixLogoLight from '../../../assets/logo.svg';
-import monixLogoDark from '../../../assets/logo-dark.svg';
 import { AnimatedBackground, Button, Footer, Input } from '../../../components';
 import { useState } from 'react';
 import {
@@ -16,7 +14,7 @@ import {
   serializeAuthenticationCredential,
   isWebAuthnSupported,
 } from '../../../helpers/webauthn';
-import { currentTheme } from '../../../helpers/theme';
+import { currentTheme, themeLogo } from '../../../helpers/theme';
 
 type TwoFactorMode = 'totp' | 'passkey' | 'recovery';
 
@@ -179,7 +177,7 @@ export default function Login() {
             <img
               className={styles['auth-logo']}
               alt="Monix Logo"
-              src={currentTheme() === 'dark' ? monixLogoDark : monixLogoLight}
+              src={themeLogo(currentTheme())}
             />
           </div>
           <h1 className={styles['auth-title']}>Login to Monix</h1>

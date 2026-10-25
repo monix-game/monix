@@ -10,6 +10,7 @@ import {
   Modal,
   Nameplate,
   PunishModal,
+  RoleBadge,
   Select,
   Spinner,
 } from '../../components';
@@ -18,6 +19,8 @@ import 'leaflet/dist/leaflet.css';
 import type { IUser } from '../../../server/common/models/user';
 import { fetchUser } from '../../helpers/auth';
 import { api } from '../../helpers/api';
+import { seasonalThemes } from '../../helpers/theme';
+import { resolveNameplate } from '../../helpers/cosmetics';
 import { formatRelativeTime, formatRemainingTime, titleCase } from '../../../server/common/math';
 import type { IReport } from '../../../server/common/models/report';
 import type { DashboardInfo } from '../../../server/common/models/dashboardInfo';
@@ -30,6 +33,7 @@ import {
   getStaffLogs,
   getUserByUUID,
   pardonUser,
+  resetAllUserData,
   reviewReport,
   updateStaffUser,
 } from '../../helpers/staff';
@@ -47,6 +51,12 @@ import {
   type IGlobalSettings,
 } from '../../../server/common/models/globalSettings';
 import { getGlobalSettings, updateGlobalSettings } from '../../helpers/globalSettings';
+import {
+  RESET_CONFIRMATION,
+  RESET_TARGET_IDS,
+  RESET_TARGETS,
+  type ResetTarget,
+} from '../../../server/common/resets';
 
 interface IpGeoData {
   ip: string;
@@ -61,7 +71,7 @@ interface IpGeoData {
 export default function Staff() {
   // App states
   const [tab, rawSetTab] = useState<
-    'dashboard' | 'reports' | 'appeals' | 'logs' | 'users' | 'ip' | 'features'
+    'dashboard' | 'reports' | 'appeals' | 'logs' | 'users' | 'ip' | 'features' | 'maintenance'
   >('dashboard');
   const [timeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>(() => {
     const h = new Date().getHours();
@@ -157,6 +167,14 @@ export default function Staff() {
   const [featureSettingsSaving, setFeatureSettingsSaving] = useState<boolean>(false);
   const [featureSettingsError, setFeatureSettingsError] = useState<string>('');
   const [renderNow, setRenderNow] = useState<number>(() => Date.now());
+
+  // Bulk reset states
+  const [resetModalOpen, setResetModalOpen] = useState<boolean>(false);
+  const [resetTargets, setResetTargets] = useState<ResetTarget[]>([]);
+  const [resetConfirmText, setResetConfirmText] = useState<string>('');
+  const [resetSaving, setResetSaving] = useState<boolean>(false);
+  const [resetError, setResetError] = useState<string>('');
+  const [resetResult, setResetResult] = useState<string>('');
 
   useEffect(() => {
     document.getElementsByTagName('body')[0].className = `tab-${tab}`;
@@ -632,6 +650,50 @@ export default function Staff() {
     [featureSettings, userRole]
   );
 
+  const openResetModal = useCallback(
+    (targets: ResetTarget[]) => {
+      if (!hasRole(userRole || 'user', 'admin')) return;
+      setResetTargets(targets);
+      setResetConfirmText('');
+      setResetError('');
+      setResetModalOpen(true);
+    },
+    [userRole]
+  );
+
+  const closeResetModal = useCallback(() => {
+    if (resetSaving) return;
+    setResetModalOpen(false);
+    setResetTargets([]);
+    setResetConfirmText('');
+    setResetError('');
+  }, [resetSaving]);
+
+  const handleConfirmReset = useCallback(async () => {
+    if (resetTargets.length === 0 || resetSaving) return;
+
+    setResetSaving(true);
+    setResetError('');
+
+    const result = await resetAllUserData(resetTargets, RESET_CONFIRMATION);
+    setResetSaving(false);
+
+    if (!result.ok) {
+      setResetError(result.error || 'Reset failed. Please try again.');
+      return;
+    }
+
+    const labels = RESET_TARGETS.filter(target => resetTargets.includes(target.id))
+      .map(target => target.label)
+      .join(', ');
+    setResetResult(
+      `Reset ${labels} for ${result.affected ?? 0} account${result.affected === 1 ? '' : 's'}.`
+    );
+    setResetModalOpen(false);
+    setResetTargets([]);
+    setResetConfirmText('');
+  }, [resetSaving, resetTargets]);
+
   const handleToggleUnlockedCosmetic = useCallback(
     (cosmeticId: string) => {
       setEditCosmeticsUnlocked(prev => {
@@ -922,18 +984,13 @@ export default function Staff() {
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
-  let currentUserNameplateStyle: string | null = null;
+  let currentUserNameplate: ReturnType<typeof resolveNameplate> | null = null;
   if (user) {
     const hasActiveJellybean =
       Boolean(user.upgrades?.magic_jellybean?.expires_at) &&
       (user.upgrades?.magic_jellybean?.expires_at || 0) > renderNow;
 
-    if (hasActiveJellybean) {
-      currentUserNameplateStyle = 'rainbow';
-    } else {
-      currentUserNameplateStyle =
-        cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle || null;
-    }
+    currentUserNameplate = resolveNameplate(user.equipped_cosmetics?.nameplate, hasActiveJellybean);
   }
   const availableRoles = (['owner', 'admin', 'mod', 'helper', 'user'] as const).filter(role =>
     user?.role ? hasPowerOver(user.role, role) : false
@@ -1023,12 +1080,28 @@ export default function Staff() {
     },
   ];
 
+  const resettingEverything =
+    resetTargets.length === RESET_TARGET_IDS.length &&
+    RESET_TARGET_IDS.every(id => resetTargets.includes(id));
+
   return (
     <div className="app-container">
       <header className="app-header">
-        <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
-        <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />
-        <h1 className="app-title">Monix Staff</h1>
+        <div className="app-brand">
+          <div className="app-brand-main">
+            <div className="app-logo-wrap">
+              <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
+              <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />
+              <img
+                src={seasonalThemes[0].logo}
+                alt="Monix Logo"
+                className="app-logo app-logo-seasonal"
+              />
+            </div>
+            <h1 className="app-title">Monix</h1>
+          </div>
+          <span className="app-brand-caption">STAFF DASHBOARD</span>
+        </div>
         <div className="nav-tabs">
           {(() => {
             const noOfRows = 1;
@@ -1053,6 +1126,7 @@ export default function Staff() {
               { key: 'users', label: '👥 Users', requiredRole: 'mod' },
               { key: 'ip', label: '🧭 IP', requiredRole: 'admin' },
               { key: 'features', label: '🧩 Features', requiredRole: 'admin' },
+              { key: 'maintenance', label: '🧹 Resets', requiredRole: 'admin' },
             ] as const;
 
             const filteredTabs = tabs.filter(t => hasRole(userRole || 'user', t.requiredRole));
@@ -1096,19 +1170,17 @@ export default function Staff() {
             />
             <Nameplate
               text={user ? user.username : 'User'}
-              styleKey={currentUserNameplateStyle}
+              {...currentUserNameplate}
               className="username clickable"
               onClick={() => {
                 globalThis.location.href = '/game';
               }}
             />
+            {userRole !== null && userRole !== 'user' && <RoleBadge role={userRole} />}
             {equippedTagCosmetic && (
               <span className={`user-tag tag-colour-${equippedTagCosmetic.tagColour}`}>
                 <EmojiText>{equippedTagCosmetic.tagIcon}</EmojiText> {equippedTagCosmetic.tagName}
               </span>
-            )}
-            {userRole !== null && userRole !== 'user' && (
-              <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
             )}
           </div>
         </div>
@@ -1527,18 +1599,15 @@ export default function Staff() {
               {usersHydrated && users.length === 0 && <p>No users found.</p>}
               {usersHydrated &&
                 users.map(u => {
-                  let cardNameplateStyle: string | null = null;
+                  let cardNameplate: ReturnType<typeof resolveNameplate> | null = null;
                   const hasActiveJellybean =
                     Boolean(u.upgrades?.magic_jellybean?.expires_at) &&
                     (u.upgrades?.magic_jellybean?.expires_at || 0) > renderNow;
 
-                  if (hasActiveJellybean) {
-                    cardNameplateStyle = 'rainbow';
-                  } else if (u.equipped_cosmetics?.nameplate) {
-                    cardNameplateStyle =
-                      cosmetics.find(c => c.id === u.equipped_cosmetics?.nameplate)
-                        ?.nameplateStyle || null;
-                  }
+                  cardNameplate = resolveNameplate(
+                    u.equipped_cosmetics?.nameplate,
+                    hasActiveJellybean
+                  );
 
                   return (
                     <div key={u.uuid} className={`${styles['user-card']}`}>
@@ -1553,9 +1622,10 @@ export default function Staff() {
                         </div>
                         <Nameplate
                           text={u.username}
-                          styleKey={cardNameplateStyle}
+                          {...cardNameplate}
                           className={`${styles['staff-username']}`}
                         />
+                        {u.role !== 'user' && <RoleBadge role={u.role} />}
                         {u.equipped_cosmetics?.tag && (
                           <span
                             className={`user-tag tag-colour-${cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagColour}`}
@@ -1565,9 +1635,6 @@ export default function Staff() {
                             </EmojiText>{' '}
                             {cosmetics.find(c => c.id === u.equipped_cosmetics?.tag)?.tagName}
                           </span>
-                        )}
-                        {u.role !== 'user' && (
-                          <span className={`user-badge ${u.role}`}>{titleCase(u.role)}</span>
                         )}
                       </div>
                       <div className="user-card-body">
@@ -1783,6 +1850,40 @@ export default function Staff() {
             {featureSettingsError && (
               <div className={`${styles['feature-toggle-error']}`}>{featureSettingsError}</div>
             )}
+          </div>
+        )}
+        {tab === 'maintenance' && (
+          <div className="tab-content">
+            <h2>Bulk Data Resets</h2>
+            <p className={`${styles['staff-log-description']}`}>
+              Reset progression for every account. Each category is applied on its own, affects all
+              users (including staff), and cannot be undone.
+            </p>
+            {resetResult && <div className={`${styles['reset-result']}`}>{resetResult}</div>}
+            <div className={`${styles['reset-grid']}`}>
+              {RESET_TARGETS.map(target => (
+                <div key={target.id} className={`${styles['reset-card']}`}>
+                  <div className={`${styles['reset-card-info']}`}>
+                    <h3>
+                      <EmojiText>{target.icon}</EmojiText> {target.label}
+                    </h3>
+                    <p>{target.description}</p>
+                  </div>
+                  <Button color="red" onClick={() => openResetModal([target.id])}>
+                    Reset
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className={`${styles['reset-danger-zone']}`}>
+              <div className={`${styles['reset-card-info']}`}>
+                <h3>⚠️ Reset everything</h3>
+                <p>Applies every reset above to every account in one action.</p>
+              </div>
+              <Button color="red" onClick={() => openResetModal([...RESET_TARGET_IDS])}>
+                Reset everything
+              </Button>
+            </div>
           </div>
         )}
       </main>
@@ -2299,6 +2400,46 @@ export default function Staff() {
               )}
             </>
           )}
+        </div>
+      </Modal>
+
+      <Modal isOpen={resetModalOpen} onClose={closeResetModal} width={520}>
+        <div className={`${styles['staff-modal']}`}>
+          <h2>{resettingEverything ? 'Reset Everything?' : 'Confirm Bulk Reset'}</h2>
+          <p>
+            The following will be reset for <b>every account</b>:
+          </p>
+          <ul className={`${styles['reset-target-list']}`}>
+            {RESET_TARGETS.filter(target => resetTargets.includes(target.id)).map(target => (
+              <li key={target.id}>
+                <EmojiText>{target.icon}</EmojiText> {target.label}
+              </li>
+            ))}
+          </ul>
+          <p className={`${styles['reset-warning']}`}>
+            This affects all users, including staff, and cannot be undone.
+          </p>
+          {resettingEverything && (
+            <Input
+              placeholder={`Type ${RESET_CONFIRMATION} to confirm`}
+              value={resetConfirmText}
+              onValueChange={setResetConfirmText}
+            />
+          )}
+          {resetError && <div className={`${styles['feature-toggle-error']}`}>{resetError}</div>}
+          <div className={`${styles['staff-edit-actions']}`}>
+            <Button
+              color="red"
+              isLoading={resetSaving}
+              disabled={resettingEverything && resetConfirmText !== RESET_CONFIRMATION}
+              onClickAsync={handleConfirmReset}
+            >
+              {resettingEverything ? 'Reset everything' : 'Reset for everyone'}
+            </Button>
+            <Button secondary onClick={closeResetModal} disabled={resetSaving}>
+              Cancel
+            </Button>
+          </div>
         </div>
       </Modal>
 

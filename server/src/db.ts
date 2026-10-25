@@ -1,5 +1,12 @@
 import { MongoClient, Db } from 'mongodb';
-import { type IUser, type IUserStats, userFromDoc, userToDoc } from '../common/models/user';
+import {
+  DEFAULT_USER_STATS,
+  type IUser,
+  type IUserStats,
+  userFromDoc,
+  userToDoc,
+} from '../common/models/user';
+import type { ResetTarget } from '../common/resets';
 import {
   DEFAULT_GLOBAL_SETTINGS,
   globalSettingsFromDoc,
@@ -216,6 +223,97 @@ export async function getAllUsers(): Promise<IUser[]> {
   const database = ensureDB();
   const docs = await database.collection('users').find({}).toArray();
   return docs.map(userFromDoc);
+}
+
+const RESET_MONEY = 1000;
+const RESET_PET_SLOTS = 3;
+
+/**
+ * Apply a bulk progression reset to every account.
+ *
+ * Resets use targeted Mongo `$set`/`$unset` updates rather than
+ * read-modify-write so a large user base is handled in one operation and no
+ * stale document can clobber unrelated fields. Every affected user's Redis
+ * cache entry is invalidated and a change event is emitted so connected
+ * clients receive a fresh snapshot immediately.
+ *
+ * Returns the number of accounts the reset applied to.
+ */
+export async function resetAllUsers(targets: ResetTarget[]): Promise<number> {
+  const database = ensureDB();
+  const unique = Array.from(new Set(targets));
+  if (unique.length === 0) return 0;
+
+  const userDocs = await database
+    .collection('users')
+    .find({}, { projection: { uuid: 1 } })
+    .toArray();
+  const uuids = userDocs
+    .map(doc => (doc as { uuid?: unknown }).uuid)
+    .filter((uuid): uuid is string => typeof uuid === 'string' && uuid.length > 0);
+
+  const set: Record<string, unknown> = {};
+  const unset: Record<string, ''> = {};
+
+  for (const target of unique) {
+    switch (target) {
+      case 'money':
+        set.money = RESET_MONEY;
+        break;
+      case 'gems':
+        set.gems = 0;
+        break;
+      case 'resources':
+        set.resources = {};
+        break;
+      case 'rods':
+        set['fishing.equipped_rod'] = 'damaged-rod';
+        set['fishing.rods_owned'] = ['damaged-rod'];
+        break;
+      case 'bait':
+        unset['fishing.equipped_bait'] = '';
+        set['fishing.bait_owned'] = {};
+        break;
+      case 'aquarium':
+        set['fishing.aquarium.fish'] = [];
+        break;
+      case 'pets':
+        unset['fishing.satchel'] = '';
+        set.pet_slots = RESET_PET_SLOTS;
+        break;
+      case 'upgrades':
+        set.upgrades = {};
+        break;
+      case 'achievements':
+        set.achievements = [];
+        break;
+      case 'cosmetics':
+        set.cosmetics_unlocked = [];
+        set.equipped_cosmetics = {};
+        break;
+      case 'stats':
+        set.stats = DEFAULT_USER_STATS;
+        break;
+    }
+  }
+
+  if (Object.keys(set).length > 0 || Object.keys(unset).length > 0) {
+    const update: { $set?: Record<string, unknown>; $unset?: Record<string, ''> } = {};
+    if (Object.keys(set).length > 0) update.$set = set;
+    if (Object.keys(unset).length > 0) update.$unset = unset;
+    await database.collection('users').updateMany({}, update);
+  }
+
+  // Pets live in their own collection, so deleting them is a separate bulk
+  // operation rather than a field reset on the user document.
+  if (unique.includes('pets')) {
+    await database.collection('pets').deleteMany({});
+  }
+
+  await Promise.all(uuids.map(uuid => cacheDel(userKey(uuid))));
+  for (const uuid of uuids) emitUserChanged(uuid);
+
+  return uuids.length;
 }
 
 export async function createUser(user: IUser): Promise<void> {
@@ -588,12 +686,17 @@ export async function updateMessage(message: IMessage): Promise<void> {
 export async function createRoom(room: IRoom): Promise<void> {
   const database = ensureDB();
   await database.collection('rooms').insertOne(roomToDoc(room));
+  // The room list is cached for 30s; without invalidating it a newly created
+  // DM would be invisible (and its messages unreadable) until the cache
+  // expired.
+  roomCache.del('all');
 }
 
 export async function getRoomByUUID(uuid: string): Promise<IRoom | null> {
   const rooms = roomCache.get('all');
   if (rooms) {
-    return rooms.find(r => r.uuid === uuid) ?? null;
+    const cached = rooms.find(r => r.uuid === uuid);
+    if (cached) return cached;
   }
   const database = ensureDB();
   const doc = await database.collection('rooms').findOne({ uuid });

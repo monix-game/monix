@@ -13,6 +13,7 @@ import deletePunishment from './punishment-delete';
 import listReports from './reports';
 import reviewReport from './report-review';
 import changeReportCategory from './report-change-category';
+import resetUsers from './reset';
 
 export const staffRoutes = new Elysia()
   .use(dashboard)
@@ -28,6 +29,7 @@ export const staffRoutes = new Elysia()
   .use(deletePunishment)
   .use(listReports)
   .use(reviewReport)
-  .use(changeReportCategory);
+  .use(changeReportCategory)
+  .use(resetUsers);
 
 export default staffRoutes;

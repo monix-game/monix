@@ -1,5 +1,9 @@
 .graph {
   display: block;
+  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* Gradient stops for the area fill */
@@ -49,4 +53,28 @@
   fill: var(--bg);
   stroke: var(--blue-2);
   stroke-width: 1.5;
+}
+
+/* Waterfall / column bars */
+.graph .graph-bar {
+  stroke: none;
+  transition: opacity 0.15s ease;
+}
+
+.graph .graph-bar-start {
+  fill: var(--blue-2);
+  opacity: 0.65;
+}
+
+.graph .graph-bar-up {
+  fill: var(--green-1);
+}
+
+.graph .graph-bar-down {
+  fill: var(--red-1);
+}
+
+.graph .graph-bar-flat {
+  fill: var(--text-muted);
+  opacity: 0.6;
 }

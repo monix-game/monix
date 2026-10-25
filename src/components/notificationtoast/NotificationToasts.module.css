@@ -63,6 +63,29 @@
   word-break: break-word;
 }
 
+.toast-event {
+  cursor: default;
+  align-items: center;
+}
+
+.toast-event-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast-tone-primary {
+  border-color: var(--primary-2);
+}
+
+.toast-tone-danger {
+  border-color: var(--danger);
+}
+
+.toast-tone-success {
+  border-color: var(--green-1);
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

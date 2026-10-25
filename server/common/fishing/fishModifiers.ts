@@ -5,6 +5,12 @@ export interface FishModifierInfo {
   event: string;
   multiplier: number;
   rarity_weight: number;
+  /**
+   * When true, this modifier is applied to every fish caught while its event is
+   * active instead of being rolled for. Guaranteed modifiers are not rolled
+   * retroactively onto fish already in the aquarium.
+   */
+  guaranteed?: boolean;
 }
 
 export const fishModifiers: FishModifierInfo[] = [
@@ -175,6 +181,15 @@ export const fishModifiers: FishModifierInfo[] = [
     event: 'happiness',
     multiplier: 1.25,
     rarity_weight: 10,
+  },
+  {
+    id: 'haunted',
+    name: 'Haunted',
+    icon: '👻',
+    event: 'trick_or_trout',
+    multiplier: 5,
+    rarity_weight: 100,
+    guaranteed: true,
   },
   {
     id: 'spooky',

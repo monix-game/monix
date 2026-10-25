@@ -21,6 +21,7 @@ import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../common/upgrad
 import { hasRole } from '../../common/roles';
 import { updatePlayersPets } from '../routes/pets/helpers';
 import { resources } from '../../common/resources';
+import { downsample, MAX_SERVER_POINTS } from '../../common/graph';
 import { getFishValue } from '../../common/fishing/fishing';
 import { fishingRods } from '../../common/fishing/fishingRods';
 import { fishingBaits } from '../../common/fishing/fishingBait';
@@ -28,6 +29,14 @@ import { getPendingSailorEarnings } from './sailors';
 import { unlockEligibleAchievements } from '../../common/achievements';
 
 type Role = 'owner' | 'admin' | 'mod' | 'helper' | 'user';
+
+export type NetWorthBreakdown = {
+  money: number;
+  resources: number;
+  rods: number;
+  bait: number;
+  fish: number;
+};
 
 export type LeaderboardEntry = {
   rank: number;
@@ -38,6 +47,7 @@ export type LeaderboardEntry = {
   fishCaught?: number;
   playtimeMs?: number;
   netWorth?: number;
+  netWorthBreakdown?: NetWorthBreakdown;
   magic_jellybean_active: boolean;
   cosmetics: {
     nameplate: string | undefined;
@@ -117,6 +127,7 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
   const entryFor = (u: { user: IUser; netWorth: number }, index: number): LeaderboardEntry => ({
     ...entryForUser(u.user, u.user.money || 0, 0),
     netWorth: u.netWorth,
+    netWorthBreakdown: computeNetWorthBreakdown(u.user, now),
     rank: index,
   });
 
@@ -129,32 +140,53 @@ export async function buildMoneyLeaderboard(): Promise<LeaderboardSet> {
  * purchase cost, and aquarium fish at their sell value. Gems are excluded since
  * they are a premium/admin-issued currency with no defined exchange rate.
  */
-function computeNetWorth(user: IUser, nowMs: number): number {
+function computeNetWorthBreakdown(user: IUser, nowMs: number): NetWorthBreakdown {
   const nowSeconds = Math.floor(nowMs / 1000);
 
-  let total = user.money || 0;
+  const money = user.money || 0;
+  let resources = 0;
+  let rods = 0;
+  let bait = 0;
+  let fish = 0;
 
   for (const [resourceId, quantity] of Object.entries(user.resources || {})) {
     if (quantity <= 0) continue;
-    total += generatePrice(resourceId, nowSeconds) * quantity;
+    resources += generatePrice(resourceId, nowSeconds) * quantity;
   }
 
   for (const rodId of user.fishing?.rods_owned || []) {
     const rod = fishingRods.find(r => r.id === rodId);
-    if (rod && rod.buyable !== false) total += rod.price;
+    if (rod && rod.buyable !== false) rods += rod.price;
   }
 
   for (const [baitId, quantity] of Object.entries(user.fishing?.bait_owned || {})) {
     if (quantity <= 0) continue;
-    const bait = fishingBaits.find(b => b.id === baitId);
-    if (bait) total += bait.price * quantity;
+    const baitDef = fishingBaits.find(b => b.id === baitId);
+    if (baitDef) bait += baitDef.price * quantity;
   }
 
-  for (const fish of user.fishing?.aquarium?.fish || []) {
-    total += getFishValue(fish);
+  for (const aquariumFish of user.fishing?.aquarium?.fish || []) {
+    fish += getFishValue(aquariumFish);
   }
 
-  return Math.floor(total * 100) / 100;
+  const round = (n: number) => Math.floor(n * 100) / 100;
+  return {
+    money: round(money),
+    resources: round(resources),
+    rods: round(rods),
+    bait: round(bait),
+    fish: round(fish),
+  };
+}
+
+function computeNetWorth(user: IUser, nowMs: number): number {
+  const breakdown = computeNetWorthBreakdown(user, nowMs);
+  return (
+    Math.floor(
+      (breakdown.money + breakdown.resources + breakdown.rods + breakdown.bait + breakdown.fish) *
+        100
+    ) / 100
+  );
 }
 
 function getFishCaughtCount(fishCaught?: { [key: string]: number }): number {
@@ -234,6 +266,11 @@ export async function buildRoomMessages(
     ) {
       return { error: 'forbidden' };
     }
+    // DM rooms are participant-only: never grant staff an exception, otherwise
+    // private conversations would be readable by anyone with the role.
+    if (room.type === 'dm' && !room.members?.includes(viewer.uuid)) {
+      return { error: 'forbidden' };
+    }
   }
 
   const messages = await getMessagesByRoomUUID(roomUuid);
@@ -283,17 +320,20 @@ export async function buildPets(userUuid: string) {
 
 export function buildResourceHistory(
   resourceId: string,
-  hoursBack: number
+  rangeSeconds: number
 ): Array<{ time: number; price: number }> {
   const currentTime = Math.floor(Date.now() / 1000);
+  const interval = 5;
   const data: Array<{ time: number; price: number }> = [];
-  const totalPoints = Math.max(0, Math.floor(hoursBack) * 720);
+  const totalPoints = Math.max(0, Math.floor(rangeSeconds / interval));
   for (let i = 0; i < totalPoints; i++) {
-    const timestamp = currentTime - i * 5;
+    const timestamp = currentTime - i * interval;
     data.push({ time: timestamp, price: generatePrice(resourceId, timestamp) });
   }
   data.reverse();
-  return data;
+  // Bound the socket payload: striding a 24h window down to a few hundred
+  // points is ~40x smaller than shipping all 17k in every 5s tick.
+  return downsample(data, MAX_SERVER_POINTS);
 }
 
 export async function buildSettings() {
@@ -339,9 +379,34 @@ export async function buildRooms(viewer?: { uuid: string; role: string } | null)
     if (r.type === 'public') return true;
     if (r.type === 'staff' && viewer && viewer.role !== 'user') return true;
     if (r.type === 'private' && viewer && r.members?.includes(viewer.uuid)) return true;
+    if (r.type === 'dm' && viewer && r.members?.includes(viewer.uuid)) return true;
     return false;
   });
-  return { rooms: filteredRooms.map(r => roomToDoc(r)) };
+
+  // DM rooms are stored under the recipient's username, which is wrong for the
+  // other participant. Resolve the partner per viewer so both sides see the
+  // person they are talking to.
+  const dmRooms = viewer ? filteredRooms.filter(r => r.type === 'dm') : [];
+  const partnerNames = new Map<string, string>();
+  if (viewer && dmRooms.length > 0) {
+    const partnerUuids = new Set<string>();
+    for (const room of dmRooms) {
+      for (const member of room.members || []) {
+        if (member !== viewer.uuid) partnerUuids.add(member);
+      }
+    }
+    const partners = partnerUuids.size > 0 ? await getUsersByUUID([...partnerUuids]) : [];
+    for (const partner of partners) partnerNames.set(partner.uuid, partner.username);
+  }
+
+  return {
+    rooms: filteredRooms.map(r => {
+      if (r.type !== 'dm' || !viewer) return roomToDoc(r);
+      const partnerUuid = (r.members || []).find(member => member !== viewer.uuid);
+      const name = partnerUuid ? partnerNames.get(partnerUuid) : undefined;
+      return roomToDoc(name ? { ...r, name } : r);
+    }),
+  };
 }
 
 /** Current user document (dedup with /user). */

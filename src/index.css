@@ -64,6 +64,167 @@ html[data-theme='dark'] {
   --event-gradient: linear-gradient(90deg, var(--primary-3), var(--primary-2));
 }
 
+/* ---------------------------------------------------------------------------
+   Palettes
+   Each palette re-declares the hue variables only. Light/dark contrast values
+   (text, danger, grid stroke, event gradient) stay owned by the
+   html[data-theme] blocks above, so adding a palette cannot break contrast.
+   --------------------------------------------------------------------------- */
+
+html[data-palette='ocean'] {
+  --bg: #eaf6ff;
+  --dark-bg: #d5ecff;
+  --primary-1: #8fd6ff;
+  --primary-2: #4aa8e0;
+  --primary-3: #2b7fb5;
+  --blue-1: #6ec8f5;
+  --blue-2: #3f9fd0;
+  --purple-1: #b39dff;
+  --purple-2: #8f76e8;
+}
+
+html[data-palette='ocean'][data-theme='dark'] {
+  --bg: #0e1a24;
+  --dark-bg: #081119;
+  --primary-1: #0b4a6f;
+  --primary-2: #147fb8;
+  --primary-3: #35a7dd;
+  --blue-1: #0d5e85;
+  --blue-2: #1b8ec2;
+  --purple-1: #3b2a6e;
+  --purple-2: #5b45a6;
+}
+
+html[data-palette='sunset'] {
+  --bg: #fff2e6;
+  --dark-bg: #ffe4cc;
+  --primary-1: #ffc48f;
+  --primary-2: #ff9351;
+  --primary-3: #e8681f;
+  --blue-1: #ffc9a8;
+  --blue-2: #f0a279;
+  --purple-1: #ff9fb0;
+  --purple-2: #e06a80;
+}
+
+html[data-palette='sunset'][data-theme='dark'] {
+  --bg: #241611;
+  --dark-bg: #180f0b;
+  --primary-1: #6b2f10;
+  --primary-2: #a34a19;
+  --primary-3: #e0762c;
+  --blue-1: #6b3a22;
+  --blue-2: #9c5a34;
+  --purple-1: #5e2130;
+  --purple-2: #96354a;
+}
+
+html[data-palette='forest'] {
+  --bg: #e8f5e6;
+  --dark-bg: #d3ebd0;
+  --primary-1: #9ed88a;
+  --primary-2: #5fae4d;
+  --primary-3: #3d8a2f;
+  --blue-1: #8fcfa8;
+  --blue-2: #5aa578;
+  --purple-1: #b3d199;
+  --purple-2: #87ab6b;
+}
+
+html[data-palette='forest'][data-theme='dark'] {
+  --bg: #141d15;
+  --dark-bg: #0c130e;
+  --primary-1: #1f4620;
+  --primary-2: #2f6a31;
+  --primary-3: #59a354;
+  --blue-1: #1d4430;
+  --blue-2: #2f6b4a;
+  --purple-1: #2b4420;
+  --purple-2: #476b34;
+}
+
+html[data-palette='candy'] {
+  --bg: #fdeef7;
+  --dark-bg: #f9e0ef;
+  --primary-1: #ffb3d9;
+  --primary-2: #f472b6;
+  --primary-3: #d94f96;
+  --blue-1: #a8d8ff;
+  --blue-2: #74b1e8;
+  --purple-1: #d9b8ff;
+  --purple-2: #b088e8;
+}
+
+html[data-palette='candy'][data-theme='dark'] {
+  --bg: #241622;
+  --dark-bg: #190e18;
+  --primary-1: #5c1f42;
+  --primary-2: #94366a;
+  --primary-3: #e06cad;
+  --blue-1: #1f3a5c;
+  --blue-2: #356095;
+  --purple-1: #3f2660;
+  --purple-2: #67409a;
+}
+
+html[data-palette='mono'] {
+  --bg: #f0f0f0;
+  --dark-bg: #e2e2e2;
+  --primary-1: #c4c4c4;
+  --primary-2: #969696;
+  --primary-3: #6e6e6e;
+  --blue-1: #b8b8b8;
+  --blue-2: #8a8a8a;
+  --purple-1: #adadad;
+  --purple-2: #7d7d7d;
+}
+
+html[data-palette='mono'][data-theme='dark'] {
+  --bg: #1c1c1c;
+  --dark-bg: #131313;
+  --primary-1: #3d3d3d;
+  --primary-2: #5c5c5c;
+  --primary-3: #8a8a8a;
+  --blue-1: #383838;
+  --blue-2: #575757;
+  --purple-1: #353535;
+  --purple-2: #525252;
+}
+
+/* ---------------------------------------------------------------------------
+   Seasonal themes
+   Limited-time looks that replace the palette while switched on. They only
+   re-declare the hue variables, so light/dark contrast stays intact.
+   --------------------------------------------------------------------------- */
+
+html[data-seasonal='true'][data-palette='halloween'] {
+  --bg: #fff4e8;
+  --dark-bg: #ffe6cc;
+  --primary-1: #ffb347;
+  --primary-2: #ff8c1a;
+  --primary-3: #e86a00;
+  --blue-1: #ff9b57;
+  --blue-2: #e86f1f;
+  --purple-1: #a855f7;
+  --purple-2: #7c3aed;
+  --graph-fill: rgba(255, 140, 26, 0.14);
+}
+
+html[data-seasonal='true'][data-palette='halloween'][data-theme='dark'] {
+  --bg: #1b1207;
+  --dark-bg: #120b04;
+  --primary-1: #7a3d05;
+  --primary-2: #b35c0a;
+  --primary-3: #ff8c1a;
+  --blue-1: #6b3311;
+  --blue-2: #a0521a;
+  --purple-1: #4c1d95;
+  --purple-2: #6d28d9;
+  --graph-fill: rgba(255, 140, 26, 0.1);
+  --graph-grid-stroke: rgba(255, 140, 26, 0.16);
+}
+
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -87,8 +248,6 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--bg);

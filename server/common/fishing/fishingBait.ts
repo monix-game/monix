@@ -44,4 +44,10 @@ export const fishingBaits: FishingBaitInfo[] = [
     price: 200,
     fish_types_boosted: ['shark', 'whale', 'orca', 'swordfish', 'squid'],
   },
+  {
+    id: 'spooky_bait',
+    name: 'Spooky Bait',
+    price: 175,
+    fish_types_boosted: ['anglerfish', 'eel', 'jellyfish', 'octopus', 'squid', 'pufferfish'],
+  },
 ];
