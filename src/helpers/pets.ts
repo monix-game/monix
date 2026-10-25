@@ -1,4 +1,6 @@
 import type { IPet } from '../../server/common/models/pet';
+import type { IStrayPet } from '../../server/common/models/user';
+import { SATCHEL_CAPACITY, STRAY_ADOPTION_COST } from '../../server/common/pet';
 import { api } from './api';
 
 export async function getAllPets(): Promise<IPet[]> {
@@ -166,3 +168,75 @@ export async function charmPet(petId: string): Promise<IPet | null> {
     return null;
   }
 }
+
+export type PetSlotInfo = {
+  pet_slots: number;
+  slotLimit: number;
+  nextSlotCost: number | null;
+  canBuy: boolean;
+};
+
+export async function getPetSlotInfo(): Promise<PetSlotInfo | null> {
+  try {
+    const resp = await api.get<PetSlotInfo>('/pets/slot');
+    return resp?.success && resp.data ? resp.data : null;
+  } catch (err) {
+    console.error('Error fetching pet slot info', err);
+    return null;
+  }
+}
+
+export async function buyPetSlot(): Promise<{ cost: number; slotLimit: number } | null> {
+  try {
+    const resp = await api.post<{ cost: number; slotLimit: number }>('/pets/slot');
+    return resp?.success && resp.data ? resp.data : null;
+  } catch (err) {
+    console.error('Error buying pet slot', err);
+    return null;
+  }
+}
+
+export type SatchelInfo = {
+  satchel: IStrayPet[];
+  capacity: number;
+  slotLimit: number;
+  adoptionCost: number;
+};
+
+export async function getSatchel(): Promise<SatchelInfo | null> {
+  try {
+    const resp = await api.get<SatchelInfo>('/pets/satchel');
+    return resp?.success && resp.data ? resp.data : null;
+  } catch (err) {
+    console.error('Error fetching satchel', err);
+    return null;
+  }
+}
+
+export async function adoptStrayPet(
+  strayUuid: string
+): Promise<{ pet: IPet; satchel: IStrayPet[] } | null> {
+  try {
+    const resp = await api.post<{ pet: IPet; satchel: IStrayPet[] }>('/pets/satchel/adopt', {
+      stray_uuid: strayUuid,
+    });
+    return resp?.success && resp.data ? resp.data : null;
+  } catch (err) {
+    console.error('Error adopting stray pet', err);
+    return null;
+  }
+}
+
+export async function releaseStrayPet(strayUuid: string): Promise<boolean> {
+  try {
+    const resp = await api.post<{ success: boolean }>('/pets/satchel/release', {
+      stray_uuid: strayUuid,
+    });
+    return resp?.success === true;
+  } catch (err) {
+    console.error('Error releasing stray pet', err);
+    return false;
+  }
+}
+
+export { SATCHEL_CAPACITY, STRAY_ADOPTION_COST };

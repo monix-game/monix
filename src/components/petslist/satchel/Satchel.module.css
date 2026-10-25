@@ -1,0 +1,128 @@
+.satchel-panel {
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.satchel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.satchel-count {
+  font-family: var(--font-family-monospace);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.satchel-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.satchel-warning {
+  font-size: 0.8rem;
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.satchel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 48px;
+  align-items: center;
+}
+
+.satchel-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.satchel-entry {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+  background-color: var(--bg);
+}
+
+.satchel-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.satchel-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.satchel-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.satchel-rarity-common {
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  color: var(--text-muted);
+}
+
+.satchel-rarity-rare {
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  color: var(--blue-2);
+}
+
+.satchel-rarity-epic {
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  color: var(--purple-2);
+}
+
+.satchel-rarity-legendary {
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  color: var(--red-1);
+}
+
+.satchel-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.satchel-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 2px solid var(--primary-1);
+  font-size: 0.85rem;
+}
+
+.satchel-footer {
+  display: flex;
+  justify-content: flex-end;
+}

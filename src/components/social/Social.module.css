@@ -38,6 +38,45 @@
   gap: 10px;
 }
 
+.social-sidebar-heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 16px 0 6px;
+}
+
+.dm-start-form {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.dm-start-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  padding: 6px 8px;
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
+}
+
+.dm-start-input:focus {
+  outline: none;
+  border-color: var(--primary-1);
+}
+
+.dm-error {
+  color: var(--danger);
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
 .social-room-item {
   position: relative;
   padding: 10px;

@@ -62,9 +62,15 @@ export function hasGems(gems: number, cost: number): boolean {
 
 /**
  * Formats a number into a human-readable string with appropriate suffixes (K, M, B, etc.) and optional dollar sign.
+ *
+ * Values are always rounded to two decimals, and the two decimals are always
+ * rendered for every unit so the output is visually consistent and sorts
+ * cleanly in columns (e.g. `$1.50K`, not `$1.5K` next to `$1.50`).
+ *
  * @param num - The number to format.
  * @param includeDollarSign - Whether to include a dollar sign prefix in the formatted string (default is true).
  * @param canBeInfinity - Whether to allow formatting of -1 as infinity (∞) (default is false).
+ * @param trailingZeros - When false, a trailing `.00` is trimmed (e.g. `$100` instead of `$100.00`).
  * @returns A formatted string representing the number with appropriate suffixes and optional dollar sign.
  */
 export function smartFormatNumber(
@@ -74,7 +80,9 @@ export function smartFormatNumber(
   trailingZeros = true
 ): string {
   if (canBeInfinity && num === -1) return '∞';
-  if (num === 0) return includeDollarSign ? '$0.00' : '0.00';
+
+  const zero = includeDollarSign ? '$0.00' : '0.00';
+  if (!Number.isFinite(num) || num === 0) return zero;
 
   const isNegative = num < 0;
   let absNum = Math.abs(num);
@@ -82,39 +90,38 @@ export function smartFormatNumber(
   const units = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Oc', 'No', 'De'];
   let unitIndex = 0;
 
-  // scale down by 1000 until value < 1000 or we run out of units
+  // Scale down by 1000 until value < 1000 or we run out of units.
   while (absNum >= 1000 && unitIndex < units.length - 1) {
     absNum /= 1000;
     unitIndex++;
   }
 
-  // round to 2 decimals
+  // Round to 2 decimals.
   let rounded = Number.parseFloat(absNum.toFixed(2));
 
-  // if rounding pushed us to 1000 (e.g., 999.999 -> 1000.00K), move to next unit
-  if (rounded >= 1000 && unitIndex < units.length - 1) {
+  // Rounding can push us to the next unit (e.g. 999.999 -> 1000 -> 1K).
+  while (rounded >= 1000 && unitIndex < units.length - 1) {
     rounded = Number.parseFloat((rounded / 1000).toFixed(2));
     unitIndex++;
   }
 
-  // format value: keep two decimals for base unit (no suffix) to match previous behavior; for scaled units trim trailing .00
-  let formattedValue: string;
-  if (unitIndex === 0) {
-    formattedValue = rounded.toFixed(2);
-  } else if (unitIndex < units.length) {
-    // remove trailing zeros like "1.00" -> "1"
-    formattedValue = Number(rounded).toString();
-  } else {
-    // if we exceed our largest unit, just use scientific notation
-    formattedValue = rounded.toExponential(2);
+  // Past the largest suffix, scaling further would add no precision, so render
+  // the whole number against the biggest unit (exact) rather than switching to
+  // exponential notation, which would lose accuracy.
+  if (rounded >= 1000) {
+    const prefix = includeDollarSign ? '$' : '';
+    return (isNegative ? '-' : '') + prefix + rounded.toFixed(0) + units[unitIndex];
   }
 
-  if (!trailingZeros) {
-    formattedValue = formattedValue.replace(/\.00$/, ''); // remove trailing .00
-  }
+  // Two decimals for every unit, not just the unscaled one.
+  const formattedValue = trailingZeros ? rounded.toFixed(2) : String(rounded);
+
+  // Rounding can erase the sign entirely (e.g. -0.001 -> 0), which would render
+  // as "-$0.00". Drop the sign instead.
+  const sign = isNegative && rounded > 0 ? '-' : '';
 
   const prefix = includeDollarSign ? '$' : '';
-  return (isNegative ? '-' : '') + prefix + formattedValue + (units[unitIndex] || '');
+  return sign + prefix + formattedValue + units[unitIndex];
 }
 
 /**

@@ -48,6 +48,14 @@
   border-radius: var(--border-radius);
 }
 
+.money-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 .gem-card-list {
   display: flex;
   flex-wrap: wrap;
@@ -135,6 +143,16 @@
   min-width: 0;
   height: 100%;
   display: flex;
+}
+
+.fishing-left {
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fishing-left > .fishing-card {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .fishing-vgrid {
@@ -1199,6 +1217,90 @@
   transition: background-color 0.3s ease;
 }
 
+.radio-picker-heading {
+  margin: 22px 0 10px;
+  font-size: 1.15rem;
+}
+
+.song-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.song-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 2px solid var(--primary-2);
+  border-radius: var(--border-radius);
+  background-color: var(--dark-bg);
+  color: var(--text);
+  font-family: var(--font-family);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.song-picker-item:hover {
+  background-color: var(--bg);
+  border-color: var(--primary-1);
+}
+
+.song-picker-item-active {
+  border-color: var(--green-1);
+  background-color: var(--bg);
+}
+
+.song-picker-cover {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.song-picker-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.song-picker-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-picker-artist {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-picker-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.song-picker-item-active .song-picker-action {
+  color: var(--green-1);
+}
+
 .cosmetics-store-controls {
   margin-bottom: 12px;
 }
@@ -1940,19 +2042,16 @@
 
 .resources-two-pane {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
-  align-items: stretch;
-  height: calc(100vh - 220px);
+  align-items: start;
 }
 
 .market-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+  min-width: 0;
 }
 
 .market-panel-header {
@@ -2056,11 +2155,16 @@
 
 @media (max-width: 768px) {
   .resources-two-pane {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
 
   .market-panel {
     overflow-y: visible;
   }
+}
+
+.rewards-tab {
+  max-width: 1000px;
+  margin: 0 auto;
 }

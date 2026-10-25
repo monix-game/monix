@@ -3,6 +3,41 @@ import type { IMessage } from '../../server/common/models/message';
 import { api } from './api';
 import type { SocketContextValue } from '../providers/socket';
 
+export type DmSummary = {
+  room_uuid: string;
+  name: string;
+  partner_uuid: string | null;
+  partner_username: string | null;
+  partner_avatar: string | null;
+  partner_role: string | null;
+  time_created: number;
+};
+
+export async function getDms(): Promise<DmSummary[]> {
+  try {
+    const resp = await api.get<{ dms: DmSummary[] }>('/social/dm');
+    if (resp?.success && resp.data?.dms) return resp.data.dms;
+    return [];
+  } catch (err) {
+    console.error('Error fetching direct messages', err);
+    return [];
+  }
+}
+
+/** Find (or create) the DM conversation with `username` and return its room. */
+export async function startDm(username: string): Promise<{ dm: DmSummary; room: IRoom } | null> {
+  try {
+    const resp = await api.post<{ dm: DmSummary; room: IRoom }>('/social/dm/start', {
+      username,
+    });
+    if (resp?.success && resp.data?.room) return resp.data;
+    return null;
+  } catch (err) {
+    console.error('Error starting direct message', err);
+    return null;
+  }
+}
+
 export async function getAllRooms(): Promise<IRoom[]> {
   try {
     const resp = await api.get<{ rooms: IRoom[] }>('/social/rooms');

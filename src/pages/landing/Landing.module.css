@@ -1,3 +1,9 @@
+.landing-container {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
 .landing-header {
   padding: 20px;
   display: flex;
@@ -30,6 +36,19 @@ html[data-theme='dark'] .landing-logo-light {
   display: none;
 }
 
+.landing-logo-seasonal {
+  display: none;
+}
+
+html[data-seasonal='true'] .landing-logo-light,
+html[data-seasonal='true'] .landing-logo-dark {
+  display: none;
+}
+
+html[data-seasonal='true'] .landing-logo-seasonal {
+  display: block;
+}
+
 .landing-header .landing-title {
   display: block;
   margin: 0;
@@ -45,6 +64,8 @@ html[data-theme='dark'] .landing-logo-light {
   flex-direction: column;
   gap: 80px;
   padding-bottom: 50px;
+  position: relative;
+  z-index: 1;
 }
 
 .landing-section {
@@ -338,12 +359,12 @@ html[data-theme='dark'] .landing-logo-light {
 }
 
 .landing-main .landing-title img {
-  width: 100px;
-  height: 100px;
+  width: 180px;
+  height: 180px;
 }
 
 .landing-main .landing-title h1 {
-  font-size: 3rem;
+  font-size: 4.5rem;
   font-weight: 800;
   user-select: none;
 }
@@ -366,12 +387,12 @@ html[data-theme='dark'] .landing-logo-light {
   }
 
   .landing-main .landing-title h1 {
-    font-size: 2.4rem;
+    font-size: 3.4rem;
   }
 
   .landing-main .landing-title img {
-    width: 80px;
-    height: 80px;
+    width: 140px;
+    height: 140px;
   }
 
   .landing-section {
@@ -426,12 +447,12 @@ html[data-theme='dark'] .landing-logo-light {
   }
 
   .landing-main .landing-title h1 {
-    font-size: 1.8rem;
+    font-size: 2.4rem;
   }
 
   .landing-main .landing-title img {
-    width: 60px;
-    height: 60px;
+    width: 100px;
+    height: 100px;
   }
 
   .landing-section {

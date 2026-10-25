@@ -53,6 +53,15 @@ export async function sendChatMessage(
     };
   }
 
+  // DM rooms are strictly participant-only, with no staff override.
+  if (room.type === 'dm' && !room.members?.includes(fetchedUser.uuid)) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'You are not allowed to send messages in this conversation',
+    };
+  }
+
   if (room.restrict_send_to && !hasRole(fetchedUser.role, room.restrict_send_to)) {
     return { ok: false, status: 403, message: 'You are not allowed to send messages in this room' };
   }
@@ -138,9 +147,10 @@ export async function sendChatMessage(
     }
   }
 
-  // Check if the message contains links (not allowed in social rooms except for staff)
+  // Check if the message contains links. DMs are exempt — that is the intended
+  // place to share them (the public-room error below points users here).
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  if (content && urlRegex.test(content) && fetchedUser.role === 'user') {
+  if (content && urlRegex.test(content) && fetchedUser.role === 'user' && room.type !== 'dm') {
     await sendNyxMessage(
       fetchedUser.uuid,
       'Links are not allowed in social rooms. Please use direct messaging for sharing links.',

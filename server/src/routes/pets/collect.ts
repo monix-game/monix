@@ -19,8 +19,7 @@ export const collectPetEarnings = new Elysia()
             0,
             Math.floor((now - (pet.last_passive_collected || now)) / 60000)
           );
-          const passiveBonus = (user.permanent_upgrades?.deep_pockets || 0) * 0.05;
-          const amount = pet.is_dead ? 0 : elapsedMinutes * petPassiveRate(pet, passiveBonus);
+          const amount = pet.is_dead ? 0 : elapsedMinutes * petPassiveRate(pet);
           earned += amount + (pet.passive_earned || 0);
           pet.passive_earned = 0;
           pet.last_passive_collected = now;

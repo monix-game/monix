@@ -84,11 +84,47 @@ export const Pet: React.FC<PetProps> = ({ pet, onClick }) => {
               </span>
             )}
             <div className={styles['pet-stat']}>
-              <span className={styles['pet-stat-label']}>Happiness:</span>
+              <span className={styles['pet-stat-label']}>
+                <EmojiText>😊</EmojiText> Happiness
+              </span>
+              <div
+                className={styles['pet-stat-bar']}
+                role="meter"
+                aria-label="Happiness"
+                aria-valuenow={happiness}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className={`${styles['pet-stat-bar-fill']} ${styles['pet-stat-fill-happy']}`}
+                  style={{ width: `${happiness}%` }}
+                />
+              </div>
               <span className={styles['pet-stat-value']}>{happiness}%</span>
             </div>
             <div className={styles['pet-stat']}>
-              <span className={styles['pet-stat-label']}>Hunger:</span>
+              <span className={styles['pet-stat-label']}>
+                <EmojiText>🍽️</EmojiText> Hunger
+              </span>
+              <div
+                className={styles['pet-stat-bar']}
+                role="meter"
+                aria-label="Hunger"
+                aria-valuenow={hunger}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className={`${styles['pet-stat-bar-fill']} ${
+                    hunger >= 75
+                      ? styles['pet-stat-fill-starving']
+                      : hunger >= 40
+                        ? styles['pet-stat-fill-peckish']
+                        : styles['pet-stat-fill-hungry']
+                  }`}
+                  style={{ width: `${hunger}%` }}
+                />
+              </div>
               <span className={styles['pet-stat-value']}>{hunger}%</span>
             </div>
           </div>

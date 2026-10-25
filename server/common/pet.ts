@@ -10,6 +10,57 @@ import {
 export const CHARM_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 export const CHARM_COST_GEMS = 50;
 
+/** Maximum stray pets that can be held in the satchel at once. */
+export const SATCHEL_CAPACITY = 20;
+
+/** Adoption price for a stray pet caught while fishing. */
+export const STRAY_ADOPTION_COST = 2500;
+
+/**
+ * Chance that a cast pulls up a stray pet instead of keeping the fish. Strays
+ * are a side-goal, not the main loop, so this stays low.
+ */
+const STRAY_BASE_CHANCE = 0.02;
+
+export function strayChance(): number {
+  return STRAY_BASE_CHANCE;
+}
+
+export function rarityForCost(cost: number): 'common' | 'rare' | 'epic' | 'legendary' {
+  if (cost >= 15000) return 'legendary';
+  if (cost >= 10000) return 'epic';
+  if (cost >= 5000) return 'rare';
+  return 'common';
+}
+
+/** How many of each rarity a stray roll can produce. */
+const STRAY_RARITY_WEIGHTS: { rarity: 'common' | 'rare'; weight: number }[] = [
+  { rarity: 'common', weight: 0.85 },
+  { rarity: 'rare', weight: 0.15 },
+];
+
+/**
+ * Rolls for a stray pet using a caller-supplied RNG so the result stays part
+ * of the same deterministic seed as the rest of the cast.
+ */
+export function rollStrayPet(
+  rng: () => number,
+  petTypes: { id: string }[]
+): { type_id: string; rarity: 'common' | 'rare' } | null {
+  if (petTypes.length === 0) return null;
+
+  const type = petTypes[Math.floor(rng() * petTypes.length) % petTypes.length];
+  if (!type) return null;
+
+  const rarityRoll = rng();
+  const rarity =
+    rarityRoll < STRAY_RARITY_WEIGHTS[1].weight
+      ? STRAY_RARITY_WEIGHTS[1].rarity
+      : STRAY_RARITY_WEIGHTS[0].rarity;
+
+  return { type_id: type.id, rarity };
+}
+
 export function isPetCharmed(pet: IPet, now: number = Date.now()): boolean {
   return typeof pet.charmed_until === 'number' && pet.charmed_until > now;
 }

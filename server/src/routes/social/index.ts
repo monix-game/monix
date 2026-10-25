@@ -6,6 +6,7 @@ import deleteMsg from './delete';
 import roomMessages from './room-messages';
 import rooms from './rooms';
 import report from './report';
+import dms from './dm';
 
 export const socialRoutes = new Elysia()
   .derive(({ headers }) => deriveAuth(headers))
@@ -15,6 +16,7 @@ export const socialRoutes = new Elysia()
   .use(deleteMsg)
   .use(roomMessages)
   .use(rooms)
+  .use(dms)
   .use(report);
 
 export default socialRoutes;

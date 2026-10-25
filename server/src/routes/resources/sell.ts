@@ -43,8 +43,7 @@ export const sellResource = new Elysia()
 
         // Deduct resources and add balance
         fetchedUser.resources[resourceId] = currentQuantity - quantityToSell;
-        const marketBonus = 1 + (fetchedUser.permanent_upgrades?.market_instinct || 0) * 0.04;
-        fetchedUser.money = (fetchedUser.money || 0) + Number(totalValue) * marketBonus;
+        fetchedUser.money = (fetchedUser.money || 0) + Number(totalValue);
 
         fetchedUser.stats ??= DEFAULT_USER_STATS;
         fetchedUser.stats.resource_sells = (fetchedUser.stats.resource_sells || 0) + 1;

@@ -12,6 +12,13 @@ export interface FishingFrenzyStatus {
   active: boolean;
   endsAt: number;
   cooldownRemainingMs: number;
+  /**
+   * Absolute timestamp at which the activation cooldown expires. Clients use
+   * this to render a live countdown from their own clock instead of trusting
+   * the static `cooldownRemainingMs` snapshot, which only updates when the
+   * server next pushes a status.
+   */
+  cooldownEndsAt: number;
 }
 
 const FRENZY_EVENT = {
@@ -34,8 +41,14 @@ export function getFishingFrenzyEndAt(): number {
 }
 
 export function getFishingFrenzyCooldownRemaining(now = Date.now()): number {
-  const remaining = frenzyLastActivatedAt + FRENZY_COOLDOWN_MS - now;
+  const remaining = getFishingFrenzyCooldownEndsAt() - now;
   return Math.max(0, remaining);
+}
+
+/** Absolute timestamp the activation cooldown expires at (0 when there is none). */
+export function getFishingFrenzyCooldownEndsAt(): number {
+  if (frenzyLastActivatedAt === 0) return 0;
+  return frenzyLastActivatedAt + FRENZY_COOLDOWN_MS;
 }
 
 export function getFishingFrenzyStatus(now = Date.now()): FishingFrenzyStatus {
@@ -43,6 +56,7 @@ export function getFishingFrenzyStatus(now = Date.now()): FishingFrenzyStatus {
     active: isFishingFrenzyActive(now),
     endsAt: frenzyActiveUntil,
     cooldownRemainingMs: getFishingFrenzyCooldownRemaining(now),
+    cooldownEndsAt: getFishingFrenzyCooldownEndsAt(),
   };
 }
 

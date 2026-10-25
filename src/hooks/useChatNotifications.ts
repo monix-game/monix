@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSocket } from '../providers/socket';
 import type { ChatToastData } from '../components/notificationtoast/NotificationToasts';
-
 type NewMessageData = {
   room_uuid?: string;
   room_name?: string;
@@ -106,6 +105,7 @@ export function useChatNotifications(opts: {
       setToasts(prev => [
         ...prev.slice(-4),
         {
+          kind: 'chat',
           id,
           roomUuid: room_uuid,
           roomName: room_name || 'Chat',

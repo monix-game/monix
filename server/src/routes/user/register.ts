@@ -61,7 +61,6 @@ export const register = new Elysia().use(authLimiter).post(
       gems: 0,
       pet_slots: 3,
       daily_rewards: { last_claimed_day: 0, streak: 0 },
-      completed_tutorial: false,
       role: 'user',
       time_created: Date.now() / 1000,
       last_seen: Date.now() / 1000,

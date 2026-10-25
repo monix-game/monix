@@ -1,0 +1,72 @@
+.give-money {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 8px 8px;
+}
+
+.give-money-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+}
+
+.give-money-header p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.give-money-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font-weight: 600;
+  background: var(--dark-bg);
+  border: 2px solid var(--primary-1);
+  border-radius: var(--border-radius);
+}
+
+.give-money-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.give-money-error,
+.give-money-success {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--border-radius);
+  background: var(--dark-bg);
+}
+
+.give-money-error {
+  border: 2px solid #e35d5d;
+}
+
+.give-money-success {
+  border: 2px solid var(--primary-3);
+}
+
+.give-money-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.give-money-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}

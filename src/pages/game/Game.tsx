@@ -17,25 +17,27 @@ import {
   DebugOverlay,
   Modal,
   Nameplate,
+  RoleBadge,
   Avatar,
   NewsTicker,
   Checkbox,
   Select,
   PaymentModal,
   NotificationToasts,
+  DailyRewards,
+  Spinner,
+  UpdateInfoModal,
+  GiveMoneyModal,
 } from '../../components';
 import { IconMusic, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import type { IUser } from '../../../server/common/models/user';
 import {
   buyCosmetic,
   buyUpgrade,
-  completeTutorial,
   equipCosmetic,
   logOut,
-  resetTutorial,
   unequipCosmetic,
 } from '../../helpers/auth';
-import { claimDailyReward, type DailyRewardClaimResult } from '../../helpers/rewards';
 import { getResourceQuantity } from '../../helpers/resource';
 import { getResourceById, resources, type ResourceInfo } from '../../../server/common/resources';
 import { hasRole } from '../../../server/common/roles';
@@ -45,15 +47,17 @@ import {
   smartFormatNumber,
   titleCase,
 } from '../../../server/common/math';
-import { createPaymentSession } from '../../helpers/payments';
 import type { IRoom } from '../../../server/common/models/room';
 import { getCurrentPunishment, isUserBanned } from '../../../server/common/punishx/punishx';
 import { getRemainingDuration, type IPunishment } from '../../../server/common/models/punishment';
 import { getMyAppeals, submitAppeal } from '../../helpers/appeals';
+import type { IAppeal } from '../../../server/common/models/appeal';
 import { useMusic } from '../../providers/music';
 import { tracks } from '../../helpers/tracks';
-import { loadSettings, type IClientSettings } from '../../helpers/settings';
-import type { IAppeal } from '../../../server/common/models/appeal';
+import { loadSettings, updateSetting, type IClientSettings } from '../../helpers/settings';
+import { seasonalThemes } from '../../helpers/theme';
+import { resolveNameplate } from '../../helpers/cosmetics';
+import { createPaymentSession } from '../../helpers/payments';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import type { Cosmetic } from '../../../server/common/cosmetics/cosmetic';
 import { fishTypes } from '../../../server/common/fishing/fishTypes';
@@ -71,14 +75,6 @@ import {
   SAILOR_MAX_LEVEL,
 } from '../../../server/common/fishing/sailors';
 import {
-  buyBait,
-  buyRod,
-  equipBait,
-  equipRod,
-  getEventPreview,
-  activateFrenzy,
-  resetFrenzyCooldown,
-  goFishing,
   hireSailor,
   collectSailorEarnings,
   levelUpSailor,
@@ -105,7 +101,8 @@ import {
   FRENZY_WEIGHT_MULTIPLIER,
 } from '../../../server/common/fishing/fishingFrenzy';
 import type { IFish } from '../../../server/common/models/fish';
-import { DAILY_REWARDS } from '../../../server/common/rewards/dailyRewards';
+import type { IPet } from '../../../server/common/models/pet';
+import { VsMode } from '../../components/fishing/VsMode';
 import { rarityEmojis } from '../../../server/common/rarities';
 import {
   DEFAULT_GLOBAL_SETTINGS,
@@ -115,13 +112,15 @@ import {
   isUpgradeActive,
   MAGIC_JELLYBEAN_UPGRADE_ID,
   UPGRADES,
-  PERMANENT_UPGRADES,
-  permanentUpgradeCost,
 } from '../../../server/common/upgrades';
 import { ACHIEVEMENTS } from '../../../server/common/achievements';
-import { buyPermanentUpgrade, prestige } from '../../helpers/progression';
 import { useSocket } from '../../providers/socket';
 import { useChatNotifications } from '../../hooks/useChatNotifications';
+import { useEventNotifications } from '../../hooks/useEventNotifications';
+import { useGameToasts } from '../../hooks/useGameToasts';
+import { petTypes } from '../../../server/common/petTypes';
+
+const EMPTY_PETS: IPet[] = [];
 
 const getRodTierInfo = (category: FishingRodCategory) => {
   const info = getRodCategoryInfo(category);
@@ -141,6 +140,7 @@ export default function Game() {
   const [gameHydrated, setGameHydrated] = useState<boolean>(false);
   const [tab, setTab] = useState<
     | 'money'
+    | 'rewards'
     | 'resources'
     | 'fishing'
     | 'pets'
@@ -184,73 +184,15 @@ export default function Game() {
   const [debugOverlayPosition, setDebugOverlayPosition] = useState<DebugOverlayPosition>(
     () => loadSettings().debugOverlayPosition ?? 'topleft'
   );
-  const [dailyRewardResult, setDailyRewardResult] = useState<DailyRewardClaimResult | null>(null);
-  const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState<boolean>(false);
-  const dailyRewardClaimedRef = useRef(false);
-  const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
-  const [tutorialStep, setTutorialStep] = useState<number>(0);
-  const [tutorialProgress, setTutorialProgress] = useState({
-    boughtResource: false,
-    caughtFish: false,
-    visitedAquarium: false,
-    visitedPets: false,
-  });
   const [globalSettings, setGlobalSettings] = useState<IGlobalSettings>(DEFAULT_GLOBAL_SETTINGS);
   const { connected, subscribe, request } = useSocket();
-  type TutorialStep = {
-    title: string;
-    body: string;
-    tab?: typeof tab;
-    task?: string;
-  };
+  void connected;
 
   // Market states
   const [marketResourceDetails, setMarketResourceDetails] = useState<string>('gold');
 
   const currentFishingEvent = useMemo(() => getCurrentFishingEvent(eventNow), [eventNow]);
   const [frenzyStatus, setFrenzyStatus] = useState<FishingFrenzyStatus | null>(null);
-  const tutorialSteps = useMemo<TutorialStep[]>(
-    () => [
-      {
-        title: 'Welcome to Monix',
-        body: 'Build your fortune by fishing, trading resources, and upgrading your collection.',
-        tab: 'money',
-      },
-      {
-        title: 'Start With Some Cash',
-        body: 'Your balance is your toolkit. You will spend a little of it to build your first holding.',
-        tab: 'money',
-        task: 'Look over your starting balance.',
-      },
-      {
-        title: 'Buy Your First Holding',
-        body: 'Open Resources, choose a market, and buy at least one unit. Holdings add to your net worth.',
-        tab: 'resources',
-        task: 'Buy at least one resource.',
-      },
-      {
-        title: 'Go Fishing',
-        body: 'Catch fish to fill your aquarium. Modifiers can boost value, so check each catch.',
-        tab: 'fishing',
-        task: 'Catch a fish.',
-      },
-      {
-        title: 'Review Your Aquarium',
-        body: 'The aquarium stores your fish. Sell or upgrade capacity when you need space.',
-        tab: 'fishing',
-        task: 'Open the Aquarium view.',
-      },
-      {
-        title: 'Meet Your Pets',
-        body: 'Visit the Pets tab to adopt companions and expand your collection.',
-        tab: 'pets',
-        task: 'Visit the Pets tab.',
-      },
-    ],
-    []
-  );
-  const currentTutorialStep = tutorialSteps[tutorialStep];
-  const isLastTutorialStep = tutorialStep >= tutorialSteps.length - 1;
   const featureFlags = globalSettings.features;
   const resourceMarketDisabled = !featureFlags.resourcesMarket;
   const fishingDisabled = !featureFlags.fishingAquarium;
@@ -259,38 +201,15 @@ export default function Game() {
   const gemPurchasesDisabled = !featureFlags.gemPurchases;
   const cosmeticPurchasesDisabled = !featureFlags.cosmeticPurchases;
   const frenzyActive = Boolean(frenzyStatus?.active && (frenzyStatus?.endsAt || 0) > fishingNow);
+  // Count the cooldown down from the server-provided expiry against the local
+  // clock. The server's `cooldownRemainingMs` is a one-shot snapshot, so using
+  // it directly would freeze the readout until the next status push.
+  const frenzyCooldownRemainingMs = Math.max(0, (frenzyStatus?.cooldownEndsAt || 0) - eventNow);
   const fishingCooldownMs = (() => {
     if (frenzyActive) return FRENZY_COOLDOWN_S * 1000;
     if (isUpgradeActive(user?.upgrades, MAGIC_JELLYBEAN_UPGRADE_ID, fishingNow)) return 2500;
     return 5000;
   })();
-  const isTutorialStepComplete = useMemo(() => {
-    if (!currentTutorialStep) return true;
-
-    switch (tutorialStep) {
-      case 1:
-        return tab === 'money';
-      case 2:
-        return tab === 'resources' && tutorialProgress.boughtResource;
-      case 3: {
-        return tab === 'fishing' && tutorialProgress.caughtFish;
-      }
-      case 4:
-        return tab === 'fishing' && tutorialProgress.visitedAquarium;
-      case 5:
-        return tab === 'pets' && tutorialProgress.visitedPets;
-      default:
-        return true;
-    }
-  }, [
-    currentTutorialStep,
-    tutorialStep,
-    tab,
-    tutorialProgress.boughtResource,
-    tutorialProgress.caughtFish,
-    tutorialProgress.visitedAquarium,
-    tutorialProgress.visitedPets,
-  ]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -406,6 +325,27 @@ export default function Game() {
   const [socialRooms, setSocialRooms] = useState<IRoom[]>([]);
   const deepLinkHandledRef = useRef(false);
 
+  // A DM created from the social panel is not in `socialRooms` until the next
+  // snapshot arrives. Falling back to the first room (and correcting the
+  // selected uuid) avoids rendering `Social` with an undefined room, which
+  // previously crashed the whole game into a blank/grey screen.
+  const activeSocialRoom = useMemo(
+    () => socialRooms.find(r => r.uuid === socialRoom) ?? socialRooms[0] ?? null,
+    [socialRooms, socialRoom]
+  );
+
+  useEffect(() => {
+    if (socialRooms.length === 0) return;
+    if (socialRooms.some(r => r.uuid === socialRoom)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSocialRoom(socialRooms[0].uuid);
+  }, [socialRooms, socialRoom]);
+
+  const handleSetSocialRoom = useCallback((room: IRoom) => {
+    setSocialRooms(prev => (prev.some(r => r.uuid === room.uuid) ? prev : [...prev, room]));
+    setSocialRoom(room.uuid);
+  }, []);
+
   // Handle ?tab=social&room=<uuid> deep links (from push notifications).
   useEffect(() => {
     if (!gameHydrated || socialDisabled || deepLinkHandledRef.current) return;
@@ -436,12 +376,21 @@ export default function Game() {
     (roomUuid: string) => tab === 'social' && socialRoom === roomUuid,
     [tab, socialRoom]
   );
-  const { totalUnread, unreadByRoom, toasts, dismissToast, clearRoom, clearAll } =
-    useChatNotifications({
-      userUuid: user?.uuid ?? null,
-      enabled: notificationsEnabled,
-      isRoomActive,
-    });
+  const {
+    totalUnread,
+    unreadByRoom,
+    toasts: chatToasts,
+    dismissToast: dismissChatToast,
+    clearRoom,
+    clearAll,
+  } = useChatNotifications({
+    userUuid: user?.uuid ?? null,
+    enabled: notificationsEnabled,
+    isRoomActive,
+  });
+  const { toasts: eventToasts, dismissToast: dismissEventToast } = useEventNotifications({
+    enabled: notificationsEnabled,
+  });
 
   // Mark a room as read when it becomes the active social room.
   useEffect(() => {
@@ -471,9 +420,32 @@ export default function Game() {
     fishingResult: FishingResult;
     fishCaught: IFish;
     success: boolean;
+    strayCaught: boolean;
+    satchelFull: boolean;
+    nextCatchAutoSell: boolean;
+    autoSold: boolean;
   } | null>(null);
   const [wasLastCatchAutoSold, setWasLastCatchAutoSold] = useState<boolean>(false);
-  const [autoSellEnabled, setAutoSellEnabled] = useState<boolean>(false);
+  // VS mode is opt-in and only fetches pets while the fishing tab is open.
+  const [vsModeEnabled, setVsModeEnabled] = useState<boolean>(false);
+  // VS mode needs the pet list; only subscribe while it is actually visible.
+  // The channel is stored with the payload so turning VS mode off can never
+  // leave stale pets on screen without a synchronous reset inside the effect.
+  const [vsPets, setVsPets] = useState<{ channel: string; pets: IPet[] } | null>(null);
+  const vsChannel =
+    !petsDisabled && vsModeEnabled && tab === 'fishing' && user?.uuid ? `pets:${user.uuid}` : null;
+  useEffect(() => {
+    if (!vsChannel) return;
+    const unsubscribe = subscribe(vsChannel, data => {
+      setVsPets({ channel: vsChannel, pets: (data as IPet[]) || [] });
+    });
+    return unsubscribe;
+  }, [vsChannel, subscribe]);
+  const activeVsPets = vsPets?.channel === vsChannel ? vsPets.pets : EMPTY_PETS;
+
+  const [autoSellEnabled, setAutoSellEnabled] = useState<boolean>(
+    () => loadSettings().autoSellFish ?? false
+  );
   const [isRodsModalOpen, setIsRodsModalOpen] = useState<boolean>(false);
   const [isBaitModalOpen, setIsBaitModalOpen] = useState<boolean>(false);
   const [openRodSections, setOpenRodSections] = useState<Record<string, boolean>>({});
@@ -580,8 +552,10 @@ export default function Game() {
     queue,
     currentIndex,
     playNext,
+    playTrack,
     setVolume,
   } = useMusic();
+  void setVolume;
 
   const getRandomTrack = useCallback(() => tracks[Math.floor(Math.random() * tracks.length)], []);
 
@@ -616,11 +590,39 @@ export default function Game() {
     }
   }, [tab, queue.length, currentIndex, enqueue, getRandomTrack]);
 
+  const { toasts: gameToasts, dismissToast: dismissGameToast } = useGameToasts({
+    currentTrack,
+    user,
+    hydrated: gameHydrated,
+  });
+  const toasts = useMemo(
+    () => [...chatToasts, ...eventToasts, ...gameToasts],
+    [chatToasts, eventToasts, gameToasts]
+  );
+  const dismissToast = useCallback(
+    (id: string) => {
+      dismissChatToast(id);
+      dismissEventToast(id);
+      dismissGameToast(id);
+    },
+    [dismissChatToast, dismissEventToast, dismissGameToast]
+  );
+
   const applyUserData = useCallback(
     (userData: IUser) => {
       const jailTabs = ['jail', 'settings', 'appeals'];
 
-      setUser(userData);
+      setUser(prev => {
+        if (!userData) return prev;
+        // Snapshots arrive on a timer and after every mutation. Only skip the
+        // re-render when the snapshot is genuinely identical: comparing a
+        // hand-picked subset of fields misses equipment/inventory changes
+        // (e.g. equipped rods and bait), leaving the UI stale until a reload.
+        if (prev && JSON.stringify(prev) === JSON.stringify(userData)) {
+          return prev;
+        }
+        return userData;
+      });
       setUserRole(userData ? userData.role : 'user');
 
       if (isUserBanned(userData)) {
@@ -678,6 +680,15 @@ export default function Game() {
     }
   }, [applyUserData, request]);
 
+  // Hydrate the initial user snapshot once the socket is authenticated. Without
+  // this, `gameHydrated` never becomes true on a fresh page load and every tab
+  // stays disabled even though the server is reachable.
+  useEffect(() => {
+    if (!connected || gameHydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void updateEverything();
+  }, [connected, gameHydrated, updateEverything]);
+
   // Live user + rooms via the authenticated socket (replaces 1s HTTP polling).
   useEffect(() => {
     const unsubUser = subscribe('user:me', data => {
@@ -712,97 +723,11 @@ export default function Game() {
     };
   }, [tab]);
 
-  const startTutorial = useCallback(async () => {
-    setTutorialStep(0);
-    setIsTutorialOpen(true);
-    setTutorialProgress({
-      boughtResource: false,
-      caughtFish: false,
-      visitedAquarium: false,
-      visitedPets: false,
-    });
-
-    if (user?.completed_tutorial) {
-      setUser({ ...user, completed_tutorial: false });
-    }
-
-    await resetTutorial();
-  }, [user]);
-
-  const handleTutorialComplete = useCallback(async () => {
-    setIsTutorialOpen(false);
-    setTutorialStep(0);
-
-    if (user && !user.completed_tutorial) {
-      setUser({ ...user, completed_tutorial: true });
-    }
-
-    await completeTutorial();
-    await updateEverything();
-  }, [updateEverything, user]);
-
-  useEffect(() => {
-    if (!connected) return;
-    startTransition(() => {
-      void updateEverything().then(() => setGameHydrated(true));
-    });
-
-    // Set radio volume based on settings
-    const settings = loadSettings();
-    setVolume(settings.musicVolume / 100);
-  }, [updateEverything, setVolume, connected]);
-
-  useEffect(() => {
-    if (!gameHydrated || !user || dailyRewardClaimedRef.current) return;
-    dailyRewardClaimedRef.current = true;
-
-    void claimDailyReward().then(result => {
-      if (!result || !result.claimed || !result.reward) return;
-      setDailyRewardResult(result);
-      setIsDailyRewardModalOpen(true);
-    });
-  }, [gameHydrated, user]);
-
-  useEffect(() => {
-    if (!user || user.completed_tutorial || isTutorialOpen || banned) return;
-
-    startTransition(() => setIsTutorialOpen(true));
-  }, [user, isTutorialOpen, banned]);
-
-  useEffect(() => {
-    if (!isTutorialOpen || !currentTutorialStep?.tab) return;
-    const targetTab = currentTutorialStep.tab;
-
-    startTransition(() => setTabTo(targetTab));
-  }, [currentTutorialStep, isTutorialOpen, setTabTo]);
-
-  useEffect(() => {
-    if (!isTutorialOpen) return;
-
-    startTransition(() => {
-      if (tab === 'fishing' && fishingSubview === 'aquarium') {
-        setTutorialProgress(prev => ({
-          ...prev,
-          visitedAquarium: true,
-        }));
-      }
-
-      if (tab === 'pets') {
-        setTutorialProgress(prev => ({
-          ...prev,
-          visitedPets: true,
-        }));
-      }
-    });
-  }, [isTutorialOpen, tab, fishingSubview]);
-
-  const equippedNameplateStyle = user?.equipped_cosmetics?.nameplate
-    ? cosmetics.find(c => c.id === user.equipped_cosmetics?.nameplate)?.nameplateStyle
-    : null;
-  const hasActiveMagicJellybean =
+  const equippedNameplate = resolveNameplate(
+    user?.equipped_cosmetics?.nameplate,
     Boolean(user?.upgrades?.magic_jellybean?.expires_at) &&
-    (user?.upgrades?.magic_jellybean?.expires_at || 0) > fishingNow;
-  const effectiveNameplateStyle = hasActiveMagicJellybean ? 'rainbow' : equippedNameplateStyle;
+      (user?.upgrades?.magic_jellybean?.expires_at || 0) > fishingNow
+  );
   const equippedTagCosmetic = user?.equipped_cosmetics?.tag
     ? cosmetics.find(c => c.id === user.equipped_cosmetics?.tag)
     : null;
@@ -878,11 +803,13 @@ export default function Game() {
     if (tab !== 'fishing' || fishingSubview !== 'aquarium') return;
 
     let cancelled = false;
-    void getEventPreview().then(res => {
-      if (!cancelled && res) {
-        setEventPreview(res);
-      }
-    });
+    void import('../../helpers/fishing')
+      .then(m => m.getEventPreview())
+      .then(res => {
+        if (!cancelled && res) {
+          setEventPreview(res);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -940,6 +867,7 @@ export default function Game() {
         <Nameplate
           text="Monix User"
           styleKey={cosmetic.nameplateStyle}
+          backgroundKey={cosmetic.nameplateBackground}
           className={styles['nameplate-preview']}
         />
       );
@@ -1029,6 +957,8 @@ export default function Game() {
     );
   };
 
+  const [isUpdateInfoOpen, setIsUpdateInfoOpen] = useState<boolean>(false);
+  const [isGiveMoneyOpen, setIsGiveMoneyOpen] = useState<boolean>(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isLoadingPaymentModal, setIsLoadingPaymentModal] = useState<boolean>(false);
   const [paymentModalCosmeticId, setPaymentModalCosmeticId] = useState<string | null>(null);
@@ -1091,6 +1021,12 @@ export default function Game() {
           toasts={toasts}
           onDismiss={dismissToast}
           onClick={toast => {
+            if (toast.kind === 'event') {
+              const target = toast.tab ?? 'fishing';
+              if (target === 'fishing' && fishingDisabled) return;
+              setTabTo(target);
+              return;
+            }
             if (socialDisabled) return;
             if (socialRooms.some(r => r.uuid === toast.roomUuid)) {
               setSocialRoom(toast.roomUuid);
@@ -1099,9 +1035,21 @@ export default function Game() {
           }}
         />
         <header className="app-header">
-          <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
-          <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />
-          <h1 className="app-title">Monix</h1>
+          <div className="app-brand">
+            <div className="app-brand-main">
+              <div className="app-logo-wrap">
+                <img src={monixLogoLight} alt="Monix Logo" className="app-logo app-logo-light" />
+                <img src={monixLogoDark} alt="Monix Logo" className="app-logo app-logo-dark" />
+                <img
+                  src={seasonalThemes[0].logo}
+                  alt="Monix Logo"
+                  className="app-logo app-logo-seasonal"
+                />
+              </div>
+              <h1 className="app-title">Monix</h1>
+            </div>
+            <span className="app-brand-caption">Spooknix update 2026!</span>
+          </div>
           <div className="nav-tabs">
             {(() => {
               const noOfRows = banned ? 1 : 2;
@@ -1114,6 +1062,7 @@ export default function Game() {
                   ] as const)
                 : ([
                     { key: 'money', label: '💰 Money' },
+                    { key: 'rewards', label: '🪎 Daily Rewards' },
                     { key: 'resources', label: '🪙 Resources' },
                     { key: 'fishing', label: '🎣 Fishing' },
                     { key: 'pets', label: '🐶 Pets' },
@@ -1172,7 +1121,7 @@ export default function Game() {
               <Avatar src={user?.avatar_data_uri} size={24} className="user-avatar" />
               <Nameplate
                 text={user ? user.username : 'User'}
-                styleKey={effectiveNameplateStyle}
+                {...equippedNameplate}
                 className={`username ${user?.role !== 'user' ? 'clickable' : ''}`.trim()}
                 role={user?.role !== 'user' ? 'button' : undefined}
                 onClick={() => {
@@ -1186,13 +1135,11 @@ export default function Game() {
                   }
                 }}
               />
+              {userRole !== null && userRole !== 'user' && <RoleBadge role={userRole} />}
               {equippedTagCosmetic && (
                 <span className={`user-tag tag-colour-${equippedTagCosmetic.tagColour}`}>
                   <EmojiText>{equippedTagCosmetic.tagIcon}</EmojiText> {equippedTagCosmetic.tagName}
                 </span>
-              )}
-              {userRole !== null && userRole !== 'user' && (
-                <span className={`user-badge ${userRole}`}>{titleCase(userRole)}</span>
               )}
             </div>
             <div className="user-money">
@@ -1206,14 +1153,6 @@ export default function Game() {
                   {smartFormatNumber(user?.gems || 0, false, true)}
                 </span>
               </div>
-              {user?.prestige?.shards && (
-                <div>
-                  <EmojiText>💠 </EmojiText>
-                  <span className="money-amount mono">
-                    {smartFormatNumber(user?.prestige.shards || 0, false, true)}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </header>
@@ -1243,6 +1182,14 @@ export default function Game() {
                     <EmojiText>🎣 Aquarium: </EmojiText>
                     <span className="mono">{smartFormatNumber(aquariumTotal)}</span>
                   </span>
+                </div>
+                <div className={styles['money-actions']}>
+                  <Button onClick={() => setIsGiveMoneyOpen(true)}>
+                    <EmojiText>💸</EmojiText> Give Money
+                  </Button>
+                  <Button secondary onClick={() => setIsUpdateInfoOpen(true)}>
+                    <EmojiText>📋</EmojiText> Update information
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1292,10 +1239,8 @@ export default function Game() {
                       quantity={resourceQuantities[marketResourceDetails] || 0}
                       resourcePrice={resourcePrices[marketResourceDetails] || 0}
                       money={user ? user.money || 0 : 0}
-                      onBuySell={mode => {
-                        if (mode === 'buy' && isTutorialOpen && tab === 'resources') {
-                          setTutorialProgress(prev => ({ ...prev, boughtResource: true }));
-                        }
+                      onBuySell={(_mode: unknown) => {
+                        void _mode;
                         void updateEverything();
                         const fetchQuantity = async () => {
                           const qty = await getResourceQuantity(marketResourceDetails);
@@ -1376,30 +1321,38 @@ export default function Game() {
                               <EmojiText>🐟</EmojiText> Go Fishing!
                             </h2>
                             <div className={styles['fishing-card-actions']}>
-                              <Checkbox
-                                label="Auto-sell fish"
-                                checked={autoSellEnabled}
-                                onClick={setAutoSellEnabled}
-                              />
+                              <div className={styles['fishing-card-actions-row']}>
+                                <Checkbox
+                                  label="Auto-sell fish"
+                                  checked={autoSellEnabled}
+                                  onClick={next => {
+                                    setAutoSellEnabled(next);
+                                    updateSetting('autoSellFish', next);
+                                  }}
+                                />
+                                {!petsDisabled && (
+                                  <Checkbox
+                                    label="VS Mode"
+                                    color="purple"
+                                    checked={vsModeEnabled}
+                                    onClick={setVsModeEnabled}
+                                  />
+                                )}
+                              </div>
                               <Button
                                 onClickAsync={async () => {
-                                  const result = await goFishing(autoSellEnabled);
+                                  const result = await (
+                                    await import('../../helpers/fishing')
+                                  ).goFishing(autoSellEnabled);
 
                                   if (result) {
                                     setIsShowingFishingResults(true);
                                     setLastCatch(result);
-                                    if (isTutorialOpen) {
-                                      setTutorialProgress(prev => ({
-                                        ...prev,
-                                        caughtFish: true,
-                                      }));
-                                    }
 
-                                    if (autoSellEnabled) {
-                                      setWasLastCatchAutoSold(true);
-                                    } else {
-                                      setWasLastCatchAutoSold(false);
-                                    }
+                                    // The server is authoritative here: the
+                                    // checkbox may be off while a stray pet still
+                                    // forces this catch to be sold.
+                                    setWasLastCatchAutoSold(result.autoSold);
 
                                     await updateEverything();
                                   }
@@ -1430,90 +1383,170 @@ export default function Game() {
                                 })()}
                               </Button>
                             </div>
+                            {vsModeEnabled && !petsDisabled && (
+                              <VsMode
+                                fish={lastCatch?.fishCaught ?? null}
+                                pets={activeVsPets}
+                                passiveIncomeBonus={0}
+                              />
+                            )}
                             {isShowingFishingResults && lastCatch && (
                               <div className={styles['fishing-results']}>
-                                <h3>
-                                  You Caught{' '}
-                                  {['a', 'e', 'i', 'o', 'u'].includes(
-                                    fishTypes
-                                      .find(f => f.id === lastCatch.fishCaught.type)
-                                      ?.name[0].toLowerCase() || ''
-                                  )
-                                    ? 'an'
-                                    : 'a'}{' '}
-                                  <EmojiText>
-                                    {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.icon}
-                                  </EmojiText>{' '}
-                                  {fishTypes.find(f => f.id === lastCatch.fishCaught.type)?.name}
-                                </h3>
-                                <p className={styles['fishing-result-weight']}>
-                                  Weight:{' '}
-                                  {lastCatch.fishCaught.weight >= 1000 ? (
-                                    <span className="mono">
-                                      {smartFormatNumber(lastCatch.fishCaught.weight / 1000, false)}{' '}
-                                      tonnes
-                                    </span>
-                                  ) : (
-                                    <span className="mono">
-                                      {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
-                                    </span>
-                                  )}
-                                </p>
-                                <p className={styles['fishing-result-value']}>
-                                  Value:{' '}
-                                  <span className="mono">
-                                    {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
-                                  </span>
-                                </p>
-                                <div className={styles['fishing-result-modifiers']}>
-                                  <span className={styles['fishing-result-modifiers-label']}>
-                                    Modifiers:
-                                  </span>
-                                  {lastCatch.fishCaught.modifiers?.length ? (
-                                    <div className={styles['fishing-result-modifier-list']}>
-                                      {lastCatch.fishCaught.modifiers.map(mod => {
-                                        const modifier = fishModifiers.find(fm => fm.id === mod);
-                                        if (!modifier) return null;
-                                        return (
-                                          <span
-                                            key={modifier.id}
-                                            className={styles['fishing-result-modifier']}
-                                          >
-                                            <EmojiText>{modifier.icon}</EmojiText> {modifier.name}
-                                          </span>
-                                        );
-                                      })}
+                                {lastCatch.strayCaught ? (
+                                  <>
+                                    <h3>
+                                      You Caught a Stray{' '}
+                                      <EmojiText>
+                                        {petTypes.find(
+                                          p => p.id === lastCatch.fishingResult.stray_pet?.type_id
+                                        )?.icon || '🐾'}
+                                      </EmojiText>
+                                    </h3>
+                                    <p className={styles['fishing-result-value']}>
+                                      A {lastCatch.fishingResult.stray_pet?.rarity || 'common'}{' '}
+                                      {petTypes.find(
+                                        p => p.id === lastCatch.fishingResult.stray_pet?.type_id
+                                      )?.name || 'pet'}{' '}
+                                      swam up on your line!
+                                    </p>
+                                    <p className={styles['fishing-result-weight']}>
+                                      It's waiting in your satchel.{' '}
+                                      {lastCatch.fishingResult.fish_type && (
+                                        <>
+                                          You also landed a{' '}
+                                          <strong>{lastCatch.fishingResult.fish_type}</strong>
+                                          {lastCatch.autoSold
+                                            ? ', which was sold automatically.'
+                                            : ' — it’s been kept in your aquarium, and your next catch will be sold automatically to make space for it.'}
+                                        </>
+                                      )}
+                                    </p>
+                                    <div className={styles['fishing-result-buttons']}>
+                                      <Button
+                                        secondary
+                                        onClick={() => {
+                                          setIsShowingFishingResults(false);
+                                          setLastCatch(null);
+                                        }}
+                                      >
+                                        Dismiss
+                                      </Button>
+                                      <Button
+                                        onClick={() => {
+                                          setIsShowingFishingResults(false);
+                                          setLastCatch(null);
+                                          setTabTo(petsDisabled ? 'fishing' : 'pets');
+                                        }}
+                                      >
+                                        View Satchel
+                                      </Button>
                                     </div>
-                                  ) : (
-                                    <span className={styles['fishing-result-none']}>None</span>
-                                  )}
-                                </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <h3>
+                                      You Caught{' '}
+                                      {['a', 'e', 'i', 'o', 'u'].includes(
+                                        fishTypes
+                                          .find(f => f.id === lastCatch.fishCaught.type)
+                                          ?.name[0].toLowerCase() || ''
+                                      )
+                                        ? 'an'
+                                        : 'a'}{' '}
+                                      <EmojiText>
+                                        {
+                                          fishTypes.find(f => f.id === lastCatch.fishCaught.type)
+                                            ?.icon
+                                        }
+                                      </EmojiText>{' '}
+                                      {
+                                        fishTypes.find(f => f.id === lastCatch.fishCaught.type)
+                                          ?.name
+                                      }
+                                    </h3>
+                                    <p className={styles['fishing-result-weight']}>
+                                      Weight:{' '}
+                                      {lastCatch.fishCaught.weight >= 1000 ? (
+                                        <span className="mono">
+                                          {smartFormatNumber(
+                                            lastCatch.fishCaught.weight / 1000,
+                                            false
+                                          )}{' '}
+                                          tonnes
+                                        </span>
+                                      ) : (
+                                        <span className="mono">
+                                          {smartFormatNumber(lastCatch.fishCaught.weight, false)} kg
+                                        </span>
+                                      )}
+                                    </p>
+                                    <p className={styles['fishing-result-value']}>
+                                      Value:{' '}
+                                      <span className="mono">
+                                        {smartFormatNumber(getFishValue(lastCatch.fishCaught))}
+                                      </span>
+                                    </p>
+                                    <div className={styles['fishing-result-modifiers']}>
+                                      <span className={styles['fishing-result-modifiers-label']}>
+                                        Modifiers:
+                                      </span>
+                                      {lastCatch.fishCaught.modifiers?.length ? (
+                                        <div className={styles['fishing-result-modifier-list']}>
+                                          {lastCatch.fishCaught.modifiers.map(mod => {
+                                            const modifier = fishModifiers.find(
+                                              fm => fm.id === mod
+                                            );
+                                            if (!modifier) return null;
+                                            return (
+                                              <span
+                                                key={modifier.id}
+                                                className={styles['fishing-result-modifier']}
+                                              >
+                                                <EmojiText>{modifier.icon}</EmojiText>{' '}
+                                                {modifier.name}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <span className={styles['fishing-result-none']}>None</span>
+                                      )}
+                                    </div>
 
-                                <div className={styles['fishing-result-buttons']}>
-                                  <Button
-                                    secondary
-                                    onClick={() => {
-                                      setIsShowingFishingResults(false);
-                                      setLastCatch(null);
-                                    }}
-                                  >
-                                    Dismiss
-                                  </Button>
-                                  {!wasLastCatchAutoSold ? (
-                                    <Button
-                                      onClickAsync={async () => {
-                                        await sellFish(lastCatch.fishCaught.uuid);
-                                        await updateEverything();
-                                        setIsShowingFishingResults(false);
-                                        setLastCatch(null);
-                                      }}
-                                    >
-                                      Sell
-                                    </Button>
-                                  ) : (
-                                    <span className={styles['auto-sold']}>Auto-sold</span>
-                                  )}
-                                </div>
+                                    {lastCatch.satchelFull && (
+                                      <p className={styles['fishing-result-weight']}>
+                                        A stray pet also bit, but your satchel is full — it swam
+                                        away.
+                                      </p>
+                                    )}
+
+                                    <div className={styles['fishing-result-buttons']}>
+                                      <Button
+                                        secondary
+                                        onClick={() => {
+                                          setIsShowingFishingResults(false);
+                                          setLastCatch(null);
+                                        }}
+                                      >
+                                        Dismiss
+                                      </Button>
+                                      {!wasLastCatchAutoSold ? (
+                                        <Button
+                                          onClickAsync={async () => {
+                                            await sellFish(lastCatch.fishCaught.uuid);
+                                            await updateEverything();
+                                            setIsShowingFishingResults(false);
+                                            setLastCatch(null);
+                                          }}
+                                        >
+                                          Sell
+                                        </Button>
+                                      ) : (
+                                        <span className={styles['auto-sold']}>Auto-sold</span>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1575,7 +1608,9 @@ export default function Game() {
                                             {!isEquipped && (
                                               <Button
                                                 onClickAsync={async () => {
-                                                  await equipRod(rodId);
+                                                  await (
+                                                    await import('../../helpers/fishing')
+                                                  ).equipRod(rodId);
                                                   await updateEverything();
                                                 }}
                                               >
@@ -1674,7 +1709,9 @@ export default function Game() {
                                           {!isEquipped && (
                                             <Button
                                               onClickAsync={async () => {
-                                                await equipBait(bait.id);
+                                                await (
+                                                  await import('../../helpers/fishing')
+                                                ).equipBait(bait.id);
                                                 await updateEverything();
                                               }}
                                             >
@@ -1937,7 +1974,7 @@ export default function Game() {
                       {!frenzyActive &&
                         (() => {
                           const cooldownSecs = Math.ceil(
-                            (frenzyStatus?.cooldownRemainingMs || 0) / 1000
+                            Math.max(0, frenzyCooldownRemainingMs) / 1000
                           );
                           const canAffordGems =
                             (user?.gems ?? 0) >= FRENZY_GEM_COST || user?.gems === -1;
@@ -1955,7 +1992,9 @@ export default function Game() {
                                     <Button
                                       secondary
                                       onClickAsync={async () => {
-                                        const res = await resetFrenzyCooldown();
+                                        const res = await (
+                                          await import('../../helpers/fishing')
+                                        ).resetFrenzyCooldown();
                                         if (res.status) setFrenzyStatus(res.status);
                                       }}
                                     >
@@ -2075,7 +2114,9 @@ export default function Game() {
                         </Button>
                         <Button
                           onClickAsync={async () => {
-                            const res = await getEventPreview();
+                            const res = await (
+                              await import('../../helpers/fishing')
+                            ).getEventPreview();
                             if (res?.unlocked) {
                               setEventPreview(res);
                               setIsEventPreviewModalOpen(true);
@@ -2407,7 +2448,7 @@ export default function Game() {
                   gems={user?.gems ?? 0}
                   petSlots={user?.pet_slots}
                   userUuid={user?.uuid ?? ''}
-                  passiveIncomeBonus={(user?.permanent_upgrades?.deep_pockets || 0) * 0.05}
+                  passiveIncomeBonus={0}
                   refreshUser={updateEverything}
                 />
               </div>
@@ -2417,13 +2458,17 @@ export default function Game() {
               renderFeatureDisabled('Social')
             ) : (
               <div className="tab-content">
-                <Social
-                  room={socialRooms.find(r => r.uuid === socialRoom)!}
-                  setRoom={room => setSocialRoom(room.uuid)}
-                  rooms={socialRooms}
-                  user={user!}
-                  unreadByRoom={unreadByRoom}
-                />
+                {user && activeSocialRoom ? (
+                  <Social
+                    room={activeSocialRoom}
+                    setRoom={handleSetSocialRoom}
+                    rooms={socialRooms}
+                    user={user}
+                    unreadByRoom={unreadByRoom}
+                  />
+                ) : (
+                  <Spinner />
+                )}
               </div>
             ))}
           {tab === 'radio' && (
@@ -2481,93 +2526,59 @@ export default function Game() {
                   )}
                 </div>
               </div>
+              <h3 className={styles['radio-picker-heading']}>Song Picker</h3>
+              <div className={styles['song-picker']}>
+                {tracks.map(track => {
+                  const key = track.id ?? track.src;
+                  const activeKey = currentTrack ? (currentTrack.id ?? currentTrack.src) : null;
+                  const active = activeKey === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`${styles['song-picker-item']} ${
+                        active ? styles['song-picker-item-active'] : ''
+                      }`}
+                      aria-label={
+                        active && isPlaying
+                          ? `Pause ${track.title}`
+                          : `Play ${track.title} by ${track.artist}`
+                      }
+                      aria-current={active ? 'true' : undefined}
+                      onClick={() => {
+                        if (active) {
+                          if (isPlaying) pause();
+                          else resume();
+                          return;
+                        }
+                        playTrack(track);
+                      }}
+                    >
+                      <img
+                        src={track.coverSrc || undefined}
+                        alt=""
+                        className={styles['song-picker-cover']}
+                      />
+                      <span className={styles['song-picker-meta']}>
+                        <span className={styles['song-picker-title']}>{track.title}</span>
+                        <span className={styles['song-picker-artist']}>{track.artist}</span>
+                      </span>
+                      <span className={styles['song-picker-action']}>
+                        {active && isPlaying ? (
+                          <IconPlayerPause size={18} />
+                        ) : (
+                          <IconPlayerPlay size={18} />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {tab === 'upgrades' && (
             <div className="tab-content">
               <h2>Upgrades</h2>
-              <div className={styles['prestige-panel']}>
-                <div>
-                  <h3>
-                    <EmojiText>🌟</EmojiText> Prestige
-                  </h3>
-                  <p>
-                    Reset money, resources, rods, and aquarium progress to earn permanent shards
-                    based on net worth.
-                  </p>
-                  <span>
-                    Prestiges: <b>{user?.prestige?.count || 0}</b> · Shards:{' '}
-                    <b>{user?.prestige?.shards || 0}</b>
-                  </span>
-                </div>
-                <Button
-                  color="purple"
-                  disabled={!user || user.money < 1_000_000_000}
-                  onClickAsync={async () => {
-                    if (
-                      !globalThis.confirm(
-                        'Prestige will reset your money, resources, rods, and aquarium. Continue?'
-                      )
-                    )
-                      return;
-                    if (await prestige()) await updateEverything();
-                  }}
-                >
-                  Prestige for{' '}
-                  {user
-                    ? Math.floor(
-                        Math.sqrt(
-                          Math.max(
-                            0,
-                            user.money +
-                              Object.entries(user.resources || {}).reduce(
-                                (total, [id, quantity]) =>
-                                  total +
-                                  (resources.find(resource => resource.id === id)?.basePrice || 0) *
-                                    quantity,
-                                0
-                              )
-                          ) / 1_000_000_000
-                        )
-                      )
-                    : 0}{' '}
-                  shards
-                </Button>
-              </div>
-              <h3 className={styles['upgrade-section-title']}>Permanent Upgrade Tree</h3>
-              <div className={styles['upgrades-grid']}>
-                {PERMANENT_UPGRADES.map(upgrade => {
-                  const level = user?.permanent_upgrades?.[upgrade.id] || 0;
-                  const cost = permanentUpgradeCost(upgrade, level);
-                  const shardSuffix = cost === 1 ? '' : 's';
-                  const upgradeButtonText =
-                    level >= upgrade.maxLevel ? 'Maxed' : `Upgrade for ${cost} shard${shardSuffix}`;
-                  return (
-                    <div
-                      key={upgrade.id}
-                      className={`${styles['upgrade-card']} ${styles['permanent-upgrade-card']}`}
-                    >
-                      <h3 className={styles['upgrade-name']}>
-                        <EmojiText>{upgrade.icon}</EmojiText> {upgrade.name}
-                      </h3>
-                      <p className={styles['upgrade-description']}>{upgrade.description}</p>
-                      <span className={styles['upgrade-level']}>
-                        Level {level} / {upgrade.maxLevel}
-                      </span>
-                      <Button
-                        disabled={
-                          level >= upgrade.maxLevel || !user || (user.prestige?.shards || 0) < cost
-                        }
-                        onClickAsync={async () => {
-                          if (await buyPermanentUpgrade(upgrade.id)) await updateEverything();
-                        }}
-                      >
-                        {upgradeButtonText}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
               <h3 className={styles['upgrade-section-title']}>Timed Upgrades</h3>
               <div className={styles['upgrades-grid']}>
                 {UPGRADES.sort((a, b) => {
@@ -2852,9 +2863,14 @@ export default function Game() {
               })()}
             </div>
           )}
+          {tab === 'rewards' && user && (
+            <div className={`tab-content ${styles['rewards-tab']}`}>
+              <DailyRewards user={user} refreshUser={updateEverything} />
+            </div>
+          )}
           {tab === 'settings' && (
             <div className="tab-content">
-              <Settings user={user!} onRestartTutorial={startTutorial} />
+              <Settings user={user!} />
             </div>
           )}
           {tab === 'stats' && (
@@ -2980,63 +2996,6 @@ export default function Game() {
           )}
         </main>
       </div>
-      {isTutorialOpen && (
-        <div className={styles['tutorial-dock']} role="status" aria-live="polite">
-          <div className={styles['tutorial-card']}>
-            <div className={styles['tutorial-npc']}>
-              <span className={styles['tutorial-npc-avatar']}>
-                <EmojiText>🐠</EmojiText>
-              </span>
-              <span className={styles['tutorial-npc-name']}>Reef Guide</span>
-            </div>
-            <div className={styles['tutorial-body']}>
-              <span className={styles['tutorial-step-count']}>
-                Step {tutorialStep + 1} of {tutorialSteps.length}
-              </span>
-              <h3>{currentTutorialStep?.title}</h3>
-              <p>{currentTutorialStep?.body}</p>
-              {currentTutorialStep?.task && (
-                <div className={styles['tutorial-task']}>
-                  <span className={styles['tutorial-task-label']}>Task</span>
-                  <span
-                    className={`${styles['tutorial-task-value']} ${
-                      isTutorialStepComplete ? 'done' : 'todo'
-                    }`}
-                  >
-                    {currentTutorialStep.task}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className={styles['tutorial-actions']}>
-              <Button secondary onClick={() => void handleTutorialComplete()}>
-                Skip
-              </Button>
-              <div className={styles['tutorial-nav']}>
-                <Button
-                  secondary
-                  disabled={tutorialStep === 0}
-                  onClick={() => setTutorialStep(prev => Math.max(0, prev - 1))}
-                >
-                  Back
-                </Button>
-                <Button
-                  disabled={!isTutorialStepComplete}
-                  onClick={() => {
-                    if (isLastTutorialStep) {
-                      void handleTutorialComplete();
-                    } else {
-                      setTutorialStep(prev => prev + 1);
-                    }
-                  }}
-                >
-                  {isLastTutorialStep ? 'Finish' : 'Next'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       <Modal isOpen={appealModalOpen} onClose={() => setAppealModalOpen(false)}>
         <div className={styles['appeal-modal']}>
           <h2>Submit an Appeal</h2>
@@ -3051,55 +3010,6 @@ export default function Game() {
               Cancel
             </Button>
             <Button onClickAsync={submitAppealClick}>Submit Appeal</Button>
-          </div>
-        </div>
-      </Modal>
-      <Modal isOpen={isDailyRewardModalOpen} onClose={() => setIsDailyRewardModalOpen(false)}>
-        <div className={styles['daily-reward-modal']}>
-          <div className={styles['daily-reward-header']}>
-            <div>
-              <h2>Daily Login Rewards</h2>
-              <p className={styles['daily-reward-subtitle']}>
-                Come back each day to build your streak.
-              </p>
-            </div>
-          </div>
-          <div className={styles['daily-reward-grid']}>
-            {DAILY_REWARDS.map(reward => {
-              const streak = dailyRewardResult?.streak || 0;
-              const isClaimed = reward.day <= streak;
-              const isToday = reward.day === dailyRewardResult?.reward?.day;
-              const rewardLabel =
-                reward.type === 'money'
-                  ? `+${smartFormatNumber(reward.amount)}`
-                  : `+${reward.amount} Gems`;
-              return (
-                <div
-                  key={reward.day}
-                  className={`${styles['daily-reward-card']}${isClaimed ? ' claimed' : ''}${
-                    isToday ? ' today' : ''
-                  }`}
-                >
-                  <div className={styles['daily-reward-day']}>Day {reward.day}</div>
-                  <div className={styles['daily-reward-amount']}>{rewardLabel}</div>
-                </div>
-              );
-            })}
-          </div>
-          {dailyRewardResult?.reward && (
-            <div className={styles['daily-reward-today']}>
-              <span className={styles['daily-reward-today-label']}>Today&apos;s reward</span>
-              <strong className={styles['daily-reward-today-amount']}>
-                {dailyRewardResult.reward.type === 'money'
-                  ? `+${smartFormatNumber(dailyRewardResult.reward.amount)}`
-                  : `+${dailyRewardResult.reward.amount} Gems`}
-              </strong>
-            </div>
-          )}
-          <div className={styles['daily-reward-actions']}>
-            <Button onClick={() => setIsDailyRewardModalOpen(false)} secondary>
-              Close
-            </Button>
           </div>
         </div>
       </Modal>
@@ -3124,9 +3034,11 @@ export default function Game() {
           } else if (paymentModalUpgradeId) {
             await buyUpgrade(paymentModalUpgradeId);
           } else if (paymentModalRodId) {
-            await buyRod(paymentModalRodId);
+            await (await import('../../helpers/fishing')).buyRod(paymentModalRodId);
           } else if (paymentModalBaitId) {
-            await buyBait(paymentModalBaitId, paymentModalBaitQty);
+            await (
+              await import('../../helpers/fishing')
+            ).buyBait(paymentModalBaitId, paymentModalBaitQty);
           } else if (paymentModalAquarium) {
             await upgradeAquarium();
           } else if (paymentModalEventPreview) {
@@ -3144,7 +3056,9 @@ export default function Game() {
             }
             return;
           } else if (paymentModalFrenzyType) {
-            const res = await activateFrenzy(paymentModalFrenzyType);
+            const res = await (
+              await import('../../helpers/fishing')
+            ).activateFrenzy(paymentModalFrenzyType);
             if (res.status) setFrenzyStatus(res.status);
             setPaymentModalFrenzyType(null);
           } else {
@@ -3155,6 +3069,16 @@ export default function Game() {
           setIsLoadingPaymentModal(false);
           setIsPaymentModalOpen(false);
         }}
+      />
+
+      <UpdateInfoModal isOpen={isUpdateInfoOpen} onClose={() => setIsUpdateInfoOpen(false)} />
+
+      <GiveMoneyModal
+        isOpen={isGiveMoneyOpen}
+        onClose={() => setIsGiveMoneyOpen(false)}
+        balance={user?.money ?? 0}
+        currentUsername={user?.username ?? ''}
+        onSent={updateEverything}
       />
     </>
   );

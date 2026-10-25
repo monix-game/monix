@@ -1,4 +1,5 @@
 import type { IUser } from '../../server/common/models/user';
+import type { ResetTarget } from '../../server/common/resets';
 import type { IReport } from '../../server/common/models/report';
 import { api } from './api';
 import type { DashboardInfo } from '../../server/common/models/dashboardInfo';
@@ -182,6 +183,31 @@ export async function updateStaffUser(
   } catch (err) {
     console.error('Error updating staff user', err);
     return null;
+  }
+}
+
+export interface ResetUsersResult {
+  ok: boolean;
+  affected?: number;
+  error?: string;
+}
+
+export async function resetAllUserData(
+  targets: ResetTarget[],
+  confirmation: string
+): Promise<ResetUsersResult> {
+  try {
+    const resp = await api.post<{ affected: number; targets: ResetTarget[] }>('/staff/reset', {
+      targets,
+      confirmation,
+    });
+    if (resp?.success && resp.data) {
+      return { ok: true, affected: resp.data.affected };
+    }
+    return { ok: false, error: resp?.error?.message || 'Reset failed' };
+  } catch (err) {
+    console.error('Error resetting user data', err);
+    return { ok: false, error: err instanceof Error ? err.message : 'Reset failed' };
   }
 }
 

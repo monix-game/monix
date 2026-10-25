@@ -19,6 +19,20 @@ export interface IRecoveryCode {
   used: boolean;
 }
 
+/**
+ * A pet caught while fishing. It lives in the satchel (not the kennel) until
+ * the player spends money to adopt it, which is what makes catchable pets
+ * distinct from pets bought from the shop.
+ */
+export interface IStrayPet {
+  uuid: string;
+  type_id: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  /** Assigned when the stray is pulled from the water, before adoption. */
+  name: string | null;
+  caught_at: number;
+}
+
 export interface IUserStats {
   playtime_ms: number;
   messages_sent: number;
@@ -28,6 +42,8 @@ export interface IUserStats {
   resources_sold: number;
   fish_caught: number;
   fish_sold: number;
+  /** Stray pets pulled from the water while fishing. */
+  pets_caught: number;
   bait_used: number;
   pets_adopted: number;
   pets_fed: number;
@@ -45,6 +61,7 @@ export const DEFAULT_USER_STATS: IUserStats = {
   resources_sold: 0,
   fish_caught: 0,
   fish_sold: 0,
+  pets_caught: 0,
   bait_used: 0,
   pets_adopted: 0,
   pets_fed: 0,
@@ -63,12 +80,15 @@ export interface IUser {
   settings: ISettings;
   money: number;
   gems: number;
+  /**
+   * Base pet slots bought with money. The effective limit is this plus any
+   * `expanded_kennel` permanent upgrades, capped by PET_SLOT_MIN/MAX.
+   */
   pet_slots: number;
   daily_rewards?: {
     last_claimed_day?: number;
     streak?: number;
   };
-  completed_tutorial: boolean;
   totp_secret?: string;
   setup_totp?: boolean;
   passkeys?: IPasskey[];
@@ -93,6 +113,13 @@ export interface IUser {
       fish: IFish[];
     };
     last_fished_at?: number;
+    /**
+     * Set when a stray pet is caught instead of keeping the fish. The next
+     * eligible catch is auto-sold to make room, then this clears.
+     */
+    next_catch_auto_sell?: boolean;
+    /** Stray pets caught while fishing, waiting to be released from the satchel. */
+    satchel?: IStrayPet[];
     sailors?: {
       levels: number[];
       last_collected_at?: number;
@@ -111,12 +138,6 @@ export interface IUser {
       expires_at: number;
     };
   };
-  prestige?: {
-    count: number;
-    shards: number;
-    lifetime_earned: number;
-  };
-  permanent_upgrades?: Record<string, number>;
   achievements?: string[];
 }
 
@@ -133,7 +154,6 @@ export function userToDoc(u: IUser): IUser {
     gems: u.gems,
     pet_slots: u.pet_slots,
     daily_rewards: u.daily_rewards,
-    completed_tutorial: u.completed_tutorial ?? false,
     totp_secret: u.totp_secret,
     setup_totp: u.setup_totp,
     passkeys: u.passkeys || [],
@@ -147,8 +167,6 @@ export function userToDoc(u: IUser): IUser {
     punishments: u.punishments,
     ip_history: u.ip_history || [],
     upgrades: u.upgrades || {},
-    prestige: u.prestige || { count: 0, shards: 0, lifetime_earned: 0 },
-    permanent_upgrades: u.permanent_upgrades || {},
     achievements: u.achievements || [],
   };
 }
@@ -182,6 +200,54 @@ interface RawRecoveryCode {
   used?: boolean;
 }
 
+interface RawStrayPet {
+  uuid?: string;
+  type_id?: string;
+  rarity?: string;
+  name?: string | null;
+  caught_at?: number;
+}
+
+const STRAY_RARITIES = ['common', 'rare', 'epic', 'legendary'] as const;
+
+/** Defensive parse so a malformed satchel entry can never break a user load. */
+function parseSatchel(raw: unknown): IStrayPet[] {
+  if (!Array.isArray(raw)) return [];
+  const out: IStrayPet[] = [];
+  for (const entry of raw as RawStrayPet[]) {
+    if (!entry?.uuid || !entry.type_id) continue;
+    out.push({
+      uuid: entry.uuid,
+      type_id: entry.type_id,
+      rarity: STRAY_RARITIES.includes(entry.rarity as (typeof STRAY_RARITIES)[number])
+        ? (entry.rarity as IStrayPet['rarity'])
+        : 'common',
+      name: entry.name ?? null,
+      caught_at: entry.caught_at || 0,
+    });
+  }
+  return out;
+}
+
+/**
+ * Applies defaults to the stored fishing block. `doc.fishing` is persisted
+ * loosely, so every optional field added over time needs a safe fallback here.
+ */
+function normalizeFishing(raw: unknown): NonNullable<IUser['fishing']> {
+  const f = (raw || {}) as IUser['fishing'] & { satchel?: unknown };
+
+  return {
+    ...f,
+    equipped_rod: f.equipped_rod ?? 'damaged-rod',
+    rods_owned: f.rods_owned?.length ? f.rods_owned : ['damaged-rod'],
+    bait_owned: f.bait_owned || {},
+    fish_caught: f.fish_caught || {},
+    aquarium: f.aquarium || { capacity: 10, level: 1, fish: [] },
+    next_catch_auto_sell: f.next_catch_auto_sell ?? false,
+    satchel: parseSatchel(f.satchel),
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function userFromDoc(doc: any): IUser {
   return {
@@ -196,7 +262,6 @@ export function userFromDoc(doc: any): IUser {
     gems: doc.gems || 0,
     pet_slots: typeof doc.pet_slots === 'number' ? doc.pet_slots : 3,
     daily_rewards: doc.daily_rewards || { last_claimed_day: 0, streak: 0 },
-    completed_tutorial: doc.completed_tutorial || false,
     totp_secret: doc.totp_secret || undefined,
     setup_totp: doc.setup_totp || false,
     passkeys: ((doc.passkeys as RawPasskey[] | undefined) || []).map(pk => ({
@@ -215,21 +280,11 @@ export function userFromDoc(doc: any): IUser {
     resources: doc.resources || {},
     cosmetics_unlocked: doc.cosmetics_unlocked || [],
     equipped_cosmetics: doc.equipped_cosmetics || {},
-    fishing: doc.fishing || {
-      equipped_rod: 'damaged-rod',
-      rods_owned: ['damaged-rod'],
-      aquarium: { capacity: 10, level: 1, fish: [] },
-    },
+    fishing: normalizeFishing(doc.fishing),
     stats: doc.stats || DEFAULT_USER_STATS,
     punishments: doc.punishments || [],
     ip_history: doc.ip_history || [],
     upgrades: doc.upgrades || {},
-    prestige: {
-      count: doc.prestige?.count || 0,
-      shards: doc.prestige?.shards ?? doc.prestige?.stars ?? 0,
-      lifetime_earned: doc.prestige?.lifetime_earned || 0,
-    },
-    permanent_upgrades: doc.permanent_upgrades || {},
     achievements: doc.achievements || [],
   };
 }

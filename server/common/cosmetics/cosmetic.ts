@@ -5,6 +5,8 @@ export interface Cosmetic {
   name: string;
   type: 'nameplate' | 'tag';
   nameplateStyle?: string;
+  /** Optional plate rendered behind the nameplate text. */
+  nameplateBackground?: string;
   tagIcon?: string;
   tagName?: string;
   tagColour?: 'primary' | 'red' | 'blue' | 'purple';

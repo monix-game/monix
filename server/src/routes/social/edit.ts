@@ -56,6 +56,14 @@ export const editMessage = new Elysia()
         return { error: 'You are not allowed to edit messages in this room' };
       }
 
+      // DM rooms are participant-only with no staff override, matching the read
+      // and send rules. Without this, any staff member who learned a message
+      // uuid could edit a conversation they are not part of.
+      if (room.type === 'dm' && !room.members?.includes(fetchedUser.uuid)) {
+        set.status = 403;
+        return { error: 'You are not allowed to edit messages in this conversation' };
+      }
+
       if (room.restrict_send_to && !hasRole(fetchedUser.role, room.restrict_send_to)) {
         set.status = 403;
         return { error: 'You are not allowed to edit messages in this room' };

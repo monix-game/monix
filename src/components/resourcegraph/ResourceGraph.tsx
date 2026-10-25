@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from './ResourceGraph.module.css';
 import { Graph } from '../graph/Graph';
 import type { ResourceInfo } from '../../../server/common/resources';
@@ -6,6 +6,22 @@ import { EmojiText } from '../EmojiText';
 import { Spinner } from '../spinner/Spinner';
 import { smartFormatNumber } from '../../../server/common/math';
 import { useSocket } from '../../providers/socket';
+import {
+  GRAPH_RANGES,
+  MAX_PLOT_POINTS,
+  downsample,
+  type GraphRangeKey,
+} from './graphRange';
+
+export type GraphVariant = 'line' | 'area' | 'waterfall';
+
+const GRAPH_VARIANTS: { key: GraphVariant; label: string }[] = [
+  { key: 'area', label: 'Area' },
+  { key: 'line', label: 'Line' },
+  { key: 'waterfall', label: 'Waterfall' },
+];
+
+const STYLE_STORAGE_KEY = 'monix-graph-style';
 
 interface ResourceGraphProps {
   resource: ResourceInfo;
@@ -24,32 +40,70 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
   stroke,
   fill,
 }) => {
-  const [hydrated, setHydrated] = React.useState<boolean>(false);
-  const [data, setData] = React.useState<number[]>([]);
-  const [currentPrice, setCurrentPrice] = React.useState<number | null>(null);
+  // History is stored against the channel it was delivered for, so switching
+  // resource or range can never briefly render the previous series: the stored
+  // key is simply ignored until the new subscription delivers its first payload.
+  const [history, setHistory] = useState<{
+    key: string;
+    points: Array<{ time: number; price: number }>;
+  } | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<{ key: string; price: number } | null>(null);
+  const [range, setRange] = useState<GraphRangeKey>('1h');
+  const [variant, setVariant] = useState<GraphVariant>(() => {
+    const stored = localStorage.getItem(STYLE_STORAGE_KEY) as GraphVariant | null;
+    return stored && GRAPH_VARIANTS.some(v => v.key === stored) ? stored : 'area';
+  });
 
   const { subscribe } = useSocket();
 
+  const historyKey = `resources:${resource.id}:${range}`;
+  const priceKey = `resources:prices:${resource.id}`;
+
   useEffect(() => {
-    const unsubscribe = subscribe(`resources:${resource.id}`, data => {
-      const history = data as Array<{ time: number; price: number }>;
-      setData(history.slice(-10).map(h => h.price));
-      setHydrated(true);
+    const unsubscribe = subscribe(historyKey, data => {
+      setHistory({
+        key: historyKey,
+        points: (data as Array<{ time: number; price: number }>) || [],
+      });
     });
     return unsubscribe;
-  }, [resource.id, subscribe]);
+  }, [historyKey, subscribe]);
 
   useEffect(() => {
     const unsubscribe = subscribe('resources:prices', data => {
       const prices = data as { [key: string]: number };
       const price = prices[resource.id];
-      if (typeof price === 'number') setCurrentPrice(price);
+      if (typeof price === 'number') setCurrentPrice({ key: priceKey, price });
     });
     return unsubscribe;
-  }, [resource.id, subscribe]);
+  }, [priceKey, resource.id, subscribe]);
 
+  const doChangeVariant = (next: GraphVariant) => {
+    setVariant(next);
+    localStorage.setItem(STYLE_STORAGE_KEY, next);
+  };
+
+  const points = history?.key === historyKey ? history.points : null;
+  const hydrated = points !== null;
+
+  const data = useMemo(
+    () =>
+      points
+        ? downsample(
+            points.map(h => h.price),
+            MAX_PLOT_POINTS
+          )
+        : [],
+    [points]
+  );
+
+  const livePrice = currentPrice?.key === priceKey ? currentPrice.price : null;
   const shownPrice =
-    currentPrice !== null ? currentPrice : data.length > 0 ? data.at(-1) || 0 : null;
+    livePrice !== null
+      ? livePrice
+      : points && points.length > 0
+        ? (points.at(-1)?.price ?? 0)
+        : null;
 
   // Percentage change from the first to the last point in the currently shown window.
   const priceChangePct = (() => {
@@ -79,6 +133,7 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
             padding={padding}
             stroke={stroke}
             fill={fill}
+            variant={variant}
           />
           <div className="graph-spacer"></div>
           <div className={styles['graph-under']}>
@@ -105,7 +160,35 @@ export const ResourceGraph: React.FC<ResourceGraphProps> = ({
                 </span>
               </div>
             </div>
-            <div className={styles.spacer}></div>
+            <div className={styles['graph-controls']}>
+              <div className={styles['range-picker']} role="group" aria-label="Chart style">
+                {GRAPH_VARIANTS.map(v => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    className={`${styles['range-button']} ${variant === v.key ? styles.active : ''}`}
+                    onClick={() => doChangeVariant(v.key)}
+                    aria-pressed={variant === v.key}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+              <span className={styles['control-divider']} />
+              <div className={styles['range-picker']} role="group" aria-label="Chart range">
+                {GRAPH_RANGES.map(r => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    className={`${styles['range-button']} ${range === r.key ? styles.active : ''}`}
+                    onClick={() => setRange(r.key)}
+                    aria-pressed={range === r.key}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </>
       )}

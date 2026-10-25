@@ -1,14 +1,16 @@
 import React from 'react';
 import styles from './Message.module.css';
-import { formatRelativeTime, titleCase } from '../../../server/common/math';
+import { formatRelativeTime } from '../../../server/common/math';
 import { EmojiText } from '../EmojiText';
 import type { IUser } from '../../../server/common/models/user';
 import type { IMessage } from '../../../server/common/models/message';
 import { dismissEphemeralMessage } from '../../helpers/social';
+import { resolveNameplate } from '../../helpers/cosmetics';
 import { useSocket } from '../../providers/socket';
 import { Avatar } from '../avatar/Avatar';
 import { cosmetics } from '../../../server/common/cosmetics/cosmetics';
 import { Nameplate } from '../nameplate/Nameplate';
+import { RoleBadge } from '../rolebadge/RoleBadge';
 
 interface MessageProps {
   user?: IUser;
@@ -248,24 +250,16 @@ export const Message: React.FC<MessageProps> = ({
           <span className="message-username">
             <Nameplate
               text={message.sender_username}
-              styleKey={
-                message.sender_magic_jellybean_active
-                  ? 'rainbow'
-                  : cosmetics.find(c => c.id === message.nameplate)?.nameplateStyle || null
-              }
+              {...resolveNameplate(message.nameplate, message.sender_magic_jellybean_active)}
             />
           </span>
+          {message.sender_badge && <RoleBadge role={message.sender_badge} />}
           {message.user_tag && (
             <span
               className={`user-tag tag-colour-${cosmetics.find(c => c.id === message.user_tag)?.tagColour}`}
             >
               <EmojiText>{cosmetics.find(c => c.id === message.user_tag)?.tagIcon}</EmojiText>{' '}
               {cosmetics.find(c => c.id === message.user_tag)?.tagName}
-            </span>
-          )}
-          {message.sender_badge && (
-            <span className={`user-badge ${message.sender_badge.toLowerCase()}`}>
-              {titleCase(message.sender_badge)}
             </span>
           )}
         </span>

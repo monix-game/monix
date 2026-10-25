@@ -44,6 +44,13 @@ export const deleteMessage = new Elysia()
       return { error: 'You are not allowed to delete messages in this room' };
     }
 
+    // DM rooms are participant-only with no staff override, matching the read
+    // and send rules.
+    if (room.type === 'dm' && !room.members?.includes(fetchedUser.uuid)) {
+      set.status = 403;
+      return { error: 'You are not allowed to delete messages in this conversation' };
+    }
+
     if (room.restrict_send_to && !hasRole(fetchedUser.role, room.restrict_send_to)) {
       set.status = 403;
       return { error: 'You are not allowed to delete messages in this room' };

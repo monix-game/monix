@@ -5,6 +5,7 @@ import { DEFAULT_USER_STATS } from '../../../common/models/user';
 import { isUpgradeActive, MAGIC_JELLYBEAN_UPGRADE_ID } from '../../../common/upgrades';
 import { calculateFishingResult, getFishValue } from '../../../common/fishing/fishing';
 import { FRENZY_COOLDOWN_S, isFishingFrenzyActive } from '../../../common/fishing/fishingFrenzy';
+import { SATCHEL_CAPACITY } from '../../../common/pet';
 import type { IFish } from '../../../common/models/fish';
 import { v4 } from 'uuid';
 
@@ -15,6 +16,10 @@ type FishOutcome =
       fishingResult: ReturnType<typeof calculateFishingResult>;
       fishCaught: IFish;
       success: boolean;
+      strayCaught: boolean;
+      satchelFull: boolean;
+      nextCatchAutoSell: boolean;
+      autoSold: boolean;
     };
 
 export const fish = new Elysia()
@@ -70,8 +75,7 @@ export const fish = new Elysia()
         const fishingResult = calculateFishingResult(
           baitId,
           rodId,
-          fetchedUser.upgrades,
-          fetchedUser.permanent_upgrades
+          fetchedUser.upgrades
         );
 
         const fish: IFish = {
@@ -84,17 +88,59 @@ export const fish = new Elysia()
         };
 
         let success = false;
+        let strayCaught = false;
+        let satchelFull = false;
+        let autoSold = false;
+
+        fetchedUser.stats ??= DEFAULT_USER_STATS;
+
+        // A pending auto-sell was forced by an *earlier* cast's stray pet, so it
+        // must be read before this cast can set a new one — otherwise the stray
+        // would consume its own flag and sell the very fish it is meant to
+        // protect.
+        const pendingAutoSell = Boolean(fetchedUser.fishing.next_catch_auto_sell);
+        const effectiveAutoSell = Boolean(auto_sell || pendingAutoSell);
+
+        // Consume the pending flag up front. Clearing it here rather than after
+        // the fish is stored means a stray caught on this same cast can re-arm it
+        // for the next one instead of being clobbered.
+        fetchedUser.fishing.next_catch_auto_sell = false;
+
+        // A stray pet is caught *in addition to* the fish. The pet is stashed in
+        // the satchel and the next eligible catch is force auto-sold so there is
+        // room to actually keep this one.
+        if (fishingResult.stray_pet) {
+          const satchel = (fetchedUser.fishing.satchel ??= []);
+          if (satchel.length >= SATCHEL_CAPACITY) {
+            satchelFull = true;
+          } else {
+            satchel.push({
+              uuid: v4(),
+              type_id: fishingResult.stray_pet.type_id,
+              rarity: fishingResult.stray_pet.rarity,
+              name: null,
+              caught_at: now,
+            });
+            strayCaught = true;
+            fetchedUser.fishing.next_catch_auto_sell = true;
+            fetchedUser.stats.pets_caught = (fetchedUser.stats.pets_caught || 0) + 1;
+          }
+        }
+
         if (
           fetchedUser.fishing.aquarium.fish.length < fetchedUser.fishing.aquarium.capacity &&
-          !auto_sell
+          !effectiveAutoSell
         ) {
           fetchedUser.fishing.aquarium.fish.push(fish);
           success = true;
-        } else if (auto_sell) {
+        } else if (effectiveAutoSell) {
           const value = getFishValue(fish);
           fetchedUser.money += value;
           success = true;
+          autoSold = true;
         }
+        // Otherwise the aquarium is full and auto-sell is off: the catch is lost,
+        // which matches the pre-existing behaviour.
 
         // Update fish caught count
         fetchedUser.fishing.fish_caught ??= {};
@@ -123,13 +169,22 @@ export const fish = new Elysia()
         if (baitId) {
           fetchedUser.stats.bait_used = (fetchedUser.stats.bait_used || 0) + 1;
         }
-        if (auto_sell && success) {
+        if (autoSold) {
           fetchedUser.stats.fish_sold = (fetchedUser.stats.fish_sold || 0) + 1;
         }
 
         return {
           changed: true,
-          value: { ok: 'success', fishingResult, fishCaught: fish, success },
+          value: {
+            ok: 'success',
+            fishingResult,
+            fishCaught: fish,
+            success,
+            strayCaught,
+            satchelFull,
+            nextCatchAutoSell: Boolean(fetchedUser.fishing.next_catch_auto_sell),
+            autoSold,
+          },
         };
       });
 
@@ -145,6 +200,10 @@ export const fish = new Elysia()
         fishingResult: result.fishingResult,
         fishCaught: result.fishCaught,
         success: result.success,
+        strayCaught: result.strayCaught,
+        satchelFull: result.satchelFull,
+        nextCatchAutoSell: result.nextCatchAutoSell,
+        autoSold: result.autoSold,
       };
     },
     {

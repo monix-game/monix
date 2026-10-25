@@ -12,6 +12,10 @@
             theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
           document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+          if (settings.seasonalTheme !== false) {
+            document.documentElement.dataset.seasonal = 'true';
+            document.documentElement.dataset.palette = 'halloween';
+          }
         } catch {
           document.documentElement.dataset.theme = 'light';
         }

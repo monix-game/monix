@@ -38,6 +38,7 @@ import type { IRoom } from '../common/models/room';
 import { createLogger } from './logging';
 import { profanityFilter } from './constants';
 import { hasRole } from '../common/roles';
+import { type GraphRangeKey, rangeSeconds } from '../common/graph';
 import { isUserBanned } from '../common/punishx/punishx';
 import { getCategoryById } from '../common/punishx/categories';
 import type { IReport } from '../common/models/report';
@@ -261,17 +262,28 @@ function startPetsPublisher() {
   }, 30000);
 }
 
+/**
+ * Resource history channels are `resources:<id>` (defaults to a 1 hour window)
+ * or `resources:<id>:<rangeKey>` where rangeKey is one of the GRAPH_RANGES
+ * tokens (e.g. `30s`, `1m`, `1h`, `24h`). Unknown/no key falls back to the
+ * default window.
+ */
+function parseResourceChannel(channel: string): { resourceId: string; rangeSeconds: number } | null {
+  if (!channel.startsWith('resources:')) return null;
+  if (channel === 'resources:prices' || channel === 'resources:changes') return null;
+
+  const [resourceId, rawRange] = channel.slice('resources:'.length).split(':');
+  if (!resourceId) return null;
+
+  return { resourceId, rangeSeconds: rangeSeconds(rawRange as GraphRangeKey | undefined) };
+}
+
 function startResourcesPublisher() {
   return setInterval(() => {
     for (const channel of subscribers.keys()) {
-      if (
-        !channel.startsWith('resources:') ||
-        channel === 'resources:prices' ||
-        channel === 'resources:changes'
-      )
-        continue;
-      const resourceId = channel.slice('resources:'.length);
-      broadcast(channel, buildResourceHistory(resourceId, 1));
+      const parsed = parseResourceChannel(channel);
+      if (!parsed) continue;
+      broadcast(channel, buildResourceHistory(parsed.resourceId, parsed.rangeSeconds));
     }
   }, 5000);
 }
@@ -342,49 +354,40 @@ function startRoomsPublisher() {
     const set = subscribers.get('socialRooms');
     if (!set || set.size === 0) return;
 
-    // Regular users see only public rooms -> identical snapshot for all of
-    // them, so compute & serialize once and share across every user-role
-    // connection instead of once per connection. Staff can see staff/private
-    // rooms that vary by membership, so those are still computed per connection.
-    const staffSockets: WSSocket[] = [];
-    const userSockets: WSSocket[] = [];
-    for (const ws of set) {
-      const role = getAuthData(ws).socketUser?.role ?? 'user';
-      if (role === 'user') userSockets.push(ws);
-      else staffSockets.push(ws);
-    }
+    void (async () => {
+      // Every room list is now viewer-dependent: public rooms are shared by
+      // everyone, but private and DM rooms belong to the members themselves, so
+      // even regular users need a personalised list. `getAllRooms()` is served
+      // from an in-memory cache, so this is a cheap filter — memoising the
+      // serialised payload per viewer still avoids re-serialising for users with
+      // several tabs open.
+      const payloadByViewer = new Map<string, string>();
 
-    const push = (wsList: WSSocket[]) => (snapshot: unknown) => {
-      const msg = JSON.stringify({ type: 'snapshot', channel: 'socialRooms', data: snapshot });
-      for (const ws of wsList) {
+      for (const ws of set) {
+        const socketUser = getAuthData(ws).socketUser;
+        const viewerKey = socketUser ? `${socketUser.uuid}:${socketUser.role}` : 'guest';
+        let payload = payloadByViewer.get(viewerKey);
+        if (payload === undefined) {
+          try {
+            payload = JSON.stringify({
+              type: 'snapshot',
+              channel: 'socialRooms',
+              data: await buildRooms(socketUser ?? null),
+            });
+          } catch {
+            // Swallow per-subscriber errors and leave this viewer uncached so
+            // the next tick retries.
+            continue;
+          }
+          payloadByViewer.set(viewerKey, payload);
+        }
         try {
-          ws.send(msg);
+          ws.send(payload);
         } catch {
           // Ignore disconnected sockets; cleaned up on close.
         }
       }
-    };
-
-    if (userSockets.length > 0) {
-      void (async () => {
-        try {
-          push(userSockets)(await buildRooms(null));
-        } catch {
-          // Swallow per-subscriber errors.
-        }
-      })();
-    }
-
-    for (const ws of staffSockets) {
-      const socketUser = getAuthData(ws).socketUser;
-      void (async () => {
-        try {
-          push([ws])(await buildRooms(socketUser ?? null));
-        } catch {
-          // Swallow per-subscriber errors.
-        }
-      })();
-    }
+    })();
   }, 5000);
 }
 
@@ -426,7 +429,8 @@ async function sendInitialSnapshot(channel: string, ws: WSSocket) {
   } else if (channel === 'market:news') {
     data = buildNewsFeed();
   } else if (channel.startsWith('resources:')) {
-    data = buildResourceHistory(channel.slice('resources:'.length), 1);
+    const parsed = parseResourceChannel(channel);
+    data = parsed ? buildResourceHistory(parsed.resourceId, parsed.rangeSeconds) : undefined;
   } else if (channel === 'settings') {
     data = await buildSettings();
   } else if (channel === 'user:me') {
