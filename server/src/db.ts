@@ -228,6 +228,76 @@ export async function getAllUsers(): Promise<IUser[]> {
 const RESET_MONEY = 1000;
 const RESET_PET_SLOTS = 3;
 
+type UserFishing = NonNullable<IUser['fishing']>;
+
+/**
+ * Normalise the nested fishing block before a fallback full-document reset.
+ * Legacy accounts can have `fishing` (or `fishing.aquarium`) stored as `null`,
+ * which makes dotted `$set` paths fail for the whole bulk update.
+ */
+function ensureFishing(user: IUser): UserFishing {
+  if (!user.fishing) {
+    user.fishing = {
+      equipped_rod: 'damaged-rod',
+      rods_owned: ['damaged-rod'],
+      aquarium: { capacity: 10, level: 1, fish: [] },
+    };
+  }
+  if (!user.fishing.aquarium) {
+    user.fishing.aquarium = { capacity: 10, level: 1, fish: [] };
+  }
+  return user.fishing;
+}
+
+/** Apply reset targets to an in-memory user (used for malformed legacy docs). */
+function applyResetToUser(user: IUser, targets: ResetTarget[]): void {
+  for (const target of targets) {
+    switch (target) {
+      case 'money':
+        user.money = RESET_MONEY;
+        break;
+      case 'gems':
+        user.gems = 0;
+        break;
+      case 'resources':
+        user.resources = {};
+        break;
+      case 'rods': {
+        const fishing = ensureFishing(user);
+        fishing.equipped_rod = 'damaged-rod';
+        fishing.rods_owned = ['damaged-rod'];
+        break;
+      }
+      case 'bait': {
+        const fishing = ensureFishing(user);
+        delete fishing.equipped_bait;
+        fishing.bait_owned = {};
+        break;
+      }
+      case 'aquarium':
+        ensureFishing(user).aquarium.fish = [];
+        break;
+      case 'pets':
+        ensureFishing(user).satchel = [];
+        user.pet_slots = RESET_PET_SLOTS;
+        break;
+      case 'upgrades':
+        user.upgrades = {};
+        break;
+      case 'achievements':
+        user.achievements = [];
+        break;
+      case 'cosmetics':
+        user.cosmetics_unlocked = [];
+        user.equipped_cosmetics = {};
+        break;
+      case 'stats':
+        user.stats = { ...DEFAULT_USER_STATS };
+        break;
+    }
+  }
+}
+
 /**
  * Apply a bulk progression reset to every account.
  *
@@ -297,11 +367,45 @@ export async function resetAllUsers(targets: ResetTarget[]): Promise<number> {
     }
   }
 
-  if (Object.keys(set).length > 0 || Object.keys(unset).length > 0) {
-    const update: { $set?: Record<string, unknown>; $unset?: Record<string, ''> } = {};
-    if (Object.keys(set).length > 0) update.$set = set;
-    if (Object.keys(unset).length > 0) update.$unset = unset;
-    await database.collection('users').updateMany({}, update);
+  const hasUpdate = Object.keys(set).length > 0 || Object.keys(unset).length > 0;
+  const update: { $set?: Record<string, unknown>; $unset?: Record<string, ''> } = {};
+  if (Object.keys(set).length > 0) update.$set = set;
+  if (Object.keys(unset).length > 0) update.$unset = unset;
+
+  let affected = 0;
+  const failures: { uuid: string; message: string }[] = [];
+
+  // Update each user individually. A single malformed legacy document (for
+  // example `fishing: null`) would otherwise make the whole `updateMany` throw
+  // and fail every otherwise-valid account.
+  for (const uuid of uuids) {
+    try {
+      if (hasUpdate) await database.collection('users').updateOne({ uuid }, update);
+      affected += 1;
+    } catch (err) {
+      // Fall back to a read/normalise/write cycle for documents whose nested
+      // fields cannot accept dotted updates.
+      try {
+        const user = await getUserByUUIDFresh(uuid);
+        if (!user) throw new Error('User disappeared during reset');
+        applyResetToUser(user, unique);
+        await updateUser(user);
+        affected += 1;
+      } catch (fallbackErr) {
+        failures.push({
+          uuid,
+          message: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr),
+        });
+        log.warn(
+          {
+            uuid,
+            err,
+            fallbackErr: fallbackErr instanceof Error ? fallbackErr.message : fallbackErr,
+          },
+          'bulk reset failed for user'
+        );
+      }
+    }
   }
 
   // Pets live in their own collection, so deleting them is a separate bulk
@@ -311,9 +415,22 @@ export async function resetAllUsers(targets: ResetTarget[]): Promise<number> {
   }
 
   await Promise.all(uuids.map(uuid => cacheDel(userKey(uuid))));
-  for (const uuid of uuids) emitUserChanged(uuid);
+  for (const uuid of uuids) {
+    try {
+      emitUserChanged(uuid);
+    } catch (err) {
+      log.warn({ uuid, err }, 'failed to emit user change after reset');
+    }
+  }
 
-  return uuids.length;
+  if (failures.length > 0) {
+    log.warn(
+      { failed: failures.length, affected, sample: failures.slice(0, 10) },
+      'bulk reset completed with skipped accounts'
+    );
+  }
+
+  return affected;
 }
 
 export async function createUser(user: IUser): Promise<void> {
